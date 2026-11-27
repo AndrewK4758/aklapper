@@ -75,11 +75,22 @@ func (p *tsrExprParser) parseUnary() (any, error) {
 	if !ok {
 		return nil, nil
 	}
-	if tok.kind == "punct" && tok.value == "!" {
+	if (tok.kind == "punct" && tok.value == "!") || (tok.kind == "ident" && tok.value == "void") {
+		p.depth++
+		defer func() { p.depth-- }()
+		if p.depth > MaxTSRDepth {
+			return nil, &tsrLimitError{
+				reason:  "depth_limit_exceeded",
+				message: "Agensi TSR stream exceeded nesting limit.",
+			}
+		}
 		p.consume()
 		op, err := p.parseUnary()
 		if err != nil {
 			return nil, err
+		}
+		if tok.value == "void" {
+			return nil, nil
 		}
 		switch v := op.(type) {
 		case float64:
@@ -91,11 +102,6 @@ func (p *tsrExprParser) parseUnary() (any, error) {
 		default:
 			return false, nil
 		}
-	}
-	if tok.kind == "ident" && tok.value == "void" {
-		p.consume()
-		_, err := p.parseUnary()
-		return nil, err
 	}
 	if tok.kind == "ident" && tok.value == "new" {
 		p.consume()

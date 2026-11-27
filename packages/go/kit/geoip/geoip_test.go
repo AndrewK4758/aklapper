@@ -162,3 +162,46 @@ func TestGeoIPReaderLookupPrivateAbsentCorruptAndClose(t *testing.T) {
 		t.Fatalf("raw IP leaked into geoip logs:\n%s", logged)
 	}
 }
+
+func TestGeoIPReaderMidLookupReadErrorEmitsLookupBranchSeam(t *testing.T) {
+	var logBuf bytes.Buffer
+	logger := slog.New(slog.NewJSONHandler(&logBuf, nil))
+
+	// Valid MMDB metadata header whose search tree points past the data section,
+	// so Open succeeds and the first Lookup triggers a mid-lookup read error.
+	badTree := []byte{0x00, 0x00, 0x99, 0x00, 0x00, 0x99}
+	separator := make([]byte, 16)
+	marker := append([]byte{0xab, 0xcd, 0xef}, []byte("MaxMind.com")...)
+	metadata := encodeMMDBMap([]mmdbKV{
+		{"binary_format_major_version", encodeMMDBUint(5, 2)},
+		{"binary_format_minor_version", encodeMMDBUint(5, 0)},
+		{"build_epoch", encodeMMDBUint(9, 1700000000)},
+		{"database_type", encodeMMDBUTF8("GeoLite2-City")},
+		{"ip_version", encodeMMDBUint(5, 4)},
+		{"node_count", encodeMMDBUint(6, 1)},
+		{"record_size", encodeMMDBUint(5, 24)},
+	})
+	var raw bytes.Buffer
+	raw.Write(badTree)
+	raw.Write(separator)
+	raw.Write(marker)
+	raw.Write(metadata)
+
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, CityDBFilename), raw.Bytes(), 0o600); err != nil {
+		t.Fatalf("write mid-lookup bad city mmdb: %v", err)
+	}
+
+	reader := NewReader(dir, logger)
+	defer reader.Close()
+	res := reader.Lookup("198.51.100.42")
+	if res.Branch != BranchCorruptDegraded {
+		t.Fatalf("expected BranchCorruptDegraded on mid-lookup error, got %+v", res)
+	}
+	logged := logBuf.String()
+	if !strings.Contains(logged, `"event":"analytics.geoip.mmdb_load_failed"`) ||
+		!strings.Contains(logged, `"event":"analytics.geoip.lookup_branch"`) ||
+		!strings.Contains(logged, `"branch":"mmdb_corrupt_degraded"`) {
+		t.Fatalf("expected both mmdb_load_failed and lookup_branch(mmdb_corrupt_degraded) on mid-lookup error, got:\n%s", logged)
+	}
+}

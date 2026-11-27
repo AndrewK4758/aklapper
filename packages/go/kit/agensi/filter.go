@@ -113,7 +113,7 @@ func isItemPublished(item map[string]any, isCreatorProfile bool) bool {
 
 func isTrustedSkillURL(rawURL string, allowedSet map[string]struct{}) string {
 	parsed, err := url.Parse(strings.TrimSpace(rawURL))
-	if err != nil || parsed.Host == "" {
+	if err != nil || parsed.User != nil || parsed.Host == "" {
 		return ""
 	}
 	scheme := strings.ToLower(parsed.Scheme)

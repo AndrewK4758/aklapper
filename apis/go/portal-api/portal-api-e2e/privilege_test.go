@@ -3,6 +3,8 @@ package portalapi_e2e_test
 import (
 	"context"
 	"errors"
+	"os"
+	"strings"
 	"testing"
 
 	"github.com/AndrewK4758/aklapper/packages/go/kit/contracts"
@@ -128,13 +130,48 @@ func TestPortalAppPostgreSQLPrivilegeAndRLSBoundaries(t *testing.T) {
 			assertPGDenied(t, err, "INSERT rate_limit_buckets with scope_key="+deniedKey)
 		}
 
-		// SELECT on rate_limit_buckets only exposes contact:ip:*, analytics:ip:*, global:*, session:* (never auth:*).
+		// Seed probe auth:* and global:* rows via owner DSN if available so RLS hiding is verified on live rows.
+		if adminDSN := strings.TrimSpace(os.Getenv("DATABASE_URL")); adminDSN != "" {
+			adminConn, admErr := pgx.Connect(ctx, adminDSN)
+			if admErr != nil {
+				t.Fatalf("connect admin DB to seed RLS visibility probes: %v", admErr)
+			}
+			defer adminConn.Close(ctx)
+			for _, probeKey := range []string{"auth:login:e2e-rls-probe", "global:e2e-rls-probe"} {
+				if _, err := adminConn.Exec(
+					ctx,
+					`INSERT INTO rate_limit_buckets (scope_key, window_start, turns_used, tokens_used)
+					 VALUES ($1, NOW(), 1, 0)
+					 ON CONFLICT (scope_key) DO NOTHING`,
+					probeKey,
+				); err != nil {
+					t.Fatalf("seed probe row %q: %v", probeKey, err)
+				}
+			}
+			t.Cleanup(func() {
+				cleanConn, cErr := pgx.Connect(context.Background(), adminDSN)
+				if cErr == nil {
+					defer cleanConn.Close(context.Background())
+					_, _ = cleanConn.Exec(context.Background(), `DELETE FROM rate_limit_buckets WHERE scope_key IN ('auth:login:e2e-rls-probe', 'global:e2e-rls-probe')`)
+				}
+			})
+		}
+
+		// SELECT on rate_limit_buckets only exposes contact:ip:*, analytics:ip:*, session:* (never auth:* or global:*).
 		var authCount int
 		if err := conn.QueryRow(ctx, `SELECT COUNT(*) FROM rate_limit_buckets WHERE scope_key LIKE 'auth:%'`).Scan(&authCount); err != nil {
-			t.Fatalf("select count rate_limit_buckets: %v", err)
+			t.Fatalf("select count rate_limit_buckets auth: %v", err)
 		}
 		if authCount != 0 {
 			t.Fatalf("expected 0 auth:* rows visible to portal_app, got %d", authCount)
+		}
+
+		var globalCount int
+		if err := conn.QueryRow(ctx, `SELECT COUNT(*) FROM rate_limit_buckets WHERE scope_key LIKE 'global:%'`).Scan(&globalCount); err != nil {
+			t.Fatalf("select count rate_limit_buckets global: %v", err)
+		}
+		if globalCount != 0 {
+			t.Fatalf("expected 0 global:* rows visible to portal_app, got %d", globalCount)
 		}
 	})
 }

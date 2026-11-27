@@ -39,7 +39,7 @@ type Enrichment struct {
 type slotState int
 
 const (
-	slotUnopened slotState = iota
+	_ slotState = iota
 	slotReady
 	slotAbsent
 	slotCorrupt
@@ -210,6 +210,19 @@ func strPtrIfNonEmpty(raw string) *string {
 	return &trimmed
 }
 
+func (r *Reader) handleLookupReadError(err error, alreadyCorrupt bool) Enrichment {
+	r.emitSeam("warn", map[string]any{
+		"seam_type": "BOUNDARY_FAULT",
+		"event":     "analytics.geoip.mmdb_load_failed",
+		"database":  "lookup",
+		"detail":    err.Error(),
+	})
+	if !alreadyCorrupt {
+		r.emitLookupBranch(BranchCorruptDegraded)
+	}
+	return Enrichment{Branch: BranchCorruptDegraded}
+}
+
 // Lookup enriches a public IP using lazily opened mmap GeoLite2 City & ASN databases.
 // Never logs the raw IP address.
 func (r *Reader) Lookup(ip string) Enrichment {
@@ -244,13 +257,7 @@ func (r *Reader) Lookup(ip string) Enrichment {
 	if r.cityState == slotReady && r.cityDB != nil {
 		var rec mmdbCityRecord
 		if err := r.cityDB.Lookup(parsedIP, &rec); err != nil {
-			r.emitSeam("warn", map[string]any{
-				"seam_type": "BOUNDARY_FAULT",
-				"event":     "analytics.geoip.mmdb_load_failed",
-				"database":  "lookup",
-				"detail":    err.Error(),
-			})
-			return Enrichment{Branch: BranchCorruptDegraded}
+			return r.handleLookupReadError(err, corrupt)
 		}
 		if c := strPtrIfNonEmpty(rec.Country.ISOCode); c != nil {
 			out.Country = c
@@ -271,13 +278,7 @@ func (r *Reader) Lookup(ip string) Enrichment {
 	if r.asnState == slotReady && r.asnDB != nil {
 		var rec mmdbASNRecord
 		if err := r.asnDB.Lookup(parsedIP, &rec); err != nil {
-			r.emitSeam("warn", map[string]any{
-				"seam_type": "BOUNDARY_FAULT",
-				"event":     "analytics.geoip.mmdb_load_failed",
-				"database":  "lookup",
-				"detail":    err.Error(),
-			})
-			return Enrichment{Branch: BranchCorruptDegraded}
+			return r.handleLookupReadError(err, corrupt)
 		}
 		if rec.AutonomousSystemNumber > 0 {
 			asnVal := int32(rec.AutonomousSystemNumber)

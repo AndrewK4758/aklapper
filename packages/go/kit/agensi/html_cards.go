@@ -73,6 +73,26 @@ func stripTagsLinear(rawHTML string) string {
 	return strings.TrimSpace(whitespaceRE.ReplaceAllString(decodeHTMLEntities(b.String()), " "))
 }
 
+func asciiToLower(s string) string {
+	var b strings.Builder
+	for i := 0; i < len(s); i++ {
+		ch := s[i]
+		if ch >= 'A' && ch <= 'Z' {
+			if b.Len() == 0 {
+				b.Grow(len(s))
+				b.WriteString(s[:i])
+			}
+			b.WriteByte(ch + ('a' - 'A'))
+		} else if b.Len() > 0 {
+			b.WriteByte(ch)
+		}
+	}
+	if b.Len() == 0 {
+		return s
+	}
+	return b.String()
+}
+
 func scanTagBlocksLinear(html, lowerHTML, tagName string) []scannedElement {
 	results := make([]scannedElement, 0)
 	openPrefix := "<" + tagName
@@ -102,17 +122,19 @@ func scanTagBlocksLinear(html, lowerHTML, tagName string) []scannedElement {
 			break
 		}
 		closeStart := openEnd + 1 + closeRel
-		results = append(results, scannedElement{
-			openTag: html[start : openEnd+1],
-			body:    html[openEnd+1 : closeStart],
-		})
+		if start >= 0 && openEnd >= start && closeStart >= openEnd+1 && closeStart <= len(html) {
+			results = append(results, scannedElement{
+				openTag: html[start : openEnd+1],
+				body:    html[openEnd+1 : closeStart],
+			})
+		}
 		cursor = closeStart + len(closeToken)
 	}
 	return results
 }
 
 func extractSkillSlugFromSlice(slice string) string {
-	lower := strings.ToLower(slice)
+	lower := asciiToLower(slice)
 	for _, marker := range []string{`href="/skills/`, `href='/skills/`} {
 		idx := strings.Index(lower, marker)
 		if idx < 0 {
@@ -120,6 +142,9 @@ func extractSkillSlugFromSlice(slice string) string {
 		}
 		quote := marker[5]
 		valStart := idx + len(marker)
+		if valStart > len(slice) {
+			continue
+		}
 		valEndRel := strings.IndexByte(slice[valStart:], quote)
 		if valEndRel < 0 {
 			continue
@@ -142,7 +167,7 @@ func extractCardFromContainer(slug, body string, seen map[string]struct{}, sortO
 	if _, dup := seen[slug]; dup {
 		return nil
 	}
-	lowerBody := strings.ToLower(body)
+	lowerBody := asciiToLower(body)
 	h3Blocks := scanTagBlocksLinear(body, lowerBody, "h3")
 	pBlocks := scanTagBlocksLinear(body, lowerBody, "p")
 	if len(h3Blocks) == 0 {

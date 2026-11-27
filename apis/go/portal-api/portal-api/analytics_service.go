@@ -136,6 +136,7 @@ func (s *analyticsServiceServer) IngestAnalytics(
 		s.deps.geoReader,
 		baseSalt,
 		now,
+		corrID,
 	)
 	ingestRes, err := s.deps.store.IngestPortalAnalyticsTx(
 		ctx,
@@ -187,11 +188,12 @@ func (s *analyticsServiceServer) RecordSsrHit(
 		s.deps.geoReader,
 		baseSalt,
 		now,
+		corrID,
 	)
 	events := []pg.PortalAnalyticsEventInput{
 		{
 			Type:      "page_view",
-			Name:      "page_view",
+			Name:      "portal_page_view",
 			Path:      pathname,
 			Metadata:  map[string]any{"navigation": "ssr", "app": "portal"},
 			Timestamp: now.Format(time.RFC3339Nano),
@@ -242,6 +244,7 @@ func (s *analyticsServiceServer) BindGuestSession(
 		s.deps.geoReader,
 		baseSalt,
 		now,
+		corrID,
 	)
 	meta.GuestSessionID = &guestID
 

@@ -195,6 +195,10 @@ func validateDynamicContactField(field contactFormNode, req *portalv1.SubmitCont
 	case "message":
 		rawVal = req.GetMessage()
 	}
+	if strings.IndexByte(rawVal, 0) >= 0 {
+		addFieldError(errs, field.Name, field.Label+" contains unsupported characters")
+		return
+	}
 	val := strings.TrimSpace(rawVal)
 	if val == "" {
 		if field.Required {
@@ -247,7 +251,9 @@ func validateContactRequest(formDef contactFormDefinition, req *portalv1.SubmitC
 
 	name := strings.TrimSpace(req.GetName())
 	nameLen := utf8.RuneCountInString(name)
-	if nameLen < 2 {
+	if strings.IndexByte(req.GetName(), 0) >= 0 {
+		addFieldError(errs, "name", "Name contains unsupported characters")
+	} else if nameLen < 2 {
 		addFieldError(errs, "name", "Name must be at least 2 characters")
 	} else if nameLen > 120 {
 		addFieldError(errs, "name", "Name must be 120 characters or fewer")
@@ -257,7 +263,9 @@ func validateContactRequest(formDef contactFormDefinition, req *portalv1.SubmitC
 
 	var phonePtr *string
 	phone := strings.TrimSpace(req.GetPhone())
-	if phone != "" {
+	if strings.IndexByte(req.GetPhone(), 0) >= 0 {
+		addFieldError(errs, "phone", "Phone contains unsupported characters")
+	} else if phone != "" {
 		pLen := utf8.RuneCountInString(phone)
 		digits := countDigits(phone)
 		if pLen < 7 || pLen > 32 || !contactPhoneCharsRE.MatchString(phone) || digits < 7 || digits > 15 {
@@ -268,16 +276,22 @@ func validateContactRequest(formDef contactFormDefinition, req *portalv1.SubmitC
 	}
 
 	email := strings.ToLower(strings.TrimSpace(req.GetEmail()))
-	if utf8.RuneCountInString(email) > 254 {
-		addFieldError(errs, "email", "Email must be 254 characters or fewer")
-	}
-	if !contactEmailRE.MatchString(email) {
-		addFieldError(errs, "email", "Enter a valid email address")
+	if strings.IndexByte(req.GetEmail(), 0) >= 0 {
+		addFieldError(errs, "email", "Email contains unsupported characters")
+	} else {
+		if utf8.RuneCountInString(email) > 254 {
+			addFieldError(errs, "email", "Email must be 254 characters or fewer")
+		}
+		if !contactEmailRE.MatchString(email) {
+			addFieldError(errs, "email", "Enter a valid email address")
+		}
 	}
 
 	message := strings.TrimSpace(req.GetMessage())
 	msgLen := utf8.RuneCountInString(message)
-	if msgLen < 10 {
+	if strings.IndexByte(req.GetMessage(), 0) >= 0 {
+		addFieldError(errs, "message", "Message contains unsupported characters")
+	} else if msgLen < 10 {
 		addFieldError(errs, "message", "Message must be at least 10 characters")
 	} else if msgLen > 4000 {
 		addFieldError(errs, "message", "Message must be 4000 characters or fewer")

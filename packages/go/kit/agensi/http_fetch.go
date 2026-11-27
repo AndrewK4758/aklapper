@@ -173,7 +173,7 @@ func FetchCreatorCatalog(ctx context.Context, cfg Config, opts FetchOptions) Fet
 		}
 
 		if pageIdx == 0 && resp.StatusCode == http.StatusNotModified {
-			_, _ = io.Copy(io.Discard, resp.Body)
+			_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, 4096))
 			_ = resp.Body.Close()
 			etag := strings.TrimSpace(resp.Header.Get("ETag"))
 			if etag == "" {
@@ -183,7 +183,7 @@ func FetchCreatorCatalog(ctx context.Context, cfg Config, opts FetchOptions) Fet
 		}
 
 		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-			_, _ = io.Copy(io.Discard, resp.Body)
+			_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, 4096))
 			_ = resp.Body.Close()
 			return FetchResult{
 				ErrorCode:  "AGENSI_HTTP_ERROR",

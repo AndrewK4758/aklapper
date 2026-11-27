@@ -1,12 +1,15 @@
 package agensi
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"unicode/utf8"
 )
 
 func TestAgensiTSRTwoQueryAndHTMLCardParsing(t *testing.T) {
@@ -124,5 +127,136 @@ func TestAgensiFetchPaginationRedirectsAndBounds(t *testing.T) {
 	tooBig := FetchCreatorCatalog(context.Background(), cfgOversized, FetchOptions{})
 	if tooBig.OK || tooBig.ErrorCode != "AGENSI_PAYLOAD_TOO_LARGE" {
 		t.Fatalf("expected AGENSI_PAYLOAD_TOO_LARGE, got %+v", tooBig)
+	}
+}
+
+func TestAgensiUnicodeCaseFoldUnaryBoundsUserinfoScrubAndParseModeSeams(t *testing.T) {
+	prefix := strings.Repeat("Ⱥ", 30) + "İ"
+
+	tsrWithUnicode := `<!doctype html><html><body><p>` + prefix + `</p>` +
+		`<SCRIPT DATA-TSR-STREAM-PART="0">` +
+		`$R[1]={queryKey:["creator-profile","aklapper"],state:{data:{slug:"aklapper",user_id:"u-1"}}};` +
+		`$R[2]={queryKey:["creator-skills","u-1"],state:{data:[{slug:"uni-tsr",name:"Uni TSR",summary:"Parsed cleanly",creator_id:"u-1"}]}};` +
+		`</SCRIPT></body></html>`
+	tsrRes := ParseCreatorHTML(tsrWithUnicode, "aklapper", "https://www.agensi.io/creators/aklapper")
+	if !tsrRes.OK || tsrRes.ParseMode != "tsr_stream" || len(tsrRes.Items) != 1 || tsrRes.Items[0]["slug"] != "uni-tsr" {
+		t.Fatalf("expected unicode-prefixed TSR parse to succeed without panic, got %+v", tsrRes)
+	}
+
+	cardsWithUnicode := `<!doctype html><html><body><div>` + prefix + `</div>` +
+		`<ARTICLE><p>` + prefix + `</p><A HREF="/skills/uni-card"><H3>Unicode Card</H3></A><P>Summary text</P></ARTICLE>` +
+		`</body></html>`
+	cardRes := ParseCreatorHTML(cardsWithUnicode, "aklapper", "https://www.agensi.io/creators/aklapper")
+	if !cardRes.OK || cardRes.ParseMode != "html_fallback" || len(cardRes.Items) != 1 || cardRes.Items[0]["slug"] != "uni-card" {
+		t.Fatalf("expected unicode-prefixed HTML fallback parse to succeed without panic, got %+v", cardRes)
+	}
+
+	// Deep unary `!` nesting must fail closed with depth_limit_exceeded.
+	deepUnary := `<script data-tsr-stream-part="0">` + strings.Repeat("!", MaxTSRDepth+5) + `0</script>`
+	unaryRes := ParseCreatorHTML(deepUnary, "aklapper", "https://www.agensi.io/creators/aklapper")
+	if unaryRes.OK || unaryRes.Reason != "depth_limit_exceeded" {
+		t.Fatalf("expected depth_limit_exceeded on deep unary nesting, got %+v", unaryRes)
+	}
+
+	// Userinfo skill URLs must be rejected.
+	var logBuf bytes.Buffer
+	origOut := log.Writer()
+	log.SetOutput(&logBuf)
+	t.Cleanup(func() { log.SetOutput(origOut) })
+
+	filtered := FilterCreatorPublishedSkills([]map[string]any{
+		{
+			"slug":          "bad-userinfo",
+			"name":          "Userinfo Skill",
+			"summary":       "Should be rejected",
+			"url":           "https://user:pass@agensi.io/skills/bad-userinfo",
+			"creatorHandle": "aklapper",
+			"isPublished":   true,
+		},
+		{
+			"slug":          "foreign-item",
+			"name":          "Foreign",
+			"summary":       "Foreign summary",
+			"url":           "https://agensi.io/skills/foreign-item",
+			"creatorHandle": "other",
+			"isPublished":   true,
+		},
+		{
+			"slug":          "draft-item",
+			"name":          "Draft",
+			"summary":       "Draft summary",
+			"url":           "https://agensi.io/skills/draft-item",
+			"creatorHandle": "aklapper",
+			"isPublished":   false,
+		},
+	}, "aklapper", DefaultAllowedOrigins, FilterContext{CorrelationID: "corr-filter-1"})
+	if len(filtered.Items) != 0 || filtered.RejectedInvalidCount != 1 || filtered.RejectedForeignCount != 1 || filtered.RejectedUnpublishedCount != 1 {
+		t.Fatalf("unexpected filter rejection counts: %+v", filtered)
+	}
+
+	// ScrubSecret truncates on valid UTF-8 rune boundaries while redacting secrets.
+	scrubbed := ScrubSecret("err secret-key-99 "+strings.Repeat("日", 320), "secret-key-99")
+	if strings.Contains(scrubbed, "secret-key-99") || !strings.Contains(scrubbed, "[REDACTED]") ||
+		!utf8.ValidString(scrubbed) || utf8.RuneCountInString(scrubbed) > 300 {
+		t.Fatalf("expected valid UTF-8 scrubbed string <= 300 runes, got valid=%v runes=%d", utf8.ValidString(scrubbed), utf8.RuneCountInString(scrubbed))
+	}
+
+	// Verify agensi.catalog.parse_mode_total emissions across tsr_stream, html_fallback, parse_empty, and json.
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Query().Get("mode") {
+		case "tsr":
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			_, _ = w.Write([]byte(tsrWithUnicode))
+		case "html":
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			_, _ = w.Write([]byte(cardsWithUnicode))
+		case "empty":
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			_, _ = w.Write([]byte("<html><body>empty</body></html>"))
+		default:
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"slug":"aklapper","skills":[{"slug":"j1","name":"J1","summary":"JSON item","url":"https://agensi.io/skills/j1"}]}`))
+		}
+	}))
+	defer srv.Close()
+
+	baseCfg := Config{
+		BaseURL:        srv.URL,
+		CreatorHandle:  "aklapper",
+		TimeoutMs:      1500,
+		MaxPages:       1,
+		AllowedOrigins: append([]string{srv.URL}, DefaultAllowedOrigins...),
+	}
+	for _, tc := range []struct {
+		path   string
+		wantOK bool
+	}{
+		{"/creators/aklapper?mode=tsr", true},
+		{"/creators/aklapper?mode=html", true},
+		{"/creators/aklapper?mode=empty", false},
+		{"/api/creators/aklapper?mode=json", true},
+	} {
+		c := baseCfg
+		c.APIPath = tc.path
+		r := FetchCreatorCatalog(context.Background(), c, FetchOptions{CorrelationID: "corr-pm"})
+		if r.OK != tc.wantOK {
+			t.Fatalf("FetchCreatorCatalog(%s) OK=%v want %v: %+v", tc.path, r.OK, tc.wantOK, r)
+		}
+	}
+
+	logs := logBuf.String()
+	for _, expected := range []string{
+		`"event":"agensi.catalog.parse_mode_total"`,
+		`"parse_mode":"tsr_stream"`,
+		`"parse_mode":"html_fallback"`,
+		`"parse_mode":"parse_empty"`,
+		`"parse_mode":"json"`,
+		`"event":"agensi.catalog.foreign_creator_rejected"`,
+		`"event":"agensi.catalog.unpublished_item_rejected"`,
+		`"event":"agensi.catalog.payload_validation_failed"`,
+	} {
+		if !strings.Contains(logs, expected) {
+			t.Fatalf("expected seam log %s in:\n%s", expected, logs)
+		}
 	}
 }

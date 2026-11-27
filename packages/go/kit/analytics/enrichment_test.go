@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"unicode/utf8"
 
 	portalv1 "github.com/AndrewK4758/aklapper/packages/go/kit/gen/portal/v1"
 )
@@ -178,5 +179,31 @@ func TestReferrerCampaignAndBatchBounds(t *testing.T) {
 		}},
 	}); err == nil {
 		t.Fatal("expected >2048 byte metadata to fail")
+	}
+}
+
+func TestUTF8SafeRuneTruncation(t *testing.T) {
+	cjkPath := "/p/" + strings.Repeat("日", 200)
+	gotCJK := NormalizeLandingPath(cjkPath)
+	if !utf8.ValidString(gotCJK) || gotCJK != cjkPath {
+		t.Fatalf("expected valid intact 203-rune CJK path, got valid=%v runes=%d", utf8.ValidString(gotCJK), utf8.RuneCountInString(gotCJK))
+	}
+
+	accentPath := "/" + strings.Repeat("a", 510) + "é"
+	gotAccent := NormalizeLandingPath(accentPath)
+	if !utf8.ValidString(gotAccent) || gotAccent != accentPath {
+		t.Fatalf("expected valid 512-rune accented path, got valid=%v runes=%d", utf8.ValidString(gotAccent), utf8.RuneCountInString(gotAccent))
+	}
+
+	overPath := "/p/" + strings.Repeat("日", 600)
+	gotOver := NormalizeLandingPath(overPath)
+	if !utf8.ValidString(gotOver) || utf8.RuneCountInString(gotOver) != MaxPathLen {
+		t.Fatalf("expected valid UTF-8 truncated to %d runes, got valid=%v runes=%d", MaxPathLen, utf8.ValidString(gotOver), utf8.RuneCountInString(gotOver))
+	}
+
+	overRef := "https://example.com/" + strings.Repeat("é", 600)
+	gotRef := NormalizeReferrer(overRef, nil)
+	if gotRef.Referrer == nil || !utf8.ValidString(*gotRef.Referrer) || utf8.RuneCountInString(*gotRef.Referrer) > MaxReferrerLen {
+		t.Fatalf("expected valid UTF-8 truncated referrer <= %d runes, got %+v", MaxReferrerLen, gotRef)
 	}
 }

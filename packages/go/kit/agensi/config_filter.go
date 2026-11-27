@@ -7,6 +7,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 )
 
 const (
@@ -53,8 +54,8 @@ func ScrubSecret(message, apiKey string) string {
 	if trimmed != "" {
 		out = strings.ReplaceAll(out, trimmed, "[REDACTED]")
 	}
-	if len(out) > 300 {
-		return out[:300]
+	if utf8.RuneCountInString(out) > 300 {
+		return string([]rune(out)[:300])
 	}
 	return out
 }

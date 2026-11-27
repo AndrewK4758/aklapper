@@ -215,6 +215,13 @@ func ParseUserAgentProfile(ua string) UserAgentProfile {
 	}
 }
 
+func truncateRunes(s string, maxRunes int) string {
+	if maxRunes <= 0 || utf8.RuneCountInString(s) <= maxRunes {
+		return s
+	}
+	return string([]rune(s)[:maxRunes])
+}
+
 func SanitizeControlChars(raw string, maxLen int) *string {
 	if raw == "" {
 		return nil
@@ -231,10 +238,7 @@ func SanitizeControlChars(raw string, maxLen int) *string {
 	if cleaned == "" {
 		return nil
 	}
-	if maxLen > 0 && utf8.RuneCountInString(cleaned) > maxLen {
-		runes := []rune(cleaned)
-		cleaned = string(runes[:maxLen])
-	}
+	cleaned = truncateRunes(cleaned, maxLen)
 	return &cleaned
 }
 
@@ -307,10 +311,7 @@ func NormalizeReferrer(rawReferrer string, ownHosts []string) NormalizedReferrer
 	if pathname == "" {
 		pathname = "/"
 	}
-	cleanRef := parsed.Scheme + "://" + strings.ToLower(parsed.Host) + pathname
-	if len(cleanRef) > MaxReferrerLen {
-		cleanRef = cleanRef[:MaxReferrerLen]
-	}
+	cleanRef := truncateRunes(parsed.Scheme+"://"+strings.ToLower(parsed.Host)+pathname, MaxReferrerLen)
 	return NormalizedReferrer{
 		Referrer:         &cleanRef,
 		ReferrerHost:     &host,
@@ -347,10 +348,7 @@ func NormalizeLandingPath(rawPath string) string {
 	if withoutTrailing == "" {
 		withoutTrailing = "/"
 	}
-	if len(withoutTrailing) > MaxPathLen {
-		return withoutTrailing[:MaxPathLen]
-	}
-	return withoutTrailing
+	return truncateRunes(withoutTrailing, MaxPathLen)
 }
 
 func ExtractCampaignParams(rawURL string) CampaignParams {

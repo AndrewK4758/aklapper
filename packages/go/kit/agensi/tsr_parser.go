@@ -200,11 +200,11 @@ func findCreatorProfileQuery(roots []any, refs map[int]any, expectedCreator stri
 // ParseCreatorHTML extracts creator skills using non-executing TSR hydration parsing
 // with linear semantic HTML card fallback.
 func ParseCreatorHTML(html, creatorHandle, finalURL string) HTMLParseResult {
-	lowerHTML := strings.ToLower(html)
+	lowerHTML := asciiToLower(html)
 	scripts := scanTagBlocksLinear(html, lowerHTML, "script")
 	tsrScripts := make([]string, 0)
 	for _, sc := range scripts {
-		if strings.Contains(strings.ToLower(sc.openTag), "data-tsr-stream-part") && strings.TrimSpace(sc.body) != "" {
+		if strings.Contains(asciiToLower(sc.openTag), "data-tsr-stream-part") && strings.TrimSpace(sc.body) != "" {
 			tsrScripts = append(tsrScripts, sc.body)
 		}
 	}

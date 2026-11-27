@@ -102,7 +102,7 @@ func mapStoreErrorToConnect(err error, corrID string) *connect.Error {
 	}
 	if errors.Is(err, pg.ErrSiteContentMissing) || errors.Is(err, pg.ErrTerminalProfileMissing) || errors.Is(err, pg.ErrCadencePresetsEmpty) {
 		return newPortalError(
-			connect.CodeFailedPrecondition,
+			connect.CodeInternal,
 			contracts.ErrCodeInternal,
 			http.StatusInternalServerError,
 			"Unexpected server error.",

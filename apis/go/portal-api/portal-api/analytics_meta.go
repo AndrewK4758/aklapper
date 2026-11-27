@@ -25,6 +25,7 @@ func buildPortalAnalyticsMeta(
 	geoReader *geoip.Reader,
 	baseSalt string,
 	now time.Time,
+	corrID string,
 ) pg.PortalAnalyticsMeta {
 	daySalt := analytics.BuildDailySalt(baseSalt, now)
 	ipHash := analytics.HashVisitorIP(clientIP, daySalt)
@@ -48,6 +49,11 @@ func buildPortalAnalyticsMeta(
 
 	visitorHash := analytics.HashVisitorIdentity(clientIP, userAgent, daySalt)
 	botResult := analytics.ClassifyBotUserAgent(userAgent)
+	logPortalSeam("RULE_DIVERGENCE", "analytics.ingest.bot_classification_branch", map[string]any{
+		"branch":        botResult.Branch,
+		"isBot":         botResult.IsBot,
+		"correlationId": corrID,
+	})
 	uaProfile := analytics.ParseUserAgentProfile(userAgent)
 
 	geo := geoip.Enrichment{Branch: geoip.BranchAbsentFallback}

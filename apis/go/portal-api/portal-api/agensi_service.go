@@ -93,6 +93,14 @@ func (s *agensiServiceServer) runSingleflightSync(
 
 	go func() {
 		defer func() {
+			if r := recover(); r != nil {
+				logPortalSeam("BOUNDARY_FAULT", "agensi.sync.panic_recovered", map[string]any{
+					"correlationId": corrID,
+					"creatorHandle": cfg.CreatorHandle,
+				})
+				flight.res = pg.CommitAgensiSyncResult{}
+				flight.err = errors.New("agensi sync encountered an unexpected internal error")
+			}
 			s.mu.Lock()
 			delete(s.inFlight, key)
 			s.mu.Unlock()

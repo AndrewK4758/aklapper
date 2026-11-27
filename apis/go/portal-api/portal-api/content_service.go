@@ -161,10 +161,21 @@ func (s *contentServiceServer) GetAskContent(
 		return nil, mapStoreErrorToConnect(err, corrID)
 	}
 	sessionID := strings.TrimSpace(req.Msg.GetSessionId())
-	if sessionID == "" {
-		if claims, ok := grpckit.ClaimsFromContext(ctx); ok && claims != nil && claims.Role == internalauth.RoleGuest {
-			sessionID = strings.TrimSpace(claims.Sub)
+	if claims, ok := grpckit.ClaimsFromContext(ctx); ok && claims != nil && claims.Role == internalauth.RoleGuest {
+		claimSub := strings.TrimSpace(claims.Sub)
+		if sessionID != "" && sessionID != claimSub {
+			return nil, newPortalError(
+				connect.CodePermissionDenied,
+				contracts.ErrCodeForbidden,
+				http.StatusForbidden,
+				"Permission denied for action.",
+				"Return home or sign in again.",
+				corrID,
+				nil,
+				nil,
+			)
 		}
+		sessionID = claimSub
 	}
 	quota, err := s.deps.store.GetPortalGuestQuota(ctx, sessionID)
 	if err != nil {
@@ -191,7 +202,7 @@ func (s *contentServiceServer) GetCadenceContent(
 	}
 	if len(presets) == 0 {
 		return nil, newPortalError(
-			connect.CodeFailedPrecondition,
+			connect.CodeInternal,
 			contracts.ErrCodeInternal,
 			http.StatusInternalServerError,
 			"Unexpected server error.",

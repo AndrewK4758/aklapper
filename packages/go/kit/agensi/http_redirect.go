@@ -90,7 +90,7 @@ func fetchWithValidatedRedirects(
 		}
 
 		if isRedirectStatus(resp.StatusCode) {
-			_, _ = io.Copy(io.Discard, resp.Body)
+			_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, 4096))
 			_ = resp.Body.Close()
 
 			loc := strings.TrimSpace(resp.Header.Get("Location"))

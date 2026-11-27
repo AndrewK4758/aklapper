@@ -142,6 +142,7 @@ func (s *contactServiceServer) SubmitContact(
 		s.deps.geoReader,
 		baseSalt,
 		now,
+		corrID,
 	)
 	priorIPHash := ""
 	priorVisitorHash := ""
@@ -201,25 +202,41 @@ func (s *contactServiceServer) SubmitContact(
 		return nil, mapStoreErrorToConnect(insertErr, corrID)
 	}
 
+	finalizeContactAnalyticsLink(ctx, s.deps.store, summary.ID, linkResult, fkFallbackUsed, corrID, now)
+
+	return connect.NewResponse(&portalv1.SubmitContactResponse{
+		Submission: toProtoContactSummary(summary),
+	}), nil
+}
+
+func finalizeContactAnalyticsLink(
+	ctx context.Context,
+	store *pg.Store,
+	submissionID string,
+	linkResult pg.ContactLinkResult,
+	fkFallbackUsed bool,
+	corrID string,
+	now time.Time,
+) {
 	effectiveAnalyticsID := linkResult.AnalyticsSessionID
 	effectiveLinkMethod := linkResult.LinkMethod
 	if fkFallbackUsed {
+		logPortalSeam("BOUNDARY_FAULT", "portal.contact.analytics_link_failed", map[string]any{
+			"correlationId": corrID,
+			"reason":        "fk_23503_retry_null",
+		})
 		effectiveAnalyticsID = nil
 		effectiveLinkMethod = pg.LinkMethodFailOpenNull
 	}
 	if effectiveAnalyticsID != nil {
-		s.deps.store.RecordContactSubmittedEvent(ctx, *effectiveAnalyticsID, now)
+		store.RecordContactSubmittedEvent(ctx, *effectiveAnalyticsID, now)
 	}
 
 	logPortalSeam("DELTA_AUDIT_GAP", "portal.contact.analytics_link_committed", map[string]any{
-		"submissionId":         summary.ID,
+		"submissionId":         submissionID,
 		"linkMethod":           effectiveLinkMethod,
 		"linkedSessionPresent": effectiveAnalyticsID != nil,
 		"guestSessionLinked":   linkResult.GuestSessionID != nil,
 		"correlationId":        corrID,
 	})
-
-	return connect.NewResponse(&portalv1.SubmitContactResponse{
-		Submission: toProtoContactSummary(summary),
-	}), nil
 }
