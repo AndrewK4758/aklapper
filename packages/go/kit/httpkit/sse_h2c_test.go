@@ -2,6 +2,7 @@ package httpkit
 
 import (
 	"context"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -49,6 +50,7 @@ func TestSSEWriterValidationAndRaceFreeHeartbeat(t *testing.T) {
 
 func TestListenAndServeDualGracefulCancelsBaseContextAndSupportsEmptyGRPC(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	streamCancelled := make(chan struct{}, 1)
 	streamStarted := make(chan struct{}, 1)
 
@@ -86,18 +88,31 @@ func TestListenAndServeDualGracefulCancelsBaseContextAndSupportsEmptyGRPC(t *tes
 	}()
 
 	httpAddr := <-readyCh
-	res, err := http.Get("http://" + httpAddr + "/healthz")
+	client := &http.Client{
+		Transport: &http.Transport{
+			DisableKeepAlives: true,
+		},
+	}
+	defer client.CloseIdleConnections()
+
+	res, err := client.Get("http://" + httpAddr + "/healthz")
 	if err != nil || res.StatusCode != http.StatusOK {
 		t.Fatalf("healthz failed: res=%v err=%v", res, err)
 	}
+	_, _ = io.Copy(io.Discard, res.Body)
 	_ = res.Body.Close()
 
-	// Open active SSE stream, then trigger shutdown via ctx cancel
+	// Hold an active SSE stream open until shutdown cancels BaseContext.
+	streamClientDone := make(chan error, 1)
 	go func() {
-		sRes, sErr := http.Get("http://" + httpAddr + "/stream")
-		if sErr == nil {
-			_ = sRes.Body.Close()
+		sRes, sErr := client.Get("http://" + httpAddr + "/stream")
+		if sErr != nil {
+			streamClientDone <- sErr
+			return
 		}
+		_, _ = io.Copy(io.Discard, sRes.Body)
+		_ = sRes.Body.Close()
+		streamClientDone <- nil
 	}()
 
 	select {
@@ -116,5 +131,14 @@ func TestListenAndServeDualGracefulCancelsBaseContextAndSupportsEmptyGRPC(t *tes
 
 	if err := <-doneCh; err != nil {
 		t.Fatalf("expected clean dual shutdown, got %v", err)
+	}
+
+	select {
+	case sErr := <-streamClientDone:
+		if sErr != nil {
+			t.Fatalf("SSE client request failed: %v", sErr)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("timed out waiting for SSE client to observe stream EOF")
 	}
 }

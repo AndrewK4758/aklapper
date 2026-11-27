@@ -160,3 +160,60 @@ func TestQdrantSeedCLIFlagsDryRunAndPartialFailure(t *testing.T) {
 		}
 	})
 }
+
+func TestEnvLookupIsolatesExplicitMapFromProcessEnv(t *testing.T) {
+	t.Setenv("AI_PROVIDER", "vertex")
+	t.Setenv("GCP_PROJECT_ID", "host-project")
+	t.Setenv("GCP_LOCATION", "us-central1")
+	t.Setenv("VERTEX_MODEL", "gemini-2.5-flash")
+	t.Setenv("VERTEX_EMBED_MODEL", "text-embedding-005")
+	t.Setenv("VERTEX_THINKING_LEVEL", "HIGH")
+	t.Setenv("QDRANT_API_KEY", "host-qdrant-key")
+	t.Setenv("PG_DISABLE_LIVE", "true")
+
+	vertexProv, ok := providerFromEnvMap(map[string]string{
+		"AI_PROVIDER":    "vertex",
+		"GCP_PROJECT_ID": "games-424800",
+	}).(*llm.VertexClient)
+	if !ok {
+		t.Fatal("expected *llm.VertexClient for explicit vertex env map")
+	}
+	if vertexProv.Location != llm.DefaultVertexLocation ||
+		vertexProv.Model != llm.DefaultVertexModel ||
+		vertexProv.EmbedModel != llm.DefaultVertexEmbedModel ||
+		vertexProv.ThinkingLevel != llm.DefaultVertexThinkingLevel {
+		t.Fatalf("explicit env map leaked process Vertex env vars: %+v", vertexProv)
+	}
+
+	localProv, ok := providerFromEnvMap(map[string]string{
+		"LOCAL_LLM_BASE_URL": "http://127.0.0.1:19999/v1",
+	}).(*llm.LocalClient)
+	if !ok {
+		t.Fatal("expected *llm.LocalClient when AI_PROVIDER is omitted from explicit env map")
+	}
+	if localProv.BaseURL != "http://127.0.0.1:19999/v1" {
+		t.Fatalf("unexpected local BaseURL: %q", localProv.BaseURL)
+	}
+
+	qdrantClient := qdrantFromEnvMap(map[string]string{
+		"QDRANT_URL": "http://127.0.0.1:6333",
+	})
+	if qdrantClient.APIKey != "" {
+		t.Fatalf("explicit env map leaked process QDRANT_API_KEY: %q", qdrantClient.APIKey)
+	}
+	if got := envLookup(map[string]string{}, "PG_DISABLE_LIVE"); got != "" {
+		t.Fatalf("explicit env map leaked process PG_DISABLE_LIVE: %q", got)
+	}
+
+	processProv, ok := providerFromEnvMap(nil).(*llm.VertexClient)
+	if !ok {
+		t.Fatal("expected *llm.VertexClient when env map is nil and process AI_PROVIDER=vertex")
+	}
+	if processProv.ProjectID != "host-project" ||
+		processProv.Location != "us-central1" ||
+		processProv.Model != "gemini-2.5-flash" ||
+		processProv.EmbedModel != "text-embedding-005" ||
+		processProv.ThinkingLevel != "HIGH" {
+		t.Fatalf("nil env map failed to read process environment: %+v", processProv)
+	}
+}
