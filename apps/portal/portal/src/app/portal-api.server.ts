@@ -1,5 +1,6 @@
 import {
   createPublicAppError,
+  isPublicAppError,
   type PortalAboutLoaderData,
   type PortalAgensiLoaderData,
   type PortalAskLoaderData,
@@ -21,6 +22,7 @@ import {
 import { resolveAgensiCreatorHandle } from '@aklapper/node-runtime/agensi';
 import { resolveAnalyticsClientIp } from '@aklapper/node-runtime/analytics';
 import {
+  classifyGrpcError,
   getPortalAboutContent,
   getPortalAgensiCatalog,
   getPortalAskContent,
@@ -97,10 +99,34 @@ export function extractClientRequestContext(
   };
 }
 
+export interface PortalPrerenderFallbackOptions {
+  readonly source?: string;
+  readonly logger?: SsrStructuredLogger;
+}
+
+function classifyAndRethrowPortalGrpcError(
+  error: unknown,
+  correlationId: string,
+  source: string,
+  logger?: SsrStructuredLogger,
+): never {
+  if (isPublicAppError(error)) {
+    throw error;
+  }
+  const failure = classifyGrpcError(error, {
+    correlationId,
+    source,
+    normalizeUnavailableStatus: 503,
+    ...(logger ? { logger } : {}),
+  });
+  throw failure.publicError;
+}
+
 export async function withPortalPrerenderFallback<T>(
   prerenderFactory: () => T,
   remoteCall: (portalApiUrl: string) => Promise<T>,
   correlationId: string,
+  options?: PortalPrerenderFallbackOptions,
 ): Promise<T> {
   const portalApiUrl = resolvePortalApiUrl();
   if (isReactRouterPrerender()) {
@@ -116,7 +142,16 @@ export async function withPortalPrerenderFallback<T>(
   if (!portalApiUrl) {
     throw createUpstreamUnavailableError('portal-api', correlationId);
   }
-  return remoteCall(portalApiUrl);
+  try {
+    return await remoteCall(portalApiUrl);
+  } catch (error) {
+    classifyAndRethrowPortalGrpcError(
+      error,
+      correlationId,
+      options?.source ?? 'portal.grpc.loader',
+      options?.logger,
+    );
+  }
 }
 
 function buildContentMeta(
@@ -135,6 +170,16 @@ function buildContentMeta(
   };
 }
 
+function buildFallbackOptions(
+  source: string,
+  options: PortalGrpcLoaderOptions,
+): PortalPrerenderFallbackOptions {
+  return {
+    source,
+    ...(options.logger ? { logger: options.logger } : {}),
+  };
+}
+
 export function loadPortalRootDataWithPrerender(
   options: PortalGrpcLoaderOptions,
 ): Promise<PortalRootLoaderData> {
@@ -142,6 +187,7 @@ export function loadPortalRootDataWithPrerender(
     getPrerenderPortalRootData,
     baseUrl => getPortalRootContent(buildContentMeta(baseUrl, 'portal-root', options)),
     options.correlationId,
+    buildFallbackOptions('portal.root.loader', options),
   );
 }
 
@@ -152,6 +198,7 @@ export function loadPortalHomeDataWithPrerender(
     getPrerenderPortalHomeData,
     baseUrl => getPortalHomeContent(buildContentMeta(baseUrl, 'portal-home', options)),
     options.correlationId,
+    buildFallbackOptions('portal.home.loader', options),
   );
 }
 
@@ -162,6 +209,7 @@ export function loadPortalAboutDataWithPrerender(
     getPrerenderPortalAboutData,
     baseUrl => getPortalAboutContent(buildContentMeta(baseUrl, 'portal-about', options)),
     options.correlationId,
+    buildFallbackOptions('portal.about.loader', options),
   );
 }
 
@@ -182,6 +230,7 @@ export function loadPortalAgensiDataWithPrerender(
       };
     },
     options.correlationId,
+    buildFallbackOptions('portal.agensi.loader', options),
   );
 }
 
@@ -202,6 +251,7 @@ export function loadPortalAskDataWithPrerender(
         sessionId,
       ),
     options.correlationId,
+    buildFallbackOptions('portal.ask.loader', options),
   );
 }
 
@@ -222,7 +272,14 @@ export function loadPortalCadenceDataWithPrerender(
         listCadenceRuns(buildContentMeta(cadenceDemoUrl, trimmedSession, options, 'guest'), {
           sessionId: sessionId ?? '',
           limit: 8,
-        }),
+        }).catch(error =>
+          classifyAndRethrowPortalGrpcError(
+            error,
+            options.correlationId,
+            'portal.cadence.runs.loader',
+            options.logger,
+          ),
+        ),
       ]);
       return {
         content: cadenceContent.content,
@@ -233,6 +290,7 @@ export function loadPortalCadenceDataWithPrerender(
       };
     },
     options.correlationId,
+    buildFallbackOptions('portal.cadence.loader', options),
   );
 }
 
@@ -243,5 +301,6 @@ export function loadPortalContactDataWithPrerender(
     getPrerenderPortalContactData,
     baseUrl => getPortalContactContent(buildContentMeta(baseUrl, 'portal-contact', options)),
     options.correlationId,
+    buildFallbackOptions('portal.contact.loader', options),
   );
 }

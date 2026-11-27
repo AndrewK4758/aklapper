@@ -48,7 +48,10 @@ import {
 
 import type { Route } from './+types/root';
 import { reportPortalPublicError } from './client-telemetry';
-import { readPassiveGuestSession } from './contact-analytics-link.server';
+import {
+  logPortalAnalyticsCaptureFailure,
+  readPassiveGuestSession,
+} from './contact-analytics-link.server';
 import {
   extractClientRequestContext,
   loadPortalRootDataWithPrerender,
@@ -173,9 +176,12 @@ export function loader({ request, context }: Route.LoaderArgs): PortalRootStream
         },
         pathname,
         clientContext,
-      ).catch(() => undefined);
-    } catch {
+      ).catch(error => {
+        logPortalAnalyticsCaptureFailure(reqCtx?.logger, correlationId, 'portal-ssr', error);
+      });
+    } catch (error) {
       // Fail-open: never stall or break SSR streaming
+      logPortalAnalyticsCaptureFailure(reqCtx?.logger, correlationId, 'portal-ssr', error);
     }
   }
 

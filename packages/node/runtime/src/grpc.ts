@@ -94,6 +94,8 @@ export {
 export {
   startPortalApiStubServerForTest,
   type PortalApiStubServer,
+  type PortalStubProcedure,
+  type StartPortalApiStubServerOptions,
 } from './grpc/portal-test-server.ts';
 export {
   bridgeGrpcStreamToSse,

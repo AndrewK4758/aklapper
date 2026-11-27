@@ -12,14 +12,19 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { createRoutesStub, RouterContextProvider } from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-const { loadPortalRootDataWithPrerenderMock, recordPortalSsrHitMock, reportPortalPublicErrorMock } =
-  vi.hoisted(() => ({
-    loadPortalRootDataWithPrerenderMock: vi.fn<() => Promise<PortalRootLoaderData>>(),
-    recordPortalSsrHitMock: vi.fn<(...args: unknown[]) => Promise<string>>(
-      async () => 'sess_ssr_1',
-    ),
-    reportPortalPublicErrorMock: vi.fn<(error: unknown, context?: unknown) => void>(),
-  }));
+const {
+  loadPortalRootDataWithPrerenderMock,
+  recordPortalSsrHitMock,
+  bindPortalGuestSessionMock,
+  reportPortalPublicErrorMock,
+} = vi.hoisted(() => ({
+  loadPortalRootDataWithPrerenderMock: vi.fn<() => Promise<PortalRootLoaderData>>(),
+  recordPortalSsrHitMock: vi.fn<(...args: unknown[]) => Promise<string>>(async () => 'sess_ssr_1'),
+  bindPortalGuestSessionMock: vi.fn<(...args: unknown[]) => Promise<string>>(
+    async () => 'sess_bind_1',
+  ),
+  reportPortalPublicErrorMock: vi.fn<(error: unknown, context?: unknown) => void>(),
+}));
 
 vi.mock('../app/portal-api.server', async importOriginal => {
   const actual = await importOriginal<typeof import('./portal-api.server')>();
@@ -34,6 +39,7 @@ vi.mock('@aklapper/node-runtime/grpc', async importOriginal => {
   return {
     ...actual,
     recordPortalSsrHit: recordPortalSsrHitMock,
+    bindPortalGuestSession: bindPortalGuestSessionMock,
   };
 });
 
@@ -45,6 +51,7 @@ vi.mock('./client-telemetry', async importOriginal => {
   };
 });
 
+import { triggerPortalGuestSessionBinding } from './contact-analytics-link.server';
 import PortalRoot, {
   ErrorBoundary,
   isNavigablePath,
@@ -111,11 +118,14 @@ function makeRootLoaderArgs(
   correlationId?: string,
 ) {
   const infoCalls: Array<{ obj: Record<string, unknown>; msg?: string }> = [];
+  const warnCalls: Array<{ obj: Record<string, unknown>; msg?: string }> = [];
   const logger: SsrStructuredLogger = {
     info: vi.fn<(obj: Record<string, unknown>, msg?: string) => void>((obj, msg) => {
       infoCalls.push({ obj, msg });
     }),
-    warn: vi.fn<(obj: Record<string, unknown>, msg?: string) => void>(),
+    warn: vi.fn<(obj: Record<string, unknown>, msg?: string) => void>((obj, msg) => {
+      warnCalls.push({ obj, msg });
+    }),
     error: vi.fn<(obj: Record<string, unknown>, msg?: string) => void>(),
   };
   const context = new RouterContextProvider();
@@ -137,6 +147,8 @@ function makeRootLoaderArgs(
       pattern: '/',
     } as Parameters<typeof loader>[0],
     infoCalls,
+    warnCalls,
+    logger,
   };
 }
 
@@ -829,6 +841,65 @@ describe('PortalRoot', () => {
       loader(makeRootLoaderArgs('https://andrew-k.us/').args);
 
       expect(recordPortalSsrHitMock).not.toHaveBeenCalled();
+
+      // Failing SSR hit capture and guest binding emit portal.analytics.ssr_capture_failed without leaking IP/secrets
+      process.env['PORTAL_API_URL'] = 'http://127.0.0.1:8084';
+      recordPortalSsrHitMock.mockRejectedValueOnce(
+        new Error('dial failed for 198.51.100.77 with secret=topsecret'),
+      );
+      const { args: failingSsrArgs, warnCalls } = makeRootLoaderArgs(
+        'https://andrew-k.us/about',
+        { 'x-forwarded-for': '198.51.100.77' },
+        'corr-ssr-capture-fail',
+      );
+      const failSsrRes = loader(failingSsrArgs);
+      expect(failSsrRes.isNotFound).toBe(false);
+      await Promise.resolve();
+      await Promise.resolve();
+      expect(warnCalls).toContainEqual(
+        expect.objectContaining({
+          obj: expect.objectContaining({
+            seam_type: 'BOUNDARY_FAULT',
+            event: 'portal.analytics.ssr_capture_failed',
+            correlationId: 'corr-ssr-capture-fail',
+            detail: 'Error',
+          }),
+        }),
+      );
+      expect(JSON.stringify(warnCalls)).not.toContain('198.51.100.77');
+      expect(JSON.stringify(warnCalls)).not.toContain('topsecret');
+
+      bindPortalGuestSessionMock.mockRejectedValueOnce(
+        new Error('bind failed for 203.0.113.55 secret=bindsecret'),
+      );
+      const guestWarnCalls: Array<Record<string, unknown>> = [];
+      const guestLogger: SsrStructuredLogger = {
+        info: vi.fn<(obj: Record<string, unknown>, msg?: string) => void>(),
+        warn: vi.fn<(obj: Record<string, unknown>, msg?: string) => void>(obj => {
+          guestWarnCalls.push(obj);
+        }),
+        error: vi.fn<(obj: Record<string, unknown>, msg?: string) => void>(),
+      };
+      triggerPortalGuestSessionBinding(
+        new Request('https://andrew-k.us/chat', {
+          headers: { 'x-correlation-id': 'corr-guest-bind-fail', 'x-real-ip': '203.0.113.55' },
+        }),
+        'guest_fail_1',
+        guestLogger,
+        '/chat',
+      );
+      await Promise.resolve();
+      await Promise.resolve();
+      expect(guestWarnCalls).toContainEqual(
+        expect.objectContaining({
+          seam_type: 'BOUNDARY_FAULT',
+          event: 'portal.analytics.ssr_capture_failed',
+          correlationId: 'corr-guest-bind-fail',
+          detail: 'Error',
+        }),
+      );
+      expect(JSON.stringify(guestWarnCalls)).not.toContain('203.0.113.55');
+      expect(JSON.stringify(guestWarnCalls)).not.toContain('bindsecret');
     } finally {
       if (origPortalApiUrl === undefined) delete process.env['PORTAL_API_URL'];
       else process.env['PORTAL_API_URL'] = origPortalApiUrl;

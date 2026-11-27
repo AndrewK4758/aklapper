@@ -69,6 +69,20 @@ describe('provision-portal-role unit contracts', () => {
         NODE_ENV: 'production',
       }),
     ).toThrow(/required when provisioning role "portal_app" in production/);
+
+    expect(() =>
+      resolvePortalAppPassword({
+        NODE_ENV: 'production',
+        APP_ENV: '',
+      }),
+    ).toThrow(/required when provisioning role "portal_app" in production/);
+
+    expect(() =>
+      resolvePortalAppPassword({
+        NODE_ENV: 'production',
+        APP_ENV: 'development',
+      }),
+    ).toThrow(/required when provisioning role "portal_app" in production/);
   });
 
   it('executes role provisioning inside a transaction using set_config without embedding secrets in SQL or logs', async () => {
@@ -182,8 +196,9 @@ describe.skipIf(!ownerDatabaseUrl || !portalDatabaseUrl)(
           rolcreatedb: boolean;
           rolcreaterole: boolean;
           rolreplication: boolean;
+          rolbypassrls: boolean;
         }>(
-          `SELECT rolcanlogin, rolsuper, rolcreatedb, rolcreaterole, rolreplication
+          `SELECT rolcanlogin, rolsuper, rolcreatedb, rolcreaterole, rolreplication, rolbypassrls
            FROM pg_roles
            WHERE rolname = 'portal_app'`,
         );
@@ -194,6 +209,7 @@ describe.skipIf(!ownerDatabaseUrl || !portalDatabaseUrl)(
             rolcreatedb: false,
             rolcreaterole: false,
             rolreplication: false,
+            rolbypassrls: false,
           },
         ]);
 

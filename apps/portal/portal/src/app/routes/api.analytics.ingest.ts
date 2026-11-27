@@ -8,6 +8,7 @@ import {
   createFallbackLogger,
   getOrCreateCorrelationId,
   getRequestContext,
+  type SsrStructuredLogger,
 } from '@aklapper/node-runtime/ssr/stream';
 
 import { readPassiveGuestSession } from '../contact-analytics-link.server';
@@ -16,6 +17,22 @@ import type { Route } from './+types/api.analytics.ingest';
 
 const utf8Encoder = new TextEncoder();
 const INGEST_TIMEOUT_MS = 4_000;
+
+function emitPayloadRejectedSeam(
+  logger: SsrStructuredLogger,
+  correlationId: string,
+  reason: string,
+): void {
+  logger.warn(
+    {
+      seam_type: 'BOUNDARY_FAULT',
+      event: 'analytics.ingest.payload_rejected',
+      correlationId,
+      reason,
+    },
+    'Rejected analytics ingest payload before upstream RPC',
+  );
+}
 
 export async function action({ request, context }: Route.ActionArgs): Promise<Response> {
   const reqCtx = getRequestContext(context);
@@ -41,6 +58,7 @@ export async function action({ request, context }: Route.ActionArgs): Promise<Re
   try {
     rawBody = await request.text();
   } catch {
+    emitPayloadRejectedSeam(logger, correlationId, 'body_read_failed');
     const publicError = createPublicAppError({
       code: 'ERR_VALIDATION',
       status: 400,
@@ -52,6 +70,7 @@ export async function action({ request, context }: Route.ActionArgs): Promise<Re
   }
 
   if (utf8Encoder.encode(rawBody).byteLength > ANALYTICS_MAX_BATCH_BYTES) {
+    emitPayloadRejectedSeam(logger, correlationId, 'payload_too_large');
     const publicError = createPublicAppError({
       code: 'ERR_VALIDATION',
       status: 400,
@@ -66,6 +85,7 @@ export async function action({ request, context }: Route.ActionArgs): Promise<Re
   try {
     decoded = JSON.parse(rawBody);
   } catch {
+    emitPayloadRejectedSeam(logger, correlationId, 'malformed_json');
     const publicError = createPublicAppError({
       code: 'ERR_VALIDATION',
       status: 400,
@@ -78,6 +98,7 @@ export async function action({ request, context }: Route.ActionArgs): Promise<Re
 
   const parsed = AnalyticsBatchSchema.safeParse(decoded);
   if (!parsed.success) {
+    emitPayloadRejectedSeam(logger, correlationId, 'schema_validation_failed');
     const publicError = createPublicAppError({
       code: 'ERR_VALIDATION',
       status: 400,

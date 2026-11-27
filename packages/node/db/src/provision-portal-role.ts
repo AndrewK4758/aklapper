@@ -1,4 +1,5 @@
 import { loadWorkspaceEnv } from '@aklapper/node-runtime/env';
+import { isProductionEnv } from '@aklapper/node-runtime/http';
 import type { Pool, PoolClient } from 'pg';
 
 import { createDbPool } from './client.ts';
@@ -14,11 +15,6 @@ export interface ProvisionPortalRoleResult {
 export interface ProvisionPortalRoleOptions {
   password?: string;
   env?: Readonly<Record<string, string | undefined>>;
-}
-
-function isProductionRuntime(env: Readonly<Record<string, string | undefined>>): boolean {
-  const mode = (env['APP_ENV'] ?? env['NODE_ENV'])?.trim().toLowerCase();
-  return mode === 'production';
 }
 
 /**
@@ -56,7 +52,7 @@ export function resolvePortalAppPassword(
     return explicitPassword;
   }
 
-  if (isProductionRuntime(env)) {
+  if (isProductionEnv(env)) {
     throw new Error(
       `PORTAL_DATABASE_URL (with password) or PORTAL_APP_PASSWORD is required when provisioning role "${PORTAL_APP_ROLE_NAME}" in production`,
     );
@@ -88,13 +84,13 @@ BEGIN
 
   IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'portal_app') THEN
     EXECUTE format(
-      'ALTER ROLE %I WITH LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION PASSWORD %L',
+      'ALTER ROLE %I WITH LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS PASSWORD %L',
       'portal_app',
       v_password
     );
   ELSE
     EXECUTE format(
-      'CREATE ROLE %I WITH LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION PASSWORD %L',
+      'CREATE ROLE %I WITH LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS PASSWORD %L',
       'portal_app',
       v_password
     );

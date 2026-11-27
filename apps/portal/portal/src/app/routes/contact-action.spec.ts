@@ -360,6 +360,22 @@ describe('processContactSubmission & resource action routes (Go gRPC)', () => {
   });
 
   it('rejects oversized analytics metadata locally with 400 and forwards valid batches with passive guestSessionId and Retry-After on 429', async () => {
+    const warnCalls: Array<Record<string, unknown>> = [];
+    const rejectLogger: SsrStructuredLogger = {
+      info: vi.fn<(obj: Record<string, unknown>, msg?: string) => void>(),
+      warn: vi.fn<(obj: Record<string, unknown>, msg?: string) => void>(obj => {
+        warnCalls.push(obj);
+      }),
+      error: vi.fn<(obj: Record<string, unknown>, msg?: string) => void>(),
+    };
+    const rejectCtx = new RouterContextProvider();
+    rejectCtx.set(requestContextKey, {
+      correlationId: 'corr-analytics-reject',
+      logger: rejectLogger,
+      serviceName: 'portal-ssr',
+      signal: new AbortController().signal,
+    });
+
     const oversizedKeys: Record<string, string> = {};
     for (let i = 0; i < 17; i++) oversizedKeys[`k${i}`] = 'v';
     const badAnalytics = await analyticsIngestAction({
@@ -380,12 +396,57 @@ describe('processContactSubmission & resource action routes (Go gRPC)', () => {
         }),
       }),
       params: {},
-      context: new RouterContextProvider(),
+      context: rejectCtx,
       url: new URL('https://andrew-k.us/api/analytics/ingest'),
       pattern: '/api/analytics/ingest',
     });
     expect(badAnalytics.status).toBe(400);
     expect(ingestPortalAnalyticsMock).not.toHaveBeenCalled();
+    expect(warnCalls).toContainEqual(
+      expect.objectContaining({
+        seam_type: 'BOUNDARY_FAULT',
+        event: 'analytics.ingest.payload_rejected',
+        correlationId: 'corr-analytics-reject',
+        reason: 'schema_validation_failed',
+      }),
+    );
+
+    const malformedJsonRes = await analyticsIngestAction({
+      request: new Request('https://andrew-k.us/api/analytics/ingest', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: '{invalid-json',
+      }),
+      params: {},
+      context: rejectCtx,
+      url: new URL('https://andrew-k.us/api/analytics/ingest'),
+      pattern: '/api/analytics/ingest',
+    });
+    expect(malformedJsonRes.status).toBe(400);
+    expect(warnCalls).toContainEqual(
+      expect.objectContaining({
+        seam_type: 'BOUNDARY_FAULT',
+        event: 'analytics.ingest.payload_rejected',
+        reason: 'malformed_json',
+      }),
+    );
+
+    // Contact submission containing NUL byte (\x00) returns HTTP 400 ERR_VALIDATION with fieldErrors.message locally
+    const nulFd = makeValidFormData();
+    nulFd.set('message', 'Valid length message with embedded\u0000nul byte.');
+    const nulContactRes = await processContactSubmission(
+      makeRequest(async () => nulFd),
+      { correlationId: 'corr-contact-nul-400' },
+    );
+    expect(nulContactRes.status).toBe(400);
+    expect(nulContactRes.payload).toMatchObject({
+      ok: false,
+      code: 'ERR_VALIDATION',
+      fieldErrors: {
+        message: ['Message contains unsupported characters'],
+      },
+    });
+    expect(submitPortalContactMock).not.toHaveBeenCalled();
 
     const origSecret = process.env['INTERNAL_AUTH_SECRET'];
     try {

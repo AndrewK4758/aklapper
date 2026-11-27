@@ -78,6 +78,7 @@ export function mapProtoFieldErrorsToDomain(
 export function scrubDiagnosticCause(raw: string): string {
   return raw
     .replace(/x-internal-auth\s*[:=]\s*\S+/gi, 'x-internal-auth=[redacted]')
+    .replace(/x-internal-client-ip\s*[:=]\s*\S+/gi, 'x-internal-client-ip=[redacted]')
     .replace(/authorization\s*[:=]\s*\S+(?:\s+\S+)?/gi, 'authorization=[redacted]')
     .replace(/Bearer\s+[A-Za-z0-9._-]+/gi, 'Bearer [redacted]')
     .replace(/\bpostgres(?:ql)?:\/\/\S+/gi, 'postgresql://[redacted]')

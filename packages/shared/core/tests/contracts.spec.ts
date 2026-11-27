@@ -256,6 +256,26 @@ describe('@aklapper/core (contracts)', () => {
     expect(submission.name).toBe('Ada Lovelace');
     expect(submission.phone).toBeNull();
     expect(submission.email).toBe('ada@example.com');
+
+    // NUL bytes (\x00) must be rejected cleanly in both validateFormValues and ContactFormSubmissionSchema
+    const nulValidation = validateFormValues(parsedDef, {
+      name: 'Ada Lovelace',
+      email: 'ada@analytical-engine.org',
+      message: 'Valid length message with embedded\u0000nul byte.',
+    });
+    expect(nulValidation.valid).toBe(false);
+    expect(nulValidation.fieldErrors['message']).toEqual([
+      'Message contains unsupported characters',
+    ]);
+
+    const nulSchemaParse = ContactFormSubmissionSchema.safeParse({
+      name: 'Ada Lovelace',
+      phone: '',
+      email: 'ada@example.com',
+      message: 'Valid length message with embedded\u0000nul byte.',
+      attachment: null,
+    });
+    expect(nulSchemaParse.success).toBe(false);
   });
 
   it('validates deeply nested fieldsets, regex patterns, length bounds, and attachment edge cases', async () => {

@@ -4,6 +4,7 @@ import type { AddressInfo } from 'node:net';
 import type { TerminalProfileData } from '@aklapper/core';
 import {
   getPrerenderPortalAskData,
+  getPrerenderPortalCadenceData,
   getPrerenderPortalContactData,
   getPrerenderPortalHomeData,
   getPrerenderPortalRootData,
@@ -11,10 +12,12 @@ import {
 import { create } from '@bufbuild/protobuf';
 import { connectNodeAdapter } from '@connectrpc/connect-node';
 
+import { CadenceService, ListRunsResponseSchema } from './gen/cadence/v1/cadence_pb.ts';
 import { QuotaStatusSchema } from './gen/common/v1/error_pb.ts';
 import { AnalyticsService, RecordSsrHitResponseSchema } from './gen/portal/v1/analytics_pb.ts';
 import {
   GetAskContentResponseSchema,
+  GetCadenceContentResponseSchema,
   GetContactContentResponseSchema,
   GetHomeContentResponseSchema,
   GetRootContentResponseSchema,
@@ -23,6 +26,19 @@ import {
   TerminalInitialEntrySchema,
   TerminalProfileDataSchema,
 } from './gen/portal/v1/content_pb.ts';
+
+export type PortalStubProcedure =
+  | 'getRootContent'
+  | 'getHomeContent'
+  | 'getAskContent'
+  | 'getCadenceContent'
+  | 'getContactContent'
+  | 'recordSsrHit'
+  | 'listCadenceRuns';
+
+export interface StartPortalApiStubServerOptions {
+  readonly beforeProcedure?: (procedure: PortalStubProcedure) => void;
+}
 
 export interface PortalApiStubServer {
   readonly baseUrl: string;
@@ -75,11 +91,14 @@ function toProtoTerminal(terminal: TerminalProfileData | undefined) {
  * Starts an in-process HTTP/2 h2c ConnectRPC server serving prerender PortalContentService and
  * no-op AnalyticsService responses for DB-free Fastify SSR integration tests.
  */
-export async function startPortalApiStubServerForTest(): Promise<PortalApiStubServer> {
+export async function startPortalApiStubServerForTest(
+  options: StartPortalApiStubServerOptions = {},
+): Promise<PortalApiStubServer> {
   let requestCount = 0;
   const rootData = getPrerenderPortalRootData();
   const homeData = getPrerenderPortalHomeData();
   const askData = getPrerenderPortalAskData();
+  const cadenceData = getPrerenderPortalCadenceData();
   const contactData = getPrerenderPortalContactData();
 
   const handler = connectNodeAdapter({
@@ -87,6 +106,7 @@ export async function startPortalApiStubServerForTest(): Promise<PortalApiStubSe
       router.service(PortalContentService, {
         getRootContent() {
           requestCount += 1;
+          options.beforeProcedure?.('getRootContent');
           return create(GetRootContentResponseSchema, {
             chromeJson: JSON.stringify(rootData.chrome),
             homeContentJson: JSON.stringify(rootData.homeContent),
@@ -96,6 +116,7 @@ export async function startPortalApiStubServerForTest(): Promise<PortalApiStubSe
         },
         getHomeContent() {
           requestCount += 1;
+          options.beforeProcedure?.('getHomeContent');
           return create(GetHomeContentResponseSchema, {
             contentJson: JSON.stringify(homeData.content),
             terminal: toProtoTerminal(homeData.terminal),
@@ -104,6 +125,7 @@ export async function startPortalApiStubServerForTest(): Promise<PortalApiStubSe
         },
         getAskContent() {
           requestCount += 1;
+          options.beforeProcedure?.('getAskContent');
           return create(GetAskContentResponseSchema, {
             contentJson: JSON.stringify(askData.content),
             quota: create(QuotaStatusSchema, {
@@ -115,8 +137,17 @@ export async function startPortalApiStubServerForTest(): Promise<PortalApiStubSe
             }),
           });
         },
+        getCadenceContent() {
+          requestCount += 1;
+          options.beforeProcedure?.('getCadenceContent');
+          return create(GetCadenceContentResponseSchema, {
+            contentJson: JSON.stringify(cadenceData.content),
+            presets: [],
+          });
+        },
         getContactContent() {
           requestCount += 1;
+          options.beforeProcedure?.('getContactContent');
           return create(GetContactContentResponseSchema, {
             contentJson: JSON.stringify(contactData.content),
           });
@@ -125,8 +156,19 @@ export async function startPortalApiStubServerForTest(): Promise<PortalApiStubSe
       router.service(AnalyticsService, {
         recordSsrHit() {
           requestCount += 1;
+          options.beforeProcedure?.('recordSsrHit');
           return create(RecordSsrHitResponseSchema, {
             sessionId: 'stub-ssr-session',
+          });
+        },
+      });
+      router.service(CadenceService, {
+        listRuns() {
+          requestCount += 1;
+          options.beforeProcedure?.('listCadenceRuns');
+          return create(ListRunsResponseSchema, {
+            runs: [],
+            goldenRuns: [],
           });
         },
       });

@@ -189,8 +189,9 @@ describe.skipIf(!ownerDatabaseUrl || !portalDatabaseUrl)(
             rolcreatedb: boolean;
             rolcreaterole: boolean;
             rolreplication: boolean;
+            rolbypassrls: boolean;
           }>(
-            `SELECT rolcanlogin, rolsuper, rolcreatedb, rolcreaterole, rolreplication
+            `SELECT rolcanlogin, rolsuper, rolcreatedb, rolcreaterole, rolreplication, rolbypassrls
              FROM pg_roles
              WHERE rolname = $1`,
             [absentRole],
@@ -202,6 +203,7 @@ describe.skipIf(!ownerDatabaseUrl || !portalDatabaseUrl)(
               rolcreatedb: false,
               rolcreaterole: false,
               rolreplication: false,
+              rolbypassrls: false,
             },
           ]);
           await superClient.query('ROLLBACK');

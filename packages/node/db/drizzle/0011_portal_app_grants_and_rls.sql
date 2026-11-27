@@ -9,7 +9,7 @@ BEGIN
 		WHERE rolname = current_user;
 
 		IF COALESCE(v_can_create_role, false) THEN
-			CREATE ROLE "portal_app" NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION;
+			CREATE ROLE "portal_app" NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;
 		ELSE
 			RAISE EXCEPTION
 				'PostgreSQL role "portal_app" does not exist and current role "%" lacks CREATEROLE/SUPERUSER. Provision role "portal_app" out-of-band (via db:provision-portal-role or superuser bootstrap) before running migration 0011_portal_app_grants_and_rls.',

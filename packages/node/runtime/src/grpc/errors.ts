@@ -59,6 +59,26 @@ function extractErrorDetailEnvelope(error: ConnectError): ErrorDetailEnvelope | 
   return details[0];
 }
 
+const GRPC_NETWORK_ERRNO_RE =
+  /^(?:ECONNREFUSED|ECONNRESET|ETIMEDOUT|ENOTFOUND|EAI_AGAIN|EPIPE|EHOSTUNREACH)$/;
+
+function extractNetworkErrno(root: unknown): string | undefined {
+  const seen = new WeakSet<object>();
+  let current: unknown = root;
+  for (let depth = 0; depth < 5 && typeof current === 'object' && current !== null; depth += 1) {
+    if (seen.has(current)) {
+      break;
+    }
+    seen.add(current);
+    const rec = current as Record<string, unknown>;
+    if (typeof rec['code'] === 'string' && GRPC_NETWORK_ERRNO_RE.test(rec['code'])) {
+      return rec['code'];
+    }
+    current = rec['cause'];
+  }
+  return undefined;
+}
+
 function logClassifiedGrpcSeam(
   logger: SsrStructuredLogger | undefined,
   diagnostic: DiagnosticAppError,
@@ -236,6 +256,34 @@ export function classifyGrpcError(
       ...(retryAfterSeconds !== undefined ? { retryAfterSeconds } : {}),
       isFallbackTransportError: isTransportFallback,
     };
+  }
+
+  const networkErrno = extractNetworkErrno(error);
+  if (networkErrno) {
+    const [message, action] = GRPC_CATALOG_BY_CODE.ERR_UPSTREAM_UNAVAILABLE;
+    const status = ctx.normalizeUnavailableStatus ?? 502;
+    const { publicError } = enforcePublicErrorBoundary(
+      createPublicAppError({
+        code: 'ERR_UPSTREAM_UNAVAILABLE',
+        status,
+        message,
+        action,
+        correlationId,
+      }),
+      { correlationId, source: ctx.source },
+    );
+    const diagnostic: DiagnosticAppError = {
+      code: publicError.code,
+      status: publicError.status,
+      severity: 'ERROR',
+      reasoning: `Upstream gRPC transport network error (${networkErrno})`,
+      correlationId,
+      source: ctx.source,
+      causeName: error instanceof Error ? error.name || 'Error' : 'NetworkError',
+      causeMessage: scrubDiagnosticCause(error instanceof Error ? error.message : networkErrno),
+    };
+    logClassifiedGrpcSeam(ctx.logger, diagnostic, networkErrno, true);
+    return { publicError, diagnostic, isFallbackTransportError: true };
   }
 
   const classified = classifyServerError(error, { correlationId, source: ctx.source });
