@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -14,7 +13,6 @@ import (
 
 	"github.com/AndrewK4758/aklapper/packages/go/kit/contracts"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/httpkit"
-	"github.com/AndrewK4758/aklapper/packages/go/kit/internalauth"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/llm"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/pg"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/privacy"
@@ -47,7 +45,7 @@ func executeStreamingTurn(
 	}
 	attemptID := strings.TrimSpace(in.AttemptID)
 	if attemptID == "" {
-		attemptID = newUUIDv4()
+		attemptID = contracts.NewUUIDv4()
 	} else if !contracts.ValidateUUID(attemptID) {
 		return newSyncFailure(http.StatusBadRequest, contracts.ErrCodeValidation,
 			"Invalid attempt identifier.", "Refresh and submit again.", in.CorrelationID, nil)
@@ -55,7 +53,7 @@ func executeStreamingTurn(
 
 	convID := strings.TrimSpace(in.ConversationID)
 	if convID == "" {
-		convID = newUUIDv4()
+		convID = contracts.NewUUIDv4()
 	} else if !contracts.ValidateUUID(convID) {
 		return newSyncFailure(http.StatusBadRequest, contracts.ErrCodeValidation,
 			"Invalid conversation identifier.", "Start a new conversation and retry.", in.CorrelationID, nil)
@@ -337,18 +335,8 @@ func handleAskStreamPost(deps askStreamDeps) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		corrID := extractCorrelationID(r)
 		w.Header().Set("X-Correlation-Id", corrID)
-		claims, authErr := internalauth.VerifyRequest(r)
-		if authErr != nil {
-			logAskEvent("ai_ask.auth.rejected", map[string]any{"correlationId": corrID, "seam_type": "BOUNDARY_FAULT"})
-			writePublicError(w, http.StatusUnauthorized, contracts.ErrCodeUnauthorized,
-				"Authentication is required.", "Retry through the portal.", corrID)
-			return
-		}
-
-		var req askRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			writePublicError(w, http.StatusBadRequest, contracts.ErrCodeValidation,
-				"Submitted fields need attention.", "Review highlighted fields and retry.", corrID)
+		claims, req, ok := authenticateAndDecodeAskRequest(w, r, corrID)
+		if !ok {
 			return
 		}
 

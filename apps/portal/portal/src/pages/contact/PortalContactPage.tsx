@@ -12,6 +12,7 @@ import {
 import { type JSX, useState, useSyncExternalStore } from 'react';
 import { Form, Link } from 'react-router';
 
+import pageStyles from '../shared/portalPagePrimitives.module.css';
 import styles from './PortalContactPage.module.css';
 
 export interface PortalContactFormRenderProps extends RecursiveTuiFormRenderProps {
@@ -48,7 +49,7 @@ export function PortalContactPage({
   const errorResult = actionData && !actionData.ok ? actionData : null;
 
   return (
-    <div className={styles.workspace}>
+    <div className={pageStyles.workspace}>
       <TuiWindow
         title={content.windowTitle}
         onClose={onClose}
@@ -60,7 +61,7 @@ export function PortalContactPage({
           />
         }
       >
-        <p className={styles.intro}>{content.description}</p>
+        <p className={pageStyles.intro}>{content.description}</p>
         <Separator.Root />
 
         {confirmedSubmission && (

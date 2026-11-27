@@ -2,14 +2,13 @@ package grpckit
 
 import (
 	"context"
-	"crypto/rand"
 	"encoding/json"
-	"fmt"
 	"log"
 	"regexp"
 	"strings"
 	"time"
 
+	"github.com/AndrewK4758/aklapper/packages/go/kit/contracts"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/internalauth"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -68,14 +67,6 @@ func (w *wrappedServerStream) Context() context.Context {
 	return w.ctx
 }
 
-func newUUIDv4() string {
-	var b [16]byte
-	_, _ = rand.Read(b[:])
-	b[6] = (b[6] & 0x0f) | 0x40
-	b[8] = (b[8] & 0x3f) | 0x80
-	return fmt.Sprintf("%08x-%04x-%04x-%04x-%012x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:16])
-}
-
 func logGRPCSeam(seamType, event string, fields map[string]any) {
 	payload := make(map[string]any, len(fields)+2)
 	for k, v := range fields {
@@ -91,13 +82,13 @@ func logGRPCSeam(seamType, event string, fields map[string]any) {
 func sanitizeCorrelationID(md metadata.MD, method string) string {
 	vals := md.Get(MetadataCorrelationID)
 	if len(vals) == 0 {
-		return newUUIDv4()
+		return contracts.NewUUIDv4()
 	}
 	candidate := strings.TrimSpace(vals[0])
 	if len(vals) == 1 && correlationIDPattern.MatchString(candidate) {
 		return candidate
 	}
-	fresh := newUUIDv4()
+	fresh := contracts.NewUUIDv4()
 	logGRPCSeam("UNSOUND_CONDITION", "grpc.correlation.invalid_header", map[string]any{
 		"method":        method,
 		"correlationId": fresh,
@@ -192,7 +183,7 @@ func attachOutgoingAuth(ctx context.Context, cfg ClientAuthConfig) (context.Cont
 
 	corrVals := md.Get(MetadataCorrelationID)
 	if len(corrVals) != 1 || !correlationIDPattern.MatchString(strings.TrimSpace(corrVals[0])) {
-		md.Set(MetadataCorrelationID, newUUIDv4())
+		md.Set(MetadataCorrelationID, contracts.NewUUIDv4())
 	}
 	return metadata.NewOutgoingContext(ctx, md), nil
 }

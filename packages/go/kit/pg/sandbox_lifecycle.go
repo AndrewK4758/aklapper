@@ -116,7 +116,10 @@ func (s *Store) GetSandboxRun(ctx context.Context, runID string) (*SandboxRun, e
 	return r, err
 }
 
-func (s *Store) ClaimPendingSandboxRun(ctx context.Context, runID, sessionID string) (*SandboxRun, bool, error) {
+func (s *Store) claimSandboxRun(
+	ctx context.Context,
+	runID, sessionID, fromStatus, toStatus string,
+) (*SandboxRun, bool, error) {
 	if s == nil {
 		return nil, false, nil
 	}
@@ -124,10 +127,10 @@ func (s *Store) ClaimPendingSandboxRun(ctx context.Context, runID, sessionID str
 		s.mu.Lock()
 		defer s.mu.Unlock()
 		run, ok := s.runsByID[runID]
-		if !ok || run.SessionID != sessionID || run.Status != contracts.CadenceStatusPending {
+		if !ok || run.SessionID != sessionID || run.Status != fromStatus {
 			return nil, false, nil
 		}
-		run.Status = contracts.CadenceStatusRunning
+		run.Status = toStatus
 		copied := *run
 		copied.Turns = append([]contracts.CadenceTurn(nil), run.Turns...)
 		return &copied, true, nil
@@ -142,11 +145,13 @@ func (s *Store) ClaimPendingSandboxRun(ctx context.Context, runID, sessionID str
 		s.pool.QueryRow(
 			ctx,
 			`UPDATE sandbox_runs
-			 SET status = 'running'
-			 WHERE id = $1::uuid AND session_id = $2 AND status = 'pending' AND is_golden = false
+			 SET status = $3
+			 WHERE id = $1::uuid AND session_id = $2 AND status = $4 AND is_golden = false
 			 RETURNING `+sandboxRunSelectColumns,
 			runID,
 			sessionID,
+			toStatus,
+			fromStatus,
 		),
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -156,6 +161,10 @@ func (s *Store) ClaimPendingSandboxRun(ctx context.Context, runID, sessionID str
 		return nil, false, err
 	}
 	return r, true, nil
+}
+
+func (s *Store) ClaimPendingSandboxRun(ctx context.Context, runID, sessionID string) (*SandboxRun, bool, error) {
+	return s.claimSandboxRun(ctx, runID, sessionID, contracts.CadenceStatusPending, contracts.CadenceStatusRunning)
 }
 
 func (s *Store) UpdateSandboxTurn(
@@ -577,43 +586,5 @@ func (s *Store) ApproveSandboxRunSpecForSession(ctx context.Context, runID, sess
 }
 
 func (s *Store) ClaimBuildQueuedSandboxRun(ctx context.Context, runID, sessionID string) (*SandboxRun, bool, error) {
-	if s == nil {
-		return nil, false, nil
-	}
-	if s.pool == nil {
-		s.mu.Lock()
-		defer s.mu.Unlock()
-		run, ok := s.runsByID[runID]
-		if !ok || run.SessionID != sessionID || run.Status != contracts.CadenceStatusBuildQueued {
-			return nil, false, nil
-		}
-		run.Status = contracts.CadenceStatusBuilding
-		copied := *run
-		copied.Turns = append([]contracts.CadenceTurn(nil), run.Turns...)
-		return &copied, true, nil
-	}
-
-	if !contracts.ValidateUUID(runID) {
-		return nil, false, nil
-	}
-
-	r, err := s.scanSandboxRunRow(
-		ctx,
-		s.pool.QueryRow(
-			ctx,
-			`UPDATE sandbox_runs
-			 SET status = 'building'
-			 WHERE id = $1::uuid AND session_id = $2 AND status = 'build_queued' AND is_golden = false
-			 RETURNING `+sandboxRunSelectColumns,
-			runID,
-			sessionID,
-		),
-	)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return nil, false, nil
-	}
-	if err != nil {
-		return nil, false, err
-	}
-	return r, true, nil
+	return s.claimSandboxRun(ctx, runID, sessionID, contracts.CadenceStatusBuildQueued, contracts.CadenceStatusBuilding)
 }

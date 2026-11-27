@@ -18,6 +18,7 @@ import {
 import type { ActiveAskStreamState } from './askStreamClient';
 import type { QaTranscriptEntry } from './askTurnRecovery';
 
+import pageStyles from '../shared/portalPagePrimitives.module.css';
 import styles from './PortalAskPage.module.css';
 
 export interface AskQaPanelProps {
@@ -227,7 +228,7 @@ export function AskJdPanel({
         <textarea
           id='jd-match-textarea'
           name='jobDescription'
-          className={styles.textarea}
+          className={pageStyles.textarea}
           rows={6}
           maxLength={8000}
           value={jdText}

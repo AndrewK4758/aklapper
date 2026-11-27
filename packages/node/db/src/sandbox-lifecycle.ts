@@ -226,6 +226,25 @@ export async function getSandboxRunWithTurnsById(
   };
 }
 
+async function hydrateClaimedSandboxRun(
+  db: AppDatabase,
+  claimed: typeof schema.sandboxRuns.$inferSelect | undefined,
+): Promise<{ readonly run: CadenceRunResult; readonly mode: CadenceRunMode } | null> {
+  if (!claimed) return null;
+
+  const turnRows = await db
+    .select()
+    .from(schema.sandboxTurns)
+    .where(eq(schema.sandboxTurns.runId, claimed.id))
+    .orderBy(asc(schema.sandboxTurns.id));
+
+  const mode = extractRunModeFromTurnRows(turnRows) ?? 'fast';
+  return {
+    run: mapSandboxRunResult(claimed, turnRows),
+    mode,
+  };
+}
+
 export async function claimPendingSandboxRun(
   db: AppDatabase,
   runId: string,
@@ -245,19 +264,7 @@ export async function claimPendingSandboxRun(
     )
     .returning();
 
-  if (!claimed) return null;
-
-  const turnRows = await db
-    .select()
-    .from(schema.sandboxTurns)
-    .where(eq(schema.sandboxTurns.runId, claimed.id))
-    .orderBy(asc(schema.sandboxTurns.id));
-
-  const mode = extractRunModeFromTurnRows(turnRows) ?? 'fast';
-  return {
-    run: mapSandboxRunResult(claimed, turnRows),
-    mode,
-  };
+  return hydrateClaimedSandboxRun(db, claimed);
 }
 
 export interface UpdateSandboxTurnInput {
@@ -543,19 +550,7 @@ export async function claimBuildQueuedSandboxRun(
     )
     .returning();
 
-  if (!claimed) return null;
-
-  const turnRows = await db
-    .select()
-    .from(schema.sandboxTurns)
-    .where(eq(schema.sandboxTurns.runId, claimed.id))
-    .orderBy(asc(schema.sandboxTurns.id));
-
-  const mode = extractRunModeFromTurnRows(turnRows) ?? 'fast';
-  return {
-    run: mapSandboxRunResult(claimed, turnRows),
-    mode,
-  };
+  return hydrateClaimedSandboxRun(db, claimed);
 }
 
 export async function clearSandboxRunsForSession(

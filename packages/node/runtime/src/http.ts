@@ -318,6 +318,16 @@ function isTimeoutError(error: unknown): boolean {
   return error.name === 'TimeoutError' || error.name === 'AbortError';
 }
 
+export function encodeProxyRequestBody(body: unknown, requestHeaders: Headers): BodyInit {
+  if (typeof body === 'string' || body instanceof Uint8Array || body instanceof ArrayBuffer) {
+    return body as BodyInit;
+  }
+  if (!requestHeaders.has('content-type')) {
+    requestHeaders.set('content-type', 'application/json');
+  }
+  return JSON.stringify(body);
+}
+
 export async function proxyJson<T = unknown>(
   options: ProxyJsonOptions,
 ): Promise<ProxyJsonResult<T>> {
@@ -367,14 +377,7 @@ export async function proxyJson<T = unknown>(
 
   let encodedBody: BodyInit | undefined;
   if (body !== undefined && method !== 'GET' && method !== 'HEAD') {
-    if (typeof body === 'string' || body instanceof Uint8Array || body instanceof ArrayBuffer) {
-      encodedBody = body as BodyInit;
-    } else {
-      encodedBody = JSON.stringify(body);
-      if (!requestHeaders.has('content-type')) {
-        requestHeaders.set('content-type', 'application/json');
-      }
-    }
+    encodedBody = encodeProxyRequestBody(body, requestHeaders);
   }
 
   const upperMethod = method.toUpperCase();

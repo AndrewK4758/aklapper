@@ -230,7 +230,7 @@ func (s *Store) CloneCachedSandboxRunForSession(
 	if s.pool == nil {
 		s.mu.Lock()
 		defer s.mu.Unlock()
-		runID := newUUIDv4()
+		runID := contracts.NewUUIDv4()
 		nowStr := time.Now().UTC().Format(time.RFC3339)
 		turns := make([]contracts.CadenceTurn, 0, len(source.Turns))
 		for _, t := range source.Turns {

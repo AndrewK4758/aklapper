@@ -3,6 +3,7 @@ import { Button, Field } from '@aklapper/ui';
 import { useState } from 'react';
 import { Form } from 'react-router';
 
+import cardStyles from '../shared/adminSectionCard.module.css';
 import styles from './AdminCmsPage.module.css';
 
 export interface CmsMenuTabProps {
@@ -16,9 +17,9 @@ export function CmsMenuTab({ menuItems }: CmsMenuTabProps) {
 
   return (
     <>
-      <section className={styles.card} aria-label='Menu items table'>
-        <div className={styles.cardHeader}>
-          <h2 className={styles.sectionTitle}>Menu Registry Items</h2>
+      <section className={cardStyles.card} aria-label='Menu items table'>
+        <div className={cardStyles.cardHeader}>
+          <h2 className={cardStyles.sectionTitle}>Menu Registry Items</h2>
           <Button.Root
             type='button'
             variant='ghost'
@@ -91,8 +92,8 @@ export function CmsMenuTab({ menuItems }: CmsMenuTabProps) {
         </table>
       </section>
 
-      <section className={styles.card} aria-label='Menu item form'>
-        <h2 className={styles.sectionTitle}>
+      <section className={cardStyles.card} aria-label='Menu item form'>
+        <h2 className={cardStyles.sectionTitle}>
           {editingMenuItem ? `Edit Menu Item: ${editingMenuItem.slug}` : 'Create Menu Item'}
         </h2>
         <Form

@@ -67,6 +67,28 @@ func resolveUnaryStores(deps unaryTurnDeps) (*pg.Store, turnTxStore) {
 	return store, turnStore
 }
 
+func authenticateAndDecodeAskRequest(
+	w http.ResponseWriter,
+	r *http.Request,
+	corrID string,
+) (*internalauth.Claims, askRequest, bool) {
+	claims, authErr := internalauth.VerifyRequest(r)
+	if authErr != nil {
+		logAskEvent("ai_ask.auth.rejected", map[string]any{"correlationId": corrID, "seam_type": "BOUNDARY_FAULT"})
+		writePublicError(w, http.StatusUnauthorized, contracts.ErrCodeUnauthorized,
+			"Authentication is required.", "Retry through the portal.", corrID)
+		return nil, askRequest{}, false
+	}
+
+	var req askRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writePublicError(w, http.StatusBadRequest, contracts.ErrCodeValidation,
+			"Submitted fields need attention.", "Review highlighted fields and retry.", corrID)
+		return nil, askRequest{}, false
+	}
+	return claims, req, true
+}
+
 func handleAskPostWithDeps(deps unaryTurnDeps) http.HandlerFunc {
 	if deps.syncWait <= 0 {
 		deps.syncWait = defaultSyncWaitWindow
@@ -81,18 +103,8 @@ func handleAskPostWithDeps(deps unaryTurnDeps) http.HandlerFunc {
 	privacyCfg := deps.privacyCfg
 	return func(w http.ResponseWriter, r *http.Request) {
 		corrID := extractCorrelationID(r)
-		claims, authErr := internalauth.VerifyRequest(r)
-		if authErr != nil {
-			logAskEvent("ai_ask.auth.rejected", map[string]any{"correlationId": corrID, "seam_type": "BOUNDARY_FAULT"})
-			writePublicError(w, http.StatusUnauthorized, contracts.ErrCodeUnauthorized,
-				"Authentication is required.", "Retry through the portal.", corrID)
-			return
-		}
-
-		var req askRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			writePublicError(w, http.StatusBadRequest, contracts.ErrCodeValidation,
-				"Submitted fields need attention.", "Review highlighted fields and retry.", corrID)
+		claims, req, ok := authenticateAndDecodeAskRequest(w, r, corrID)
+		if !ok {
 			return
 		}
 
@@ -130,7 +142,7 @@ func handleAskPostWithDeps(deps unaryTurnDeps) http.HandlerFunc {
 
 		attemptID := strings.TrimSpace(req.AttemptID)
 		if attemptID == "" {
-			attemptID = newUUIDv4()
+			attemptID = contracts.NewUUIDv4()
 		} else if !contracts.ValidateUUID(attemptID) {
 			writePublicError(w, http.StatusBadRequest, contracts.ErrCodeValidation,
 				"Invalid attempt identifier.", "Refresh and submit again.", corrID)

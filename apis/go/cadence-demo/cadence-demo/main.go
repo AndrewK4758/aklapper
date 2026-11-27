@@ -159,16 +159,7 @@ func newHandlerWithDeps(deps cadenceServiceDeps) http.Handler {
 			httpkit.WriteError(w, http.StatusBadRequest, "missing run id")
 			return
 		}
-		headerSession := strings.TrimSpace(r.Header.Get("X-Session-Id"))
-		if headerSession == "" && (claims == nil || strings.TrimSpace(claims.Sub) == "") {
-			logCadenceSeam("UNSOUND_CONDITION", "cadence.stream.session_mismatch_or_missing", "critical", map[string]any{
-				"runId":  runID,
-				"reason": "missing_session",
-			})
-			httpkit.WriteError(w, http.StatusUnauthorized, "missing X-Session-Id header")
-			return
-		}
-		sessionID, authOK := resolveAuthorizedSession(w, r, claims, headerSession, false)
+		sessionID, authOK := requireAuthorizedRunSession(w, r, claims, runID)
 		if !authOK {
 			return
 		}

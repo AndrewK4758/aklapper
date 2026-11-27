@@ -2,10 +2,8 @@ package pg
 
 import (
 	"context"
-	"crypto/rand"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/url"
 	"os"
 	"strconv"
@@ -499,33 +497,10 @@ func (s *Store) CheckAndConsumeQuota(
 		}
 		s.mu.Lock()
 		defer s.mu.Unlock()
-		policy, ok := s.policies[role]
-		if !ok {
-			policy = defaultPolicies()[role]
-		}
-		sb := s.buckets[sessionKey]
-		if sb == nil {
-			sb = &memBucket{windowDay: today}
-			s.buckets[sessionKey] = sb
-		}
-		gb := s.buckets[globalKey]
-		if gb == nil || gb.windowDay != today {
-			gb = &memBucket{windowDay: today}
-			s.buckets[globalKey] = gb
-		}
-
-		maxSessionTokens := policy.MaxTokensPerRun * policy.MaxTurnsPerSession
-		if sb.turnsUsed+turnsDelta > policy.MaxTurnsPerSession ||
-			tokensDelta > policy.MaxTokensPerRun ||
-			gb.tokensUsed+tokensDelta > policy.MaxDailyGlobalTokens {
+		policy, sb, gb := s.ensureMemStateLocked(role, sessionID, today)
+		if isMemQuotaExceeded(policy, sb, gb, turnsDelta, tokensDelta) {
 			if !s.isDevUnlimitedEnabled() {
-				return contracts.QuotaStatus{
-					Role:       role,
-					TurnsUsed:  sb.turnsUsed,
-					MaxTurns:   policy.MaxTurnsPerSession,
-					TokensUsed: sb.tokensUsed,
-					MaxTokens:  maxSessionTokens,
-				}, false, nil
+				return formatQuotaStatus(role, policy, sb.turnsUsed, sb.tokensUsed), false, nil
 			}
 			logDevUnlimitedBypass(role, sessionID, "", "")
 		}
@@ -535,13 +510,7 @@ func (s *Store) CheckAndConsumeQuota(
 		gb.turnsUsed += turnsDelta
 		gb.tokensUsed += tokensDelta
 
-		return contracts.QuotaStatus{
-			Role:       role,
-			TurnsUsed:  sb.turnsUsed,
-			MaxTurns:   policy.MaxTurnsPerSession,
-			TokensUsed: sb.tokensUsed,
-			MaxTokens:  maxSessionTokens,
-		}, true, nil
+		return formatQuotaStatus(role, policy, sb.turnsUsed, sb.tokensUsed), true, nil
 	}
 
 	tx, err := s.pool.Begin(ctx)
@@ -635,14 +604,6 @@ func (s *Store) CheckAndConsumeQuota(
 	}, true, nil
 }
 
-func newUUIDv4() string {
-	var b [16]byte
-	_, _ = rand.Read(b[:])
-	b[6] = (b[6] & 0x0f) | 0x40
-	b[8] = (b[8] & 0x3f) | 0x80
-	return fmt.Sprintf("%08x-%04x-%04x-%04x-%012x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:16])
-}
-
 func (s *Store) CreateSandboxRun(ctx context.Context, input SandboxRunInput) (string, error) {
 	if input.GateVerdict == "" {
 		input.GateVerdict = "pending"
@@ -667,11 +628,11 @@ func (s *Store) CreateSandboxRun(ctx context.Context, input SandboxRunInput) (st
 
 	if s == nil || s.pool == nil {
 		if s == nil {
-			return newUUIDv4(), nil
+			return contracts.NewUUIDv4(), nil
 		}
 		s.mu.Lock()
 		defer s.mu.Unlock()
-		id := newUUIDv4()
+		id := contracts.NewUUIDv4()
 		run := &SandboxRun{
 			RunID:         id,
 			SessionID:     input.SessionID,

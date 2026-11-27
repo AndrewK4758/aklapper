@@ -155,7 +155,7 @@ func (s *askGRPCServer) StreamAsk(
 	}
 	corrID := grpckit.CorrelationIDFromContext(ctx)
 	if corrID == "" {
-		corrID = newUUIDv4()
+		corrID = contracts.NewUUIDv4()
 	}
 
 	syncFail := executeStreamingTurn(ctx, s.deps, askStreamInput{

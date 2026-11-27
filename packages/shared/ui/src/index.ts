@@ -40,6 +40,7 @@ export {
   lazyWithRetry,
 } from './components/LazyChunkBoundary';
 export { LoadingElement, type LoadingElementProps } from './components/LoadingElement';
+export { mobileChromeClasses } from './components/mobileChrome';
 export {
   RecursiveTuiForm,
   type RecursiveTuiFormProps,

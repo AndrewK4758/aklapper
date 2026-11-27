@@ -6,6 +6,7 @@ import { Form } from 'react-router';
 import { reportAdminLazyChunkError } from '../client-telemetry';
 import { AgensiCacheSection } from './AgensiCacheSection';
 
+import cardStyles from '../shared/adminSectionCard.module.css';
 import styles from './AdminCmsPage.module.css';
 
 const LazySandboxedArtifactFrame = lazyWithRetry(() =>
@@ -41,9 +42,11 @@ export function CmsAgensiPresetsTab({ data }: CmsAgensiPresetsTabProps) {
 
       <Separator.Root />
 
-      <section className={styles.card} aria-label='CADENCE presets'>
-        <div className={styles.cardHeader}>
-          <h2 className={styles.sectionTitle}>CADENCE Presets ({data.cadencePresets.length})</h2>
+      <section className={cardStyles.card} aria-label='CADENCE presets'>
+        <div className={cardStyles.cardHeader}>
+          <h2 className={cardStyles.sectionTitle}>
+            CADENCE Presets ({data.cadencePresets.length})
+          </h2>
           <Button.Root
             type='button'
             variant='ghost'

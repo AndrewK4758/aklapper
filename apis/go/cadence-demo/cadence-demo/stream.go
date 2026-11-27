@@ -58,6 +58,47 @@ func resolveAuthorizedSession(w http.ResponseWriter, r *http.Request, claims *in
 	return "", true
 }
 
+func requireAuthorizedRunSession(
+	w http.ResponseWriter,
+	r *http.Request,
+	claims *internalauth.Claims,
+	runID string,
+) (string, bool) {
+	headerSession := strings.TrimSpace(r.Header.Get("X-Session-Id"))
+	if headerSession == "" && (claims == nil || strings.TrimSpace(claims.Sub) == "") {
+		logCadenceSeam("UNSOUND_CONDITION", "cadence.stream.session_mismatch_or_missing", "critical", map[string]any{
+			"runId":  runID,
+			"reason": "missing_session",
+		})
+		httpkit.WriteError(w, http.StatusUnauthorized, "missing X-Session-Id header")
+		return "", false
+	}
+	return resolveAuthorizedSession(w, r, claims, headerSession, false)
+}
+
+func commitCompletedSandboxRun(
+	commitCtx context.Context,
+	r *http.Request,
+	sse *httpkit.SSEWriter,
+	store *pg.Store,
+	input pg.CompleteSandboxRunInput,
+) (*pg.SandboxRun, bool) {
+	completed, compErr := store.CompleteSandboxRunWithArtifacts(commitCtx, input)
+	if compErr != nil {
+		_ = store.FailSandboxRun(commitCtx, input.RunID, "CHORD execution failed before completion")
+		if r.Context().Err() == nil {
+			_ = sse.WriteEvent("error", contracts.CadenceStreamErrorEvent{
+				RunID:     input.RunID,
+				Error:     "failed to commit completed run",
+				Code:      "ERR_CADENCE_COMMIT",
+				RunStatus: contracts.CadenceStatusFailed,
+			})
+		}
+		return nil, false
+	}
+	return completed, true
+}
+
 func handleRunStream(deps cadenceServiceDeps) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		claims, ok := httpkit.RequireInternalAuth(w, r)
@@ -71,16 +112,7 @@ func handleRunStream(deps cadenceServiceDeps) http.HandlerFunc {
 			return
 		}
 
-		headerSession := strings.TrimSpace(r.Header.Get("X-Session-Id"))
-		if headerSession == "" && (claims == nil || strings.TrimSpace(claims.Sub) == "") {
-			logCadenceSeam("UNSOUND_CONDITION", "cadence.stream.session_mismatch_or_missing", "critical", map[string]any{
-				"runId":  runID,
-				"reason": "missing_session",
-			})
-			httpkit.WriteError(w, http.StatusUnauthorized, "missing X-Session-Id header")
-			return
-		}
-		sessionID, authOK := resolveAuthorizedSession(w, r, claims, headerSession, false)
+		sessionID, authOK := requireAuthorizedRunSession(w, r, claims, runID)
 		if !authOK {
 			return
 		}
@@ -236,7 +268,7 @@ func handleRunStream(deps cadenceServiceDeps) http.HandlerFunc {
 
 			commitCtx, commitCancel := context.WithTimeout(context.WithoutCancel(r.Context()), 5*time.Second)
 			defer commitCancel()
-			completed, compErr := deps.store.CompleteSandboxRunWithArtifacts(commitCtx, pg.CompleteSandboxRunInput{
+			completed, committed := commitCompletedSandboxRun(commitCtx, r, sse, deps.store, pg.CompleteSandboxRunInput{
 				RunID:         runID,
 				TokensIn:      out.TokensIn,
 				TokensOut:     out.TokensOut,
@@ -246,16 +278,7 @@ func handleRunStream(deps cadenceServiceDeps) http.HandlerFunc {
 				GateAuditJSON: out.GateAudit,
 				PromptHash:    claimedBuild.PromptHash,
 			})
-			if compErr != nil {
-				_ = deps.store.FailSandboxRun(commitCtx, runID, "CHORD execution failed before completion")
-				if r.Context().Err() == nil {
-					_ = sse.WriteEvent("error", contracts.CadenceStreamErrorEvent{
-						RunID:     runID,
-						Error:     "failed to commit completed run",
-						Code:      "ERR_CADENCE_COMMIT",
-						RunStatus: contracts.CadenceStatusFailed,
-					})
-				}
+			if !committed {
 				return
 			}
 
@@ -469,7 +492,7 @@ func handleRunStream(deps cadenceServiceDeps) http.HandlerFunc {
 
 		commitCtx, commitCancel := context.WithTimeout(context.WithoutCancel(r.Context()), 5*time.Second)
 		defer commitCancel()
-		completed, compErr := deps.store.CompleteSandboxRunWithArtifacts(commitCtx, pg.CompleteSandboxRunInput{
+		completed, committed := commitCompletedSandboxRun(commitCtx, r, sse, deps.store, pg.CompleteSandboxRunInput{
 			RunID:         runID,
 			TokensIn:      out.TokensIn,
 			TokensOut:     out.TokensOut,
@@ -479,16 +502,7 @@ func handleRunStream(deps cadenceServiceDeps) http.HandlerFunc {
 			GateAuditJSON: out.GateAudit,
 			PromptHash:    claimed.PromptHash,
 		})
-		if compErr != nil {
-			_ = deps.store.FailSandboxRun(commitCtx, runID, "CHORD execution failed before completion")
-			if r.Context().Err() == nil {
-				_ = sse.WriteEvent("error", contracts.CadenceStreamErrorEvent{
-					RunID:     runID,
-					Error:     "failed to commit completed run",
-					Code:      "ERR_CADENCE_COMMIT",
-					RunStatus: contracts.CadenceStatusFailed,
-				})
-			}
+		if !committed {
 			return
 		}
 
