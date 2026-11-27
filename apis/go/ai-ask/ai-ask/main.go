@@ -210,7 +210,7 @@ func main() {
 	// Evaluate AI_DEV_UNLIMITED once at startup so invalid prod/vertex overrides log loudly.
 	_ = llm.IsDevUnlimitedEnabled()
 
-	store, err := pg.OpenFromEnvStrict(context.Background())
+	store, err := pg.OpenServiceFromEnvCapped(context.Background(), pg.DefaultServiceLazyMaxConns, true)
 	if err != nil {
 		log.Fatalf("ai-ask strict postgres startup failure: %v", err)
 	}
