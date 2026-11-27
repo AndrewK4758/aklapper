@@ -464,6 +464,55 @@ describe('classifyGrpcError fail-closed redaction and fallback boundary', () => 
     const res422 = classifyGrpcError(policy422, { correlationId: 'corr-422', source: 'test' });
     expect(res422.publicError.status).toBe(422);
     expect(res422.publicError.code).toBe('ERR_CONSTRAINT');
+
+    // Code.Internal maps seeded-content server misconfiguration cleanly to 500 ERR_INTERNAL.
+    const internal500 = new ConnectError('missing site_content seed', Code.Internal, undefined, [
+      {
+        desc: ErrorDetailEnvelopeSchema,
+        value: create(ErrorDetailEnvelopeSchema, {
+          error: create(ProtoPublicAppErrorSchema, {
+            code: 'ERR_INTERNAL',
+            status: 500,
+            message: 'Unexpected server error.',
+            action: 'Retry or share the reference ID.',
+            correlationId: 'corr-500-seed',
+          }),
+        }),
+      },
+    ]);
+    const res500 = classifyGrpcError(internal500, {
+      correlationId: 'corr-500-seed',
+      source: 'test.seed',
+    });
+    expect(res500.publicError.status).toBe(500);
+    expect(res500.publicError.code).toBe('ERR_INTERNAL');
+
+    // scrubDiagnosticCause redacts x-internal-client-ip alongside x-internal-auth and Bearer tokens.
+    const leakyErr = new ConnectError(
+      'header x-internal-client-ip: v1.signed.ip-token x-internal-auth=v1.signed.auth',
+      Code.Unauthenticated,
+    );
+    const scrubbedRes = classifyGrpcError(leakyErr, {
+      correlationId: 'corr-scrub-ip',
+      source: 'test.scrub',
+    });
+    expect(scrubbedRes.diagnostic.causeMessage).toContain('x-internal-client-ip=[redacted]');
+    expect(scrubbedRes.diagnostic.causeMessage).toContain('x-internal-auth=[redacted]');
+    expect(scrubbedRes.diagnostic.causeMessage).not.toContain('ip-token');
+
+    // Raw socket ECONNREFUSED classifies as ERR_UPSTREAM_UNAVAILABLE (never ERR_DB_UNAVAILABLE).
+    const rawSocketRefused = Object.assign(new Error('connect ECONNREFUSED 127.0.0.1:8084'), {
+      code: 'ECONNREFUSED',
+    });
+    const refusedRes = classifyGrpcError(rawSocketRefused, {
+      correlationId: 'corr-econnrefused',
+      source: 'test.portal',
+      normalizeUnavailableStatus: 503,
+    });
+    expect(refusedRes.publicError.status).toBe(503);
+    expect(refusedRes.publicError.code).toBe('ERR_UPSTREAM_UNAVAILABLE');
+    expect(refusedRes.publicError.message).toBe('Upstream service unreachable.');
+    expect(isFallbackTransportError(refusedRes)).toBe(true);
   });
 
   it('emits bff.grpc.upstream_error_classified via explicit logger and falls back to structured stderr logger when omitted', () => {

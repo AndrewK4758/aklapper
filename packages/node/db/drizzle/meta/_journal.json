@@ -78,6 +78,13 @@
       "when": 1795620000000,
       "tag": "0010_visitor_analytics_enrichment",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1795630000000,
+      "tag": "0011_portal_app_grants_and_rls",
+      "breakpoints": true
     }
   ]
 }

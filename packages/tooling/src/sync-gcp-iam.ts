@@ -1,6 +1,31 @@
-import { execFileSync } from 'node:child_process';
+import {
+  addAdminIapAccessorBinding,
+  addBucketBinding,
+  addCloudRunServiceBinding,
+  addProjectBinding,
+  addSecretBinding,
+  addServiceAccountBinding,
+  defaultGcloudExec,
+  ensureRunIamBinderRole,
+  type GcloudExecRunner,
+} from './sync-gcp-iam-primitives.ts';
 
-export type GcloudExecRunner = (args: readonly string[], input?: string) => string;
+export {
+  addProjectBinding,
+  addServiceAccountBinding,
+  defaultGcloudExec,
+  RUN_IAM_BINDER_PERMISSIONS,
+  RUN_IAM_BINDER_ROLE_ID,
+  type GcloudExecRunner,
+} from './sync-gcp-iam-primitives.ts';
+
+export const PORTAL_SA_ALLOWED_SECRETS = ['INTERNAL_AUTH_SECRET'] as const;
+export const PORTAL_API_SA_REQUIRED_SECRETS = [
+  'PORTAL_DATABASE_URL',
+  'INTERNAL_AUTH_SECRET',
+  'ANALYTICS_DAILY_SALT',
+] as const;
+export const PORTAL_API_SA_OPTIONAL_SECRETS = ['AGENSI_API_KEY'] as const;
 
 export interface EnsureRuntimeServiceAccountBindingsOptions {
   readonly projectId: string;
@@ -8,141 +33,14 @@ export interface EnsureRuntimeServiceAccountBindingsOptions {
   readonly region?: string;
   readonly deployerSa: string;
   readonly runtimeSa?: string;
+  readonly portalSa?: string;
+  readonly portalApiSa?: string;
   readonly migratorSa?: string;
   readonly pg19VmSa?: string;
   readonly pg19BackupBucket?: string;
   readonly iapAccessorEmail?: string;
   readonly dryRun: boolean;
   readonly execGcloud?: GcloudExecRunner;
-}
-
-export function defaultGcloudExec(args: readonly string[], input?: string): string {
-  return execFileSync('gcloud', [...args], {
-    input,
-    encoding: 'utf8',
-    stdio: input !== undefined ? ['pipe', 'pipe', 'pipe'] : ['ignore', 'pipe', 'pipe'],
-  });
-}
-
-export function addProjectBinding(
-  projectId: string,
-  member: string,
-  role: string,
-  dryRun: boolean,
-  execGcloud: GcloudExecRunner,
-): void {
-  if (dryRun) {
-    console.log(`[dry-run] Would grant ${role} on project ${projectId} to ${member}.`);
-    return;
-  }
-  execGcloud([
-    'projects',
-    'add-iam-policy-binding',
-    projectId,
-    `--member=${member}`,
-    `--role=${role}`,
-    '--condition=None',
-  ]);
-}
-
-export function addServiceAccountBinding(
-  projectId: string,
-  targetSa: string,
-  role: string,
-  member: string,
-  dryRun: boolean,
-  execGcloud: GcloudExecRunner,
-): void {
-  if (dryRun) {
-    console.log(
-      `[dry-run] Would grant ${role} on service account ${targetSa} (${projectId}) to ${member}.`,
-    );
-    return;
-  }
-  execGcloud([
-    'iam',
-    'service-accounts',
-    'add-iam-policy-binding',
-    targetSa,
-    `--project=${projectId}`,
-    `--role=${role}`,
-    `--member=${member}`,
-  ]);
-}
-
-function addBucketBinding(
-  bucketUrl: string,
-  member: string,
-  role: string,
-  dryRun: boolean,
-  execGcloud: GcloudExecRunner,
-): void {
-  if (dryRun) {
-    console.log(`[dry-run] Would grant ${role} on bucket ${bucketUrl} to ${member}.`);
-    return;
-  }
-  execGcloud([
-    'storage',
-    'buckets',
-    'add-iam-policy-binding',
-    bucketUrl,
-    `--member=${member}`,
-    `--role=${role}`,
-  ]);
-}
-
-function addCloudRunServiceBinding(
-  projectId: string,
-  region: string,
-  service: string,
-  member: string,
-  role: string,
-  dryRun: boolean,
-  execGcloud: GcloudExecRunner,
-): void {
-  if (dryRun) {
-    console.log(
-      `[dry-run] Would grant ${role} on Cloud Run service ${service} (${region}/${projectId}) to ${member}.`,
-    );
-    return;
-  }
-  execGcloud([
-    'run',
-    'services',
-    'add-iam-policy-binding',
-    service,
-    `--project=${projectId}`,
-    `--region=${region}`,
-    `--member=${member}`,
-    `--role=${role}`,
-  ]);
-}
-
-function addAdminIapAccessorBinding(
-  projectId: string,
-  region: string,
-  member: string,
-  dryRun: boolean,
-  execGcloud: GcloudExecRunner,
-): void {
-  if (dryRun) {
-    console.log(
-      `[dry-run] Would grant roles/iap.httpsResourceAccessor on Cloud Run admin (${region}/${projectId}) to ${member}.`,
-    );
-    return;
-  }
-  execGcloud([
-    'beta',
-    'iap',
-    'web',
-    'add-iam-policy-binding',
-    '--resource-type=cloud-run',
-    '--service=admin',
-    `--region=${region}`,
-    `--project=${projectId}`,
-    `--member=${member}`,
-    '--role=roles/iap.httpsResourceAccessor',
-  ]);
 }
 
 export function ensureRuntimeServiceAccountBindings(
@@ -154,6 +52,8 @@ export function ensureRuntimeServiceAccountBindings(
     region = 'us-central1',
     deployerSa,
     runtimeSa,
+    portalSa,
+    portalApiSa,
     migratorSa,
     pg19VmSa,
     pg19BackupBucket,
@@ -176,6 +76,9 @@ export function ensureRuntimeServiceAccountBindings(
       execGcloud,
     );
   }
+  ensureRunIamBinderRole(normalizedProject, normalizedDeployer, dryRun, execGcloud);
+
+  const normalizedRegion = region.trim() || 'us-central1';
 
   const saGrants: Array<{
     sa?: string;
@@ -212,6 +115,75 @@ export function ensureRuntimeServiceAccountBindings(
     }
   }
 
+  // Dedicated least-privilege public portal SA: strictly INTERNAL_AUTH_SECRET + invoker on Wave 1 Go services.
+  const normalizedPortalSa = portalSa?.trim();
+  if (normalizedPortalSa) {
+    addServiceAccountBinding(
+      normalizedProject,
+      normalizedPortalSa,
+      'roles/iam.serviceAccountUser',
+      `serviceAccount:${normalizedDeployer}`,
+      dryRun,
+      execGcloud,
+    );
+    for (const secretId of PORTAL_SA_ALLOWED_SECRETS) {
+      addSecretBinding(
+        normalizedProject,
+        secretId,
+        `serviceAccount:${normalizedPortalSa}`,
+        'roles/secretmanager.secretAccessor',
+        dryRun,
+        execGcloud,
+      );
+    }
+    for (const svc of ['ai-ask', 'cadence-demo', 'portal-api'] as const) {
+      addCloudRunServiceBinding(
+        normalizedProject,
+        normalizedRegion,
+        svc,
+        `serviceAccount:${normalizedPortalSa}`,
+        'roles/run.invoker',
+        dryRun,
+        execGcloud,
+        { optional: true },
+      );
+    }
+  }
+
+  // Dedicated least-privilege portal-api SA: strictly portal_app DSN, HMAC secret, daily salt, and optional Agensi key.
+  const normalizedPortalApiSa = portalApiSa?.trim();
+  if (normalizedPortalApiSa) {
+    addServiceAccountBinding(
+      normalizedProject,
+      normalizedPortalApiSa,
+      'roles/iam.serviceAccountUser',
+      `serviceAccount:${normalizedDeployer}`,
+      dryRun,
+      execGcloud,
+    );
+    for (const secretId of PORTAL_API_SA_REQUIRED_SECRETS) {
+      addSecretBinding(
+        normalizedProject,
+        secretId,
+        `serviceAccount:${normalizedPortalApiSa}`,
+        'roles/secretmanager.secretAccessor',
+        dryRun,
+        execGcloud,
+      );
+    }
+    for (const secretId of PORTAL_API_SA_OPTIONAL_SECRETS) {
+      addSecretBinding(
+        normalizedProject,
+        secretId,
+        `serviceAccount:${normalizedPortalApiSa}`,
+        'roles/secretmanager.secretAccessor',
+        dryRun,
+        execGcloud,
+        { optional: true },
+      );
+    }
+  }
+
   const normalizedPg19VmSa = pg19VmSa?.trim();
   if (normalizedPg19VmSa) {
     addProjectBinding(
@@ -231,7 +203,6 @@ export function ensureRuntimeServiceAccountBindings(
     );
   }
 
-  const normalizedRegion = region.trim() || 'us-central1';
   addAdminIapAccessorBinding(
     normalizedProject,
     normalizedRegion,

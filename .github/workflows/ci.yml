@@ -363,6 +363,8 @@ jobs:
           --health-retries=10
     env:
       DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5439/aklapper?sslmode=disable
+      PORTAL_DATABASE_URL: postgres://portal_app:portal_app_local_dev_password@127.0.0.1:5439/aklapper?sslmode=disable
+      ANALYTICS_DAILY_SALT: dev-only-rotate-daily
     strategy:
       fail-fast: false
       matrix:
@@ -463,8 +465,15 @@ jobs:
           context: .
           file: ${{ matrix.dockerfile }}
           push: false
+          load: ${{ matrix.service == 'portal-api' }}
+          tags: aklapper-ci/${{ matrix.service }}:check
           cache-from: type=gha,scope=${{ matrix.service }}
           cache-to: type=gha,mode=max,scope=${{ matrix.service }}
+
+      - name: Verify portal-api 512Mi GeoLite2 RSS ceiling
+        if: matrix.service == 'portal-api'
+        shell: bash
+        run: bash infra/docker/verify-portal-api-rss.sh aklapper-ci/portal-api:check
 
   ci-status:
     name: CI status gate

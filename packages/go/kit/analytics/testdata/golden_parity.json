@@ -1,0 +1,360 @@
+{
+  "nowIso": "2026-11-27T00:12:00.000Z",
+  "baseSalt": "cross-lang-golden-salt",
+  "currentSalt": "cross-lang-golden-salt:2026-11-27",
+  "priorSalt": "cross-lang-golden-salt:2026-11-26",
+  "withinGrace": true,
+  "identities": [
+    {
+      "ip": "198.51.100.42",
+      "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.1 Safari/605.1.15",
+      "currentIpHash": "651a718f45e589d3ab7067a1",
+      "priorIpHash": "777fa1e9b8951abbf1d8bfee",
+      "currentVisitorHash": "88b03893655e5b244e9318e45f9763b9",
+      "priorVisitorHash": "fcb13147a17c614c98f29964a2119fc0",
+      "advisoryLockKey": "analytics_session:portal:88b03893655e5b244e9318e45f9763b9"
+    },
+    {
+      "ip": "2001:db8::42",
+      "ua": "  Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/131.0.0.0 Safari/537.36  ",
+      "currentIpHash": "370cc49756da8daad354f2f9",
+      "priorIpHash": "000dc7cc70c6a0e858c6ab68",
+      "currentVisitorHash": "2960391557471602264c8e602dfdb623",
+      "priorVisitorHash": "4ca83a9efead2fbd1665cc555b744a52",
+      "advisoryLockKey": "analytics_session:portal:2960391557471602264c8e602dfdb623"
+    },
+    {
+      "ip": "203.0.113.7",
+      "ua": "",
+      "currentIpHash": "458f51b7356643c4d177add4",
+      "priorIpHash": "22c38be9756b7aafc808f299",
+      "currentVisitorHash": "8a073839fc14d328e0b8d46aea608fd3",
+      "priorVisitorHash": "bbd0f271d1b1fab2f6d396f0988609ef",
+      "advisoryLockKey": "analytics_session:portal:8a073839fc14d328e0b8d46aea608fd3"
+    }
+  ],
+  "userAgents": [
+    {
+      "ua": "",
+      "bot": {
+        "isBot": true,
+        "branch": "bot_headless_or_missing_ua"
+      },
+      "profile": {
+        "deviceType": "bot",
+        "osName": null,
+        "browserName": null
+      }
+    },
+    {
+      "ua": "curl/8.7.1",
+      "bot": {
+        "isBot": true,
+        "branch": "bot_headless_or_missing_ua"
+      },
+      "profile": {
+        "deviceType": "bot",
+        "osName": null,
+        "browserName": null
+      }
+    },
+    {
+      "ua": "Mozilla/5.0 HeadlessChrome/128.0.0.0 Safari/537.36",
+      "bot": {
+        "isBot": true,
+        "branch": "bot_headless_or_missing_ua"
+      },
+      "profile": {
+        "deviceType": "bot",
+        "osName": null,
+        "browserName": null
+      }
+    },
+    {
+      "ua": "Playwright/1.50.0",
+      "bot": {
+        "isBot": true,
+        "branch": "bot_headless_or_missing_ua"
+      },
+      "profile": {
+        "deviceType": "bot",
+        "osName": null,
+        "browserName": null
+      }
+    },
+    {
+      "ua": "Googlebot/2.1 (+http://www.google.com/bot.html)",
+      "bot": {
+        "isBot": true,
+        "branch": "bot_isbot"
+      },
+      "profile": {
+        "deviceType": "bot",
+        "osName": null,
+        "browserName": null
+      }
+    },
+    {
+      "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.1 Safari/605.1.15",
+      "bot": {
+        "isBot": false,
+        "branch": "human"
+      },
+      "profile": {
+        "deviceType": "desktop",
+        "osName": "macOS",
+        "browserName": "Safari"
+      }
+    },
+    {
+      "ua": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/130.0.0.0 Mobile/15E148 Safari/604.1",
+      "bot": {
+        "isBot": false,
+        "branch": "human"
+      },
+      "profile": {
+        "deviceType": "mobile",
+        "osName": "iOS",
+        "browserName": "Chrome"
+      }
+    },
+    {
+      "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.6 Safari/605.1.15",
+      "bot": {
+        "isBot": false,
+        "branch": "human"
+      },
+      "profile": {
+        "deviceType": "desktop",
+        "osName": "macOS",
+        "browserName": "Safari"
+      }
+    },
+    {
+      "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:132.0) Gecko/20100101 Firefox/132.0",
+      "bot": {
+        "isBot": false,
+        "branch": "human"
+      },
+      "profile": {
+        "deviceType": "desktop",
+        "osName": "Windows",
+        "browserName": "Firefox"
+      }
+    },
+    {
+      "ua": "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 Google Pixel Browser",
+      "bot": {
+        "isBot": false,
+        "branch": "human"
+      },
+      "profile": {
+        "deviceType": "tablet",
+        "osName": "Android",
+        "browserName": null
+      }
+    },
+    {
+      "ua": "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 GoogleApp/300.0",
+      "bot": {
+        "isBot": false,
+        "branch": "human"
+      },
+      "profile": {
+        "deviceType": "tablet",
+        "osName": "Android",
+        "browserName": null
+      }
+    },
+    {
+      "ua": "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Mobile CamScanner/6.0",
+      "bot": {
+        "isBot": false,
+        "branch": "human"
+      },
+      "profile": {
+        "deviceType": "mobile",
+        "osName": "Android",
+        "browserName": null
+      }
+    },
+    {
+      "ua": "Mozilla/5.0 (X11; Linux x86_64) NewsSapphire/1.0 Safari/537.36",
+      "bot": {
+        "isBot": false,
+        "branch": "human"
+      },
+      "profile": {
+        "deviceType": "desktop",
+        "osName": "Linux",
+        "browserName": "Safari"
+      }
+    },
+    {
+      "ua": "Mozilla/5.0 (X11; Linux x86_64) CuBot/2.0 Safari/537.36",
+      "bot": {
+        "isBot": false,
+        "branch": "human"
+      },
+      "profile": {
+        "deviceType": "desktop",
+        "osName": "Linux",
+        "browserName": "Safari"
+      }
+    },
+    {
+      "ua": "Mozilla/5.0 (X11; Linux x86_64) LibHTTP/1.0 Safari/537.36",
+      "bot": {
+        "isBot": false,
+        "branch": "human"
+      },
+      "profile": {
+        "deviceType": "desktop",
+        "osName": "Linux",
+        "browserName": "Safari"
+      }
+    },
+    {
+      "ua": "Mozilla/5.0 (X11; Linux x86_64) Java; Safari/537.36",
+      "bot": {
+        "isBot": false,
+        "branch": "human"
+      },
+      "profile": {
+        "deviceType": "desktop",
+        "osName": "Linux",
+        "browserName": "Safari"
+      }
+    },
+    {
+      "ua": "Mozilla/5.0 NewsReader/2.0",
+      "bot": {
+        "isBot": true,
+        "branch": "bot_isbot"
+      },
+      "profile": {
+        "deviceType": "bot",
+        "osName": null,
+        "browserName": null
+      }
+    },
+    {
+      "ua": "Mozilla/5.0 CustomScan/1.0",
+      "bot": {
+        "isBot": true,
+        "branch": "bot_isbot"
+      },
+      "profile": {
+        "deviceType": "bot",
+        "osName": null,
+        "browserName": null
+      }
+    },
+    {
+      "ua": "Java/17.0.1",
+      "bot": {
+        "isBot": true,
+        "branch": "bot_isbot"
+      },
+      "profile": {
+        "deviceType": "bot",
+        "osName": null,
+        "browserName": null
+      }
+    },
+    {
+      "ua": "Mozilla/5.0 (compatible; Bingbot/2.0; +http://www.bing.com/bingbot.htm)",
+      "bot": {
+        "isBot": true,
+        "branch": "bot_isbot"
+      },
+      "profile": {
+        "deviceType": "bot",
+        "osName": null,
+        "browserName": null
+      }
+    }
+  ],
+  "referrers": [
+    {
+      "raw": "https://user:secret@www.linkedin.com/feed/update/123?token=abc#frag",
+      "ownHosts": ["andrew-k.us"],
+      "expected": {
+        "referrer": "https://www.linkedin.com/feed/update/123",
+        "referrerHost": "linkedin.com",
+        "referrerCategory": "social"
+      }
+    },
+    {
+      "raw": "https://news.ycombinator.com/item?id=42",
+      "ownHosts": ["andrew-k.us"],
+      "expected": {
+        "referrer": "https://news.ycombinator.com/item",
+        "referrerHost": "news.ycombinator.com",
+        "referrerCategory": "developer"
+      }
+    },
+    {
+      "raw": "https://www.google.com/search?q=andrew",
+      "ownHosts": ["andrew-k.us"],
+      "expected": {
+        "referrer": "https://www.google.com/search",
+        "referrerHost": "google.com",
+        "referrerCategory": "search"
+      }
+    },
+    {
+      "raw": "https://www.andrew-k.us/about",
+      "ownHosts": ["andrew-k.us"],
+      "expected": {
+        "referrer": null,
+        "referrerHost": null,
+        "referrerCategory": "direct"
+      }
+    },
+    {
+      "raw": "https://preview.example.run.app/chat",
+      "ownHosts": ["preview.example.run.app"],
+      "expected": {
+        "referrer": null,
+        "referrerHost": null,
+        "referrerCategory": "direct"
+      }
+    },
+    {
+      "raw": "javascript:alert(1)",
+      "ownHosts": ["andrew-k.us"],
+      "expected": {
+        "referrer": null,
+        "referrerHost": null,
+        "referrerCategory": "direct"
+      }
+    }
+  ],
+  "campaigns": [
+    {
+      "rawUrl": "https://andrew-k.us/about/?ref=recruiter&utm_source=linkedin&utm_medium=social&utm_campaign=fall26&utm_content=bio",
+      "expected": {
+        "landingPath": "/about",
+        "refParam": "recruiter",
+        "utmSource": "linkedin",
+        "utmMedium": "social",
+        "utmCampaign": "fall26",
+        "utmContent": "bio"
+      },
+      "normalizedPath": "/about"
+    },
+    {
+      "rawUrl": "https://andrew-k.us///",
+      "expected": {
+        "landingPath": "/",
+        "refParam": null,
+        "utmSource": null,
+        "utmMedium": null,
+        "utmCampaign": null,
+        "utmContent": null
+      },
+      "normalizedPath": "/"
+    }
+  ]
+}

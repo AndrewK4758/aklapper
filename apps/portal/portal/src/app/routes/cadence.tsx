@@ -1,5 +1,4 @@
 import { classifyServerError } from '@aklapper/core/server-errors';
-import { loadPortalCadenceDataWithPrerender } from '@aklapper/db';
 import {
   createFallbackLogger,
   deferStreamResult,
@@ -23,26 +22,30 @@ import { triggerPortalGuestSessionBinding } from '../contact-analytics-link.serv
 import { CadenceRouteView } from '../features/CadenceFeatureView';
 import { createPrimaryRouteClientAction } from '../features/paneClientAction';
 import { resolveGuestSession } from '../guest-session.server';
+import { loadPortalCadenceDataWithPrerender } from '../portal-api.server';
 import { buildPortalPageMeta } from '../seo';
 import type { Route } from './+types/cadence';
 
 export function loader({ request, context }: Route.LoaderArgs) {
   const { sessionId, setCookieHeader } = resolveGuestSession(request);
   const correlationId = getOrCreateCorrelationId(request, context);
-  triggerPortalGuestSessionBinding(
-    request,
-    sessionId,
-    getRequestContext(context)?.logger,
-    '/cadence',
-  );
+  const reqCtx = getRequestContext(context);
+  triggerPortalGuestSessionBinding(request, sessionId, reqCtx?.logger, '/cadence');
   return data(
     {
       correlationId,
-      payload: deferStreamResult(loadPortalCadenceDataWithPrerender(sessionId), {
-        request,
-        context,
-        source: 'portal.cadence.loader',
-      }),
+      payload: deferStreamResult(
+        loadPortalCadenceDataWithPrerender(sessionId, {
+          correlationId,
+          ...(reqCtx?.logger ? { logger: reqCtx.logger } : {}),
+          signal: reqCtx?.signal ?? request.signal,
+        }),
+        {
+          request,
+          context,
+          source: 'portal.cadence.loader',
+        },
+      ),
     },
     setCookieHeader ? { headers: { 'Set-Cookie': setCookieHeader } } : undefined,
   );

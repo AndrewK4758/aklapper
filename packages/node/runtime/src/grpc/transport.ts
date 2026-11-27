@@ -10,6 +10,7 @@ import {
   type OidcAuthMode,
 } from '../http.ts';
 import { extractCorrelationId, type SsrStructuredLogger } from '../request-context.ts';
+import { INTERNAL_CLIENT_IP_HEADER } from './client-ip.ts';
 
 export interface GrpcInternalAuth {
   readonly role: InternalAuthRole;
@@ -21,6 +22,7 @@ export interface GrpcInternalAuth {
 export interface GrpcCallMetadata {
   readonly baseUrl: string;
   readonly internalAuth?: GrpcInternalAuth;
+  readonly signedClientIp?: string;
   readonly correlationId: string;
   readonly signal?: AbortSignal;
   readonly timeoutMs?: number;
@@ -35,12 +37,21 @@ export interface GrpcTransportOptions {
   readonly pingIntervalMs?: number;
   readonly pingTimeoutMs?: number;
   readonly idleConnectionTimeoutMs?: number;
+  readonly writeMaxBytes?: number;
+  readonly readMaxBytes?: number;
 }
 
 export const IDEMPOTENT_OIDC_RETRY_PROCEDURES: ReadonlySet<string> = new Set([
   '/ai_ask.v1.AskService/GetAskStatus',
   '/ai_ask.v1.AskService/GetTurn',
   '/cadence.v1.CadenceService/ListRuns',
+  '/portal.v1.PortalContentService/GetRootContent',
+  '/portal.v1.PortalContentService/GetHomeContent',
+  '/portal.v1.PortalContentService/GetAboutContent',
+  '/portal.v1.PortalContentService/GetAskContent',
+  '/portal.v1.PortalContentService/GetCadenceContent',
+  '/portal.v1.PortalContentService/GetContactContent',
+  '/portal.v1.AgensiService/GetCatalog',
   '/grpc.health.v1.Health/Check',
 ]);
 
@@ -63,8 +74,10 @@ export function getOrCreateGoGrpcTransport(
   const pingTimeoutMs = options?.pingTimeoutMs ?? DEFAULT_PING_TIMEOUT_MS;
   const idleConnectionTimeoutMs =
     options?.idleConnectionTimeoutMs ?? DEFAULT_IDLE_CONNECTION_TIMEOUT_MS;
+  const writeMaxBytes = options?.writeMaxBytes;
+  const readMaxBytes = options?.readMaxBytes;
 
-  const key = `${normalizedBaseUrl}|${pingIntervalMs}|${pingTimeoutMs}|${idleConnectionTimeoutMs}`;
+  const key = `${normalizedBaseUrl}|${pingIntervalMs}|${pingTimeoutMs}|${idleConnectionTimeoutMs}|${writeMaxBytes ?? ''}|${readMaxBytes ?? ''}`;
   const existing = transportPool.get(key);
   if (existing) {
     return existing;
@@ -75,6 +88,8 @@ export function getOrCreateGoGrpcTransport(
     pingIntervalMs,
     pingTimeoutMs,
     idleConnectionTimeoutMs,
+    ...(writeMaxBytes !== undefined ? { writeMaxBytes } : {}),
+    ...(readMaxBytes !== undefined ? { readMaxBytes } : {}),
   });
   transportPool.set(key, transport);
   return transport;
@@ -142,6 +157,9 @@ async function prepareGrpcCallHeaders(
           : {}),
       }),
     );
+  }
+  if (meta.signedClientIp?.trim()) {
+    headers.set(INTERNAL_CLIENT_IP_HEADER, meta.signedClientIp.trim());
   }
 
   const audience = resolveTargetOidcAudience(

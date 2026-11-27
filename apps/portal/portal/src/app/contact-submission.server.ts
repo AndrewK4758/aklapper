@@ -1,42 +1,27 @@
-import { createHash } from 'node:crypto';
-
 import {
+  CONTACT_FORM_DEFINITION,
   CONTACT_MAX_FILE_BYTES,
   type ContactActionResult,
-  type ContactAttachment,
-  ContactFormSubmissionSchema,
   type FormFieldErrorMap,
   resolveAllowedMimeType,
   sanitizeFilename,
   validateFormValues,
 } from '@aklapper/core';
-import { classifyServerError } from '@aklapper/core/server-errors';
-import {
-  ContactDbConstraintError,
-  consumeRateLimit,
-  getSharedDb,
-  insertContactSubmission,
-  loadPortalContactData,
-  recordContactSubmittedAnalyticsEvent,
-} from '@aklapper/db';
 import { resolveAnalyticsClientIp } from '@aklapper/node-runtime/analytics';
+import { classifyGrpcError, submitPortalContact } from '@aklapper/node-runtime/grpc';
 import {
   createFallbackLogger,
   getOrCreateCorrelationId,
-  logDiagnosticError,
   type SsrStructuredLogger,
 } from '@aklapper/node-runtime/ssr/stream';
 
-import {
-  emitContactAnalyticsCommitAudit,
-  resolvePortalContactAnalyticsLink,
-} from './contact-analytics-link.server';
+import { readPassiveGuestSession } from './contact-analytics-link.server';
+import { extractClientRequestContext, resolvePortalApiUrl } from './portal-api.server';
 
-const RATE_LIMIT_WINDOW_MS = 60_000;
-const RATE_LIMIT_MAX_REQUESTS = 20;
+const CONTACT_SUBMIT_TIMEOUT_MS = 12_000;
 
 export function resetContactRateLimiterForTest(): void {
-  // Rate limiting is persisted in PostgreSQL rate_limit_buckets; retained as a no-op for test compatibility.
+  // Rate limiting is enforced atomically in Go portal-api against PostgreSQL rate_limit_buckets.
 }
 
 export function resolveClientKey(request: Request): string {
@@ -45,11 +30,6 @@ export function resolveClientKey(request: Request): string {
     return '127.0.0.1';
   }
   return resolveAnalyticsClientIp(request);
-}
-
-function buildContactRateLimitScopeKey(clientKey: string): string {
-  const digest = createHash('sha256').update(clientKey).digest('hex').slice(0, 32);
-  return `contact:ip:${digest}`;
 }
 
 function addFieldError(map: FormFieldErrorMap, field: string, message: string): void {
@@ -61,55 +41,6 @@ function addFieldError(map: FormFieldErrorMap, field: string, message: string): 
   } else {
     map[field] = [message];
   }
-}
-
-function emitOutcomeAuditGap(correlationId: string, reason: string, detail?: unknown): void {
-  const record = {
-    severity: 'CRITICAL',
-    seam_type: 'DELTA_AUDIT_GAP',
-    event: 'portal.contact.submission_outcome_mismatch',
-    correlationId,
-    reason,
-    ...(detail !== undefined
-      ? { detail: detail instanceof Error ? detail.message : String(detail) }
-      : {}),
-  };
-  try {
-    process.stderr.write(`${JSON.stringify(record)}\n`);
-  } catch {
-    // Stderr unavailable
-  }
-}
-
-function buildClassifiedContactFailure(
-  error: unknown,
-  correlationId: string,
-  source: string,
-  logger: SsrStructuredLogger,
-): ContactSubmissionHttpResult {
-  const { publicError, diagnostic } = classifyServerError(error, {
-    correlationId,
-    source,
-  });
-  try {
-    logDiagnosticError(logger, diagnostic);
-  } catch (logError) {
-    emitOutcomeAuditGap(correlationId, 'Diagnostic logger threw during contact failure', logError);
-  }
-
-  return {
-    status: publicError.status,
-    correlationId: publicError.correlationId,
-    payload: {
-      ok: false,
-      source: publicError.code === 'ERR_DB_UNAVAILABLE' ? 'database' : 'server',
-      formError: publicError.message,
-      fieldErrors: {},
-      code: publicError.code,
-      action: publicError.action,
-      correlationId: publicError.correlationId,
-    },
-  };
 }
 
 export interface ContactSubmissionContext {
@@ -131,35 +62,6 @@ export async function processContactSubmission(
   const correlationId = context.correlationId ?? getOrCreateCorrelationId(request);
   const logger = context.logger ?? createFallbackLogger('portal-contact');
 
-  let db: ReturnType<typeof getSharedDb>;
-  try {
-    db = getSharedDb();
-    const clientKey = resolveClientKey(request);
-    const rateLimit = await consumeRateLimit(db, buildContactRateLimitScopeKey(clientKey), {
-      maxAttempts: RATE_LIMIT_MAX_REQUESTS,
-      windowMs: RATE_LIMIT_WINDOW_MS,
-    });
-    if (!rateLimit.allowed) {
-      return {
-        status: 429,
-        correlationId,
-        retryAfterSeconds: rateLimit.retryAfterSeconds,
-        payload: {
-          ok: false,
-          source: 'server',
-          formError:
-            'Too many contact submissions from this address. Please wait a minute and retry.',
-          fieldErrors: {},
-          code: 'ERR_RATE_LIMITED',
-          action: 'Wait a moment and submit again.',
-          correlationId,
-        },
-      };
-    }
-  } catch (error) {
-    return buildClassifiedContactFailure(error, correlationId, 'portal.contact.rate_limit', logger);
-  }
-
   let formData: FormData;
   try {
     formData = await request.formData();
@@ -179,7 +81,7 @@ export async function processContactSubmission(
     };
   }
 
-  // Reject automated bots that populate the hidden honeypot field.
+  // Reject automated bots that populate the hidden honeypot field before calling portal-api.
   const honeypotValue = String(formData.get('website') ?? '').trim();
   if (honeypotValue.length > 0) {
     return {
@@ -197,13 +99,6 @@ export async function processContactSubmission(
     };
   }
 
-  let content: Awaited<ReturnType<typeof loadPortalContactData>>['content'];
-  try {
-    ({ content } = await loadPortalContactData(db));
-  } catch (error) {
-    return buildClassifiedContactFailure(error, correlationId, 'portal.contact.load', logger);
-  }
-
   const rawName = String(formData.get('name') ?? '');
   const rawPhone = String(formData.get('phone') ?? '');
   const rawEmail = String(formData.get('email') ?? '');
@@ -214,7 +109,7 @@ export async function processContactSubmission(
       ? rawFileEntry
       : null;
 
-  const definitionValidation = validateFormValues(content.form, {
+  const definitionValidation = validateFormValues(CONTACT_FORM_DEFINITION, {
     name: rawName,
     phone: rawPhone,
     email: rawEmail,
@@ -244,20 +139,25 @@ export async function processContactSubmission(
     };
   }
 
-  let attachment: ContactAttachment | null = null;
+  let attachmentPayload: {
+    readonly filename: string;
+    readonly mimeType: string;
+    readonly content: Uint8Array;
+  } | null = null;
+
   if (uploadedFile) {
     const cleanName = sanitizeFilename(uploadedFile.name);
     const resolvedMime = resolveAllowedMimeType(cleanName, uploadedFile.type);
-    const bytes = Buffer.from(await uploadedFile.arrayBuffer());
+    const rawBytes = new Uint8Array(await uploadedFile.arrayBuffer());
 
     const fileErrors: FormFieldErrorMap = {};
     if (!cleanName || cleanName.length > 255) {
       addFieldError(fileErrors, 'file', 'Attachment filename is invalid or exceeds 255 characters');
     }
-    if (bytes.byteLength <= 0) {
+    if (rawBytes.byteLength <= 0) {
       addFieldError(fileErrors, 'file', 'Attached file cannot be empty');
     }
-    if (bytes.byteLength > CONTACT_MAX_FILE_BYTES) {
+    if (rawBytes.byteLength > CONTACT_MAX_FILE_BYTES) {
       addFieldError(fileErrors, 'file', 'Attachment exceeds the 5 MiB limit');
     }
     if (!resolvedMime) {
@@ -280,88 +180,59 @@ export async function processContactSubmission(
       };
     }
 
-    attachment = {
+    attachmentPayload = {
       filename: cleanName,
       mimeType: resolvedMime,
-      sizeBytes: bytes.byteLength,
-      sha256: createHash('sha256').update(bytes).digest('hex'),
-      contentBase64: bytes.toString('base64'),
+      content: rawBytes,
     };
   }
 
-  const parsed = ContactFormSubmissionSchema.safeParse({
-    name: rawName,
-    phone: rawPhone,
-    email: rawEmail,
-    message: rawMessage,
-    attachment,
-  });
-
-  if (!parsed.success) {
-    const fieldErrors: FormFieldErrorMap = {};
-    for (const issue of parsed.error.issues) {
-      const rootKey = String(issue.path[0] ?? 'form');
-      const targetField = rootKey === 'attachment' ? 'file' : rootKey;
-      addFieldError(fieldErrors, targetField, issue.message);
-    }
+  const portalApiUrl = resolvePortalApiUrl();
+  if (!portalApiUrl) {
     return {
-      status: 400,
+      status: 503,
       correlationId,
       payload: {
         ok: false,
         source: 'server',
-        formError: 'Server schema validation failed. Review the fields below.',
-        fieldErrors,
-        code: 'ERR_VALIDATION',
-        action: 'Review highlighted fields and retry.',
+        formError: 'Upstream service unreachable.',
+        fieldErrors: {},
+        code: 'ERR_UPSTREAM_UNAVAILABLE',
+        action: 'Retry shortly or go home.',
         correlationId,
       },
     };
   }
 
-  const analyticsLink = await resolvePortalContactAnalyticsLink(db, request, formData, {
-    correlationId,
-    logger,
-  });
-
-  let fkFallbackUsed = false;
+  const rawCandidate = formData.get('analyticsSessionId');
+  const candidateAnalyticsSessionId =
+    typeof rawCandidate === 'string' && rawCandidate.trim().length > 0 ? rawCandidate.trim() : null;
 
   try {
-    const submission = await insertContactSubmission(db, parsed.data, {
-      analyticsSessionId: analyticsLink.analyticsSessionId,
-      guestSessionId: analyticsLink.guestSessionId,
-      onAnalyticsSessionFkFallback: () => {
-        fkFallbackUsed = true;
-      },
-    });
-    if (!submission?.id) {
-      emitOutcomeAuditGap(correlationId, 'insertContactSubmission resolved without submission.id');
-      return buildClassifiedContactFailure(
-        new Error('Contact submission receipt missing identifier'),
+    const { clientContext, signedClientIp } = extractClientRequestContext(
+      request,
+      readPassiveGuestSession(request),
+    );
+    const submission = await submitPortalContact(
+      {
+        baseUrl: portalApiUrl,
+        internalAuth: { role: 'service', subject: 'portal-contact' },
+        signedClientIp,
         correlationId,
-        'portal.contact.insert',
+        timeoutMs: CONTACT_SUBMIT_TIMEOUT_MS,
+        signal: request.signal,
         logger,
-      );
-    }
-
-    const effectiveAnalyticsSessionId = fkFallbackUsed ? null : analyticsLink.analyticsSessionId;
-    const effectiveLinkMethod = fkFallbackUsed ? 'fail_open_null' : analyticsLink.linkMethod;
-
-    if (effectiveAnalyticsSessionId) {
-      await recordContactSubmittedAnalyticsEvent(
-        db,
-        effectiveAnalyticsSessionId,
-        undefined,
-        logger,
-      );
-    }
-    emitContactAnalyticsCommitAudit(logger, {
-      submissionId: submission.id,
-      linkMethod: effectiveLinkMethod,
-      linkedSessionPresent: effectiveAnalyticsSessionId !== null,
-      guestSessionLinked: analyticsLink.guestSessionId !== null,
-      correlationId,
-    });
+      },
+      {
+        name: rawName,
+        phone: rawPhone.trim() || null,
+        email: rawEmail,
+        message: rawMessage,
+        attachment: attachmentPayload,
+        candidateAnalyticsSessionId,
+        clientContext,
+      },
+    );
 
     return {
       status: 201,
@@ -369,21 +240,33 @@ export async function processContactSubmission(
       payload: { ok: true, submission },
     };
   } catch (error) {
-    if (error instanceof ContactDbConstraintError) {
-      return {
-        status: 422,
-        correlationId,
-        payload: {
-          ok: false,
-          source: 'database',
-          formError: error.message,
-          fieldErrors: error.fieldErrors,
-          code: 'ERR_CONSTRAINT',
-          action: 'Check highlighted fields and retry.',
-          correlationId,
-        },
-      };
-    }
-    return buildClassifiedContactFailure(error, correlationId, 'portal.contact.insert', logger);
+    const failure = classifyGrpcError(error, {
+      correlationId,
+      source: 'portal.contact.submit',
+      normalizeUnavailableStatus: 503,
+      logger,
+    });
+    const source: 'server' | 'database' =
+      failure.publicError.code === 'ERR_CONSTRAINT' ||
+      failure.publicError.code === 'ERR_DB_UNAVAILABLE'
+        ? 'database'
+        : 'server';
+
+    return {
+      status: failure.publicError.status,
+      correlationId: failure.publicError.correlationId,
+      ...(failure.retryAfterSeconds !== undefined
+        ? { retryAfterSeconds: failure.retryAfterSeconds }
+        : {}),
+      payload: {
+        ok: false,
+        source,
+        formError: failure.publicError.message,
+        fieldErrors: failure.publicError.fieldErrors ?? {},
+        code: failure.publicError.code,
+        action: failure.publicError.action,
+        correlationId: failure.publicError.correlationId,
+      },
+    };
   }
 }

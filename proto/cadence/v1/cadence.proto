@@ -11,6 +11,7 @@ service CadenceService {
   rpc ListRuns(ListRunsRequest) returns (ListRunsResponse);
   rpc ApproveSpecGate(ApproveSpecGateRequest) returns (ApproveSpecGateResponse);
   rpc SubmitGateVerdict(SubmitGateVerdictRequest) returns (SubmitGateVerdictResponse);
+  rpc ClearSessionRuns(ClearSessionRunsRequest) returns (ClearSessionRunsResponse);
   rpc StreamRun(StreamRunRequest) returns (stream StreamRunResponse);
 }
 
@@ -114,6 +115,13 @@ message ListRunsRequest {
 message ListRunsResponse {
   repeated CadenceRunResult runs = 1;
   common.v1.QuotaStatus quota = 2;
+  repeated CadenceRunResult golden_runs = 3;
+}
+
+message ClearSessionRunsRequest {}
+
+message ClearSessionRunsResponse {
+  int32 deleted_count = 1;
 }
 
 message ApproveSpecGateRequest {

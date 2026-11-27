@@ -37,6 +37,7 @@ export const GITHUB_OPTIONAL_ENV_VARS = [
   'WEBAUTHN_RP_ID',
   'WEBAUTHN_RP_NAME',
   'WEBAUTHN_ORIGIN',
+  'PORTAL_API_URL',
   'CADENCE_DEMO_URL',
   'AI_ASK_URL',
   'QDRANT_URL',
@@ -53,6 +54,8 @@ export const GITHUB_OPTIONAL_ENV_VARS = [
   'VERTEX_EMBED_MODEL',
   'ADMIN_HANDLE',
   'GCP_CLOUDRUN_SERVICE_ACCOUNT',
+  'GCP_PORTAL_SERVICE_ACCOUNT',
+  'GCP_PORTAL_API_SERVICE_ACCOUNT',
   'GCP_MIGRATOR_SERVICE_ACCOUNT',
   'GCP_PG19_VM_SERVICE_ACCOUNT',
   'IAP_ACCESSOR_EMAIL',
@@ -297,6 +300,29 @@ function ensureGithubEnvironment(repo: string, env: TargetEnvironment, dryRun: b
   execFileSync('gh', ['api', '-X', 'PUT', `repos/${repo}/environments/${env}`], { stdio: 'pipe' });
 }
 
+export function runGcpSyncAndBootstrap(
+  values: Readonly<Record<string, string>>,
+  plan: SyncPlan,
+  args: Pick<ParsedSyncCliArgs, 'repo' | 'dryRun' | 'bootstrapWif' | 'skipGcpSecrets'>,
+  deps?: {
+    readonly syncSecrets?: typeof syncGcpSecretVersions;
+    readonly bootstrapWif?: typeof bootstrapGcpWorkloadIdentity;
+  },
+): void {
+  const runSyncSecrets = deps?.syncSecrets ?? syncGcpSecretVersions;
+  const runBootstrapWif = deps?.bootstrapWif ?? bootstrapGcpWorkloadIdentity;
+
+  // Secret versions MUST be created before per-secret IAM bindings run in bootstrapWif.
+  if (!args.skipGcpSecrets && plan.gcpSecrets.length > 0) {
+    const projectId = values['GCP_PROJECT_ID']?.trim() ?? '';
+    runSyncSecrets(plan.gcpSecrets, projectId, args.dryRun);
+  }
+
+  if (args.bootstrapWif) {
+    runBootstrapWif(values, args.repo, args.dryRun);
+  }
+}
+
 function main(): void {
   const args = parseSyncCliArgs(process.argv.slice(2));
   const resolvedPath = resolve(process.cwd(), args.filePath);
@@ -324,14 +350,7 @@ function main(): void {
     console.warn(`[dry-run warning] ${details.join(' | ')}`);
   }
 
-  if (args.bootstrapWif) {
-    bootstrapGcpWorkloadIdentity(values, args.repo, args.dryRun);
-  }
-
-  if (!args.skipGcpSecrets && plan.gcpSecrets.length > 0) {
-    const projectId = values['GCP_PROJECT_ID']?.trim() ?? '';
-    syncGcpSecretVersions(plan.gcpSecrets, projectId, args.dryRun);
-  }
+  runGcpSyncAndBootstrap(values, plan, args);
 
   ensureGithubEnvironment(args.repo, args.env, args.dryRun);
 

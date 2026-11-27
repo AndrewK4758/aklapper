@@ -43,6 +43,7 @@ import {
   TerminalProfileDataSchema,
   formatTerminalDirectoryListing,
 } from '@aklapper/core';
+import { resolveTerminalLsOutput, TERMINAL_PROFILE_SLUGS } from '@aklapper/core/prerender';
 import { resolveAgensiCreatorHandle } from '@aklapper/node-runtime/agensi';
 import { and, asc, count, desc, eq, gt, isNull, sql } from 'drizzle-orm';
 import type { z } from 'zod';
@@ -100,12 +101,7 @@ export {
   updateSandboxTurnRow,
 };
 
-export { SITE_CONTENT_KEYS };
-
-export const TERMINAL_PROFILE_SLUGS = {
-  portalHome: 'portal-home',
-  adminOps: 'admin-ops',
-} as const;
+export { resolveTerminalLsOutput, SITE_CONTENT_KEYS, TERMINAL_PROFILE_SLUGS };
 
 export async function getSiteContent<T>(
   db: AppDatabase,
@@ -151,17 +147,6 @@ export async function getTerminalDirectoryEntries(
       enabled: row.enabled,
     }),
   );
-}
-
-export function resolveTerminalLsOutput(
-  commandName: string,
-  fallbackOutput: string,
-  directoryListing: string | null,
-): string {
-  if (directoryListing !== null && commandName.trim() === 'ls') {
-    return directoryListing;
-  }
-  return fallbackOutput;
 }
 
 export async function getTerminalProfile(

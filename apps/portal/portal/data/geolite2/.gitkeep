@@ -1,2 +1,0 @@
-# Keeps the optional GeoLite2 MMDB staging directory present for local and PR Docker builds.
-# Production deploys stage GeoLite2-City.mmdb and GeoLite2-ASN.mmdb here pre-build (gitignored).

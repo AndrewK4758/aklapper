@@ -14,6 +14,7 @@ export {
   DEFAULT_STREAM_TIMEOUT_MS,
   deferStreamResult,
   isAuthenticPrerenderRequest,
+  isReactRouterPrerender,
   resolveStreamDeadlineMs,
   type DeferStreamResultOptions,
 } from './stream-result.ts';

@@ -24,6 +24,7 @@ export interface GrpcRuntimeProbeInput {
 const DEFAULT_GRPC_SERVICE_BY_NAME: Readonly<Partial<Record<RuntimeServiceName, string>>> = {
   'ai-ask': 'ai_ask.v1.AskService',
   'cadence-demo': 'cadence.v1.CadenceService',
+  'portal-api': 'portal.v1.PortalContentService',
 };
 
 function safeHost(rawUrl: string): string {

@@ -5,6 +5,8 @@ use (
 	./apis/go/ai-ask/ai-ask-e2e
 	./apis/go/cadence-demo/cadence-demo
 	./apis/go/cadence-demo/cadence-demo-e2e
+	./apis/go/portal-api/portal-api
+	./apis/go/portal-api/portal-api-e2e
 	./packages/go/kit
 )
 

@@ -841,9 +841,14 @@ describe('@aklapper/db PostgreSQL 19 integration (ephemeral container)', () => {
     expect(existsSync(resolve(drizzleDir, '0006_career_dossiers_and_ask_turns.down.sql'))).toBe(
       true,
     );
+    const up0011Sql = readFileSync(
+      resolve(drizzleDir, '0011_portal_app_grants_and_rls.sql'),
+      'utf8',
+    );
     await pool.query(downSql);
     await pool.query(upSql);
     await pool.query(upSql);
+    await pool.query(up0011Sql);
     await seedDatabase(db);
     const restoredCore = await getCareerDossierBySlug(db, 'andrew-klapper-profile-core');
     expect(restoredCore?.publishStatus).toBe('published');

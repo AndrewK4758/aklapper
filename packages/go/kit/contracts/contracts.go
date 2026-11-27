@@ -71,11 +71,12 @@ type QuotaStatus struct {
 }
 
 type PublicAppError struct {
-	Code          string `json:"code"`
-	Status        int    `json:"status"`
-	Message       string `json:"message"`
-	Action        string `json:"action"`
-	CorrelationID string `json:"correlationId"`
+	Code          string              `json:"code"`
+	Status        int                 `json:"status"`
+	Message       string              `json:"message"`
+	Action        string              `json:"action"`
+	CorrelationID string              `json:"correlationId"`
+	FieldErrors   map[string][]string `json:"fieldErrors,omitempty"`
 }
 
 type CadenceRunRequest struct {

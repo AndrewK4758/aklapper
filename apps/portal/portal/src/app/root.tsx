@@ -11,16 +11,12 @@ import {
   readSeoRuntimeConfig,
   type StreamResult,
 } from '@aklapper/core';
-import {
-  capturePortalSsrHit,
-  getSharedDb,
-  isReactRouterPrerender,
-  loadPortalRootDataWithPrerender,
-} from '@aklapper/db';
+import { recordPortalSsrHit } from '@aklapper/node-runtime/grpc';
 import {
   deferStreamResult,
   getOrCreateCorrelationId,
   getRequestContext,
+  isReactRouterPrerender,
 } from '@aklapper/node-runtime/ssr/stream';
 import {
   detectServerViewportMode,
@@ -52,7 +48,15 @@ import {
 
 import type { Route } from './+types/root';
 import { reportPortalPublicError } from './client-telemetry';
-import { readPassiveGuestSession } from './contact-analytics-link.server';
+import {
+  logPortalAnalyticsCaptureFailure,
+  readPassiveGuestSession,
+} from './contact-analytics-link.server';
+import {
+  extractClientRequestContext,
+  loadPortalRootDataWithPrerender,
+  resolvePortalApiUrl,
+} from './portal-api.server';
 import { PortalRootShell } from './PortalRootShell';
 import { useRuntimeStatusTelemetry } from './runtime-status';
 import { DEFAULT_PORTAL_SITE_URL, PORTAL_SITE_NAME } from './seo';
@@ -148,22 +152,36 @@ export function loader({ request, context }: Route.LoaderArgs): PortalRootStream
     };
   }
 
+  const reqCtx = getRequestContext(context);
+  const portalApiUrl = resolvePortalApiUrl();
   if (
     request.method.toUpperCase() === 'GET' &&
     !isSingleFetchDataRequest(request) &&
     !isReactRouterPrerender() &&
-    Boolean(process.env['DATABASE_URL']?.trim())
+    Boolean(portalApiUrl)
   ) {
     try {
-      void capturePortalSsrHit(getSharedDb(), request, {
+      const { clientContext, signedClientIp } = extractClientRequestContext(
+        request,
+        readPassiveGuestSession(request),
+      );
+      void recordPortalSsrHit(
+        {
+          baseUrl: portalApiUrl!,
+          internalAuth: { role: 'service', subject: 'portal-ssr-hit' },
+          signedClientIp,
+          correlationId,
+          timeoutMs: 1_500,
+          ...(reqCtx?.logger ? { logger: reqCtx.logger } : {}),
+        },
         pathname,
-        guestSessionId: readPassiveGuestSession(request),
-        correlationId,
-        logger: getRequestContext(context)?.logger,
-        timeoutMs: 1_500,
-      }).catch(() => undefined);
-    } catch {
+        clientContext,
+      ).catch(error => {
+        logPortalAnalyticsCaptureFailure(reqCtx?.logger, correlationId, 'portal-ssr', error);
+      });
+    } catch (error) {
       // Fail-open: never stall or break SSR streaming
+      logPortalAnalyticsCaptureFailure(reqCtx?.logger, correlationId, 'portal-ssr', error);
     }
   }
 
@@ -172,11 +190,18 @@ export function loader({ request, context }: Route.LoaderArgs): PortalRootStream
     correlationId,
     initialViewport,
     isNotFound: false,
-    rootPayload: deferStreamResult(loadPortalRootDataWithPrerender(), {
-      request,
-      context,
-      source: 'portal.root.loader',
-    }),
+    rootPayload: deferStreamResult(
+      loadPortalRootDataWithPrerender({
+        correlationId,
+        ...(reqCtx?.logger ? { logger: reqCtx.logger } : {}),
+        signal: reqCtx?.signal ?? request.signal,
+      }),
+      {
+        request,
+        context,
+        source: 'portal.root.loader',
+      },
+    ),
   };
 }
 

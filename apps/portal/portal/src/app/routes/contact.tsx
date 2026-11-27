@@ -1,5 +1,4 @@
 import type { ContactActionResult } from '@aklapper/core';
-import { loadPortalContactDataWithPrerender } from '@aklapper/db';
 import {
   deferStreamResult,
   getOrCreateCorrelationId,
@@ -12,18 +11,27 @@ import { reportPortalPublicError } from '../client-telemetry';
 import { processContactSubmission } from '../contact-submission.server';
 import { ContactRouteView } from '../features/ContactFeatureView';
 import { createPrimaryRouteClientAction } from '../features/paneClientAction';
+import { loadPortalContactDataWithPrerender } from '../portal-api.server';
 import { buildPortalPageMeta } from '../seo';
 import type { Route } from './+types/contact';
 
 export function loader({ request, context }: Route.LoaderArgs) {
   const correlationId = getOrCreateCorrelationId(request, context);
+  const reqCtx = getRequestContext(context);
   return {
     correlationId,
-    payload: deferStreamResult(loadPortalContactDataWithPrerender(), {
-      request,
-      context,
-      source: 'portal.contact.loader',
-    }),
+    payload: deferStreamResult(
+      loadPortalContactDataWithPrerender({
+        correlationId,
+        ...(reqCtx?.logger ? { logger: reqCtx.logger } : {}),
+        signal: reqCtx?.signal ?? request.signal,
+      }),
+      {
+        request,
+        context,
+        source: 'portal.contact.loader',
+      },
+    ),
   };
 }
 

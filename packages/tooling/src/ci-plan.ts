@@ -22,6 +22,12 @@ export const DOCKER_SERVICES: readonly DockerServiceSpec[] = [
     runtime: 'cloud-run',
   },
   {
+    service: 'portal-api',
+    project: 'go-portal-api',
+    dockerfile: 'apis/go/portal-api/portal-api/Dockerfile',
+    runtime: 'cloud-run',
+  },
+  {
     service: 'cadence-demo',
     project: 'go-cadence-demo',
     dockerfile: 'apis/go/cadence-demo/cadence-demo/Dockerfile',
@@ -40,8 +46,12 @@ const PLAYWRIGHT_APP_MAP: Readonly<Record<string, string>> = {
   'admin-e2e': 'admin',
 };
 
-const DB_BACKED_TEST_PROJECTS = new Set(['node-db']);
-const DB_BACKED_API_E2E_PROJECTS = new Set(['go-ai-ask-e2e']);
+const DB_BACKED_TEST_PROJECTS = new Set(['node-db', 'go-kit', 'go-portal-api']);
+const DB_BACKED_API_E2E_PROJECTS = new Set([
+  'go-ai-ask-e2e',
+  'go-portal-api-e2e',
+  'go-cadence-demo-e2e',
+]);
 
 export interface CiPlanInput {
   readonly runAll: boolean;

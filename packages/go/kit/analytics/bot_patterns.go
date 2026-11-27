@@ -1,0 +1,170 @@
+package analytics
+
+import (
+	"regexp"
+	"strings"
+)
+
+// isbotRE2Patterns holds the exact 200 RE2-compatible patterns from isbot@5.2.4.
+// The remaining 6 lookahead/lookbehind patterns (news, google, bots?, scan, http, java)
+// are evaluated in matchIsbotLookaroundPatterns below for exact 100% parity.
+var isbotRE2Patterns = []string{
+	` daum[ /]`, ` deusu/`, `-user/`, `24x7`, `;\s\w+;$`, `@[a-z][\w-]+\.`, `\(\)`, `\.com\b`,
+	`\b\w+/1\.0;`, `\bbw/`, `\bdlc\b`, `\bort/`, `\bperl\b`, `\btime/`, `\|`, `^[<\(;]`,
+	`^[\w \.\-\(\):%]+(?:/v?\d+(?:\.\d+)?(?:\.\d{1,10})*?)?(?:,|$)`, `^[\w\-]+/[\w]+$`,
+	`^[^ ]{50,}$`, `^\d+\b`, `^\w*search\b`, `^\w+/[\w\(\)]*$`, `^\w+/\d\.\d\s\([\w@]+\)$`,
+	`^active`, `^ad muncher`, `^amaya`, `^apache/`, `^avsdevicesdk/`, `^azure`, `^biglotron`,
+	`^blackbox exporter`, `^bot`, `^clamav[ /]`, `^claude-code/`, `^client/`, `^cobweb/`, `^custom`,
+	`^ddg[_-]android`, `^discourse`, `^dispatch/\d`, `^downcast/`, `^duckduckgo`, `^email`,
+	`^exodusmovement`, `^facebook`, `^getright/`, `^gozilla/`, `^hobbit`, `^hotzonu`, `^hwcdn/`,
+	`^igetter/`, `^jeode/`, `^jetty/`, `^jigsaw`, `^microsoft bits`, `^movabletype`,
+	`^mozilla/\d\.\d\s[\w\.-]+$`,
+	`^mozilla/\d\.\d\s\((?:compatible;)?(?:\s?[\w\d-.]+[\s/]\d+\.\d+)?\)$`,
+	`^navermailapp`, `^netsurf`, `^offline`, `^openai/`, `^owler`, `^php`, `^postman`,
+	`^ps_daily/`, `^python`, `^rank`, `^read`, `^reed`, `^remove\.bg/`, `^rest`, `^rss`,
+	`^snapchat`, `^sora `, `^space bison`, `^stape/`, `^svn`, `^swcd `, `^taringa`, `^thumbor/`,
+	`^track`, `^w3c`, `^webbandit/`, `^webcopier/`, `^wget`, `^whatsapp`, `^wordpress`,
+	`^xenu link sleuth`, `^yahoo`, `^yandex`, `^zdm/\d`, `^zoom marketplace/`,
+	`abuse`, `advisor`, `agent\b`, `analyzer`, `archive`, `ask jeeves/teoma`, `attracta`, `audit`,
+	`bluecoat drtr`, `browsex`, `burpcollaborator`, `capture`, `catch`, `check\b`, `checker`,
+	`chrome-lighthouse`, `chromeframe`, `classifier`, `cloudflare`, `collapsify\b`, `convertify`,
+	`cookiehubverify/`, `crawl`, `cursor/`, `cypress/`, `dareboost`, `datanyze`, `dejaclick`,
+	`detect`, `discovery`, `dmbrowser`, `download`, `exaleadcloudview`, `feed`, `firephp`,
+	`foregenix`, `functionize`, `grab`, `hardenize\b`, `headless`, `hotjar`, `httrack`,
+	`hubspot marketing grader`, `ibisbrowser`, `infrawatch`, `insight`, `inspect`, `iplabel`,
+	`library`, `linkcheck`, `linktiger`, `mail\.ru/`, `marketgoo/`, `measure`, `monitor\b`,
+	`neustar wpm`, `node\b`, `nutch`, `offbyone`, `openvas`, `optimize`, `pageburst`, `pagespeed`,
+	`parser`, `phantomjs`, `pingdom`, `playwright`, `powermarks`, `preview`, `productfinder`,
+	`prospectingstudio`, `proxy`, `ptst[ /]\d`, `radar`, `readable/`, `retriever`, `rexx;`,
+	`rigor`, `rss\b`, `scrape`, `securityheaders`, `selenium`, `server`, `silktide`, `sindup/`,
+	`sogou`, `sparkler/`, `speedcurve`, `spider`, `splash`, `statuscake`, `supercleaner`,
+	`synapse`, `synthetic`, `testlocally`, `tools`, `torrent`, `transcoder`, `url`, `validator`,
+	`virtuoso`, `wappalyzer`, `watchtowr`, `webglance`, `webkit2png`, `whatcms/`, `xtate/`,
+}
+
+var compiledIsbotRE2 = regexp.MustCompile("(?i)" + strings.Join(isbotRE2Patterns, "|"))
+
+func isASCIIAlphaNum(b byte) bool {
+	return (b >= 'a' && b <= 'z') || (b >= 'A' && b <= 'Z') || (b >= '0' && b <= '9')
+}
+
+func matchNewsPattern(lower string) bool {
+	for start := 0; start < len(lower); {
+		idx := strings.Index(lower[start:], "news")
+		if idx < 0 {
+			return false
+		}
+		pos := start + idx
+		prefixOK := pos == 0 || lower[pos-1] != 'g'
+		after := lower[pos+4:]
+		if prefixOK && !strings.HasPrefix(after, "sapphire") {
+			return true
+		}
+		start = pos + 1
+	}
+	return false
+}
+
+func matchGooglePattern(lower string) bool {
+	for start := 0; start < len(lower); {
+		idx := strings.Index(lower[start:], "google")
+		if idx < 0 {
+			return false
+		}
+		pos := start + idx
+		before := lower[:pos]
+		after := lower[pos+6:]
+		prefixOK := !strings.HasSuffix(before, " channel/") && !strings.HasSuffix(before, "google/")
+		suffixOK := !strings.HasPrefix(after, "wv") &&
+			!strings.HasPrefix(after, "app") &&
+			!strings.HasPrefix(after, "/google") &&
+			!strings.HasPrefix(after, " pixel")
+		if prefixOK && suffixOK {
+			return true
+		}
+		start = pos + 1
+	}
+	return false
+}
+
+func matchBotsPattern(lower string) bool {
+	for start := 0; start < len(lower); {
+		idx := strings.Index(lower[start:], "bot")
+		if idx < 0 {
+			return false
+		}
+		pos := start + idx
+		before := lower[:pos]
+		end := pos + 3
+		if end < len(lower) && lower[end] == 's' {
+			end++
+		}
+		// (?<! cu)bots?(?:\b|_) -> boundary or underscore after bot/bots means EOF or non-[a-z0-9]
+		prefixOK := !strings.HasSuffix(before, " cu")
+		boundaryOK := end == len(lower) || !isASCIIAlphaNum(lower[end])
+		if prefixOK && boundaryOK {
+			return true
+		}
+		start = pos + 1
+	}
+	return false
+}
+
+func matchScanPattern(lower string) bool {
+	for start := 0; start < len(lower); {
+		idx := strings.Index(lower[start:], "scan")
+		if idx < 0 {
+			return false
+		}
+		pos := start + idx
+		if !strings.HasSuffix(lower[:pos], "cam") {
+			return true
+		}
+		start = pos + 1
+	}
+	return false
+}
+
+func matchHTTPPattern(lower string) bool {
+	for start := 0; start < len(lower); {
+		idx := strings.Index(lower[start:], "http")
+		if idx < 0 {
+			return false
+		}
+		pos := start + idx
+		if !strings.HasSuffix(lower[:pos], "lib") {
+			return true
+		}
+		start = pos + 1
+	}
+	return false
+}
+
+func matchJavaPattern(lower string) bool {
+	for start := 0; start < len(lower); {
+		idx := strings.Index(lower[start:], "java")
+		if idx < 0 {
+			return false
+		}
+		pos := start + idx
+		if !strings.HasPrefix(lower[pos+4:], ";") {
+			return true
+		}
+		start = pos + 1
+	}
+	return false
+}
+
+func matchIsbotLookaroundPatterns(ua string) bool {
+	lower := strings.ToLower(ua)
+	return matchNewsPattern(lower) ||
+		matchGooglePattern(lower) ||
+		matchBotsPattern(lower) ||
+		matchScanPattern(lower) ||
+		matchHTTPPattern(lower) ||
+		matchJavaPattern(lower)
+}
+
+func isIsbotMatch(ua string) bool {
+	return compiledIsbotRE2.MatchString(ua) || matchIsbotLookaroundPatterns(ua)
+}

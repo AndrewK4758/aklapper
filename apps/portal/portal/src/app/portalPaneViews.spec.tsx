@@ -17,7 +17,7 @@ import {
   type StreamResult,
   type TerminalProfileData,
 } from '@aklapper/core';
-import { getPrerenderPortalAboutData } from '@aklapper/db';
+import { getPrerenderPortalAboutData } from '@aklapper/core/prerender';
 import { usePaneNavigation, ViewportProvider } from '@aklapper/ui';
 import { act, configure, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import {

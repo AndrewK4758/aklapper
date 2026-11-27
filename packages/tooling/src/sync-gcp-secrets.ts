@@ -13,6 +13,7 @@ export {
 
 export const GCP_SECRET_MANAGER_SECRETS = [
   'DATABASE_URL',
+  'PORTAL_DATABASE_URL',
   'INTERNAL_AUTH_SECRET',
   'TOTP_ENCRYPTION_KEY',
   'ANALYTICS_DAILY_SALT',
@@ -212,6 +213,8 @@ export function bootstrapGcpWorkloadIdentity(
     region: values['GCP_REGION'],
     deployerSa,
     runtimeSa: values['GCP_CLOUDRUN_SERVICE_ACCOUNT'],
+    portalSa: values['GCP_PORTAL_SERVICE_ACCOUNT'],
+    portalApiSa: values['GCP_PORTAL_API_SERVICE_ACCOUNT'],
     migratorSa: values['GCP_MIGRATOR_SERVICE_ACCOUNT'],
     pg19VmSa: values['GCP_PG19_VM_SERVICE_ACCOUNT'],
     iapAccessorEmail: values['IAP_ACCESSOR_EMAIL'],

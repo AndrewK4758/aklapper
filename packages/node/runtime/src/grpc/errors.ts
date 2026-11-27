@@ -16,18 +16,20 @@ import {
 } from '../request-context.ts';
 import {
   GRPC_CATALOG_BY_CODE,
+  mapProtoFieldErrorsToDomain,
   mapProtoQuotaToDomain,
   resolveConnectCatalogEntry,
   scrubDiagnosticCause,
 } from './error-catalog.ts';
 import { ErrorDetailEnvelopeSchema, type ErrorDetailEnvelope } from './gen/common/v1/error_pb.ts';
 
-export { mapProtoQuotaToDomain } from './error-catalog.ts';
+export { mapProtoFieldErrorsToDomain, mapProtoQuotaToDomain } from './error-catalog.ts';
 
 export interface ClassifiedGrpcFailure {
   readonly publicError: PublicAppError;
   readonly diagnostic: DiagnosticAppError;
   readonly quota?: QuotaStatus;
+  readonly retryAfterSeconds?: number;
   readonly isFallbackTransportError: boolean;
 }
 
@@ -55,6 +57,26 @@ export function isFallbackTransportError(failure: ClassifiedGrpcFailure): boolea
 function extractErrorDetailEnvelope(error: ConnectError): ErrorDetailEnvelope | undefined {
   const details = error.findDetails(ErrorDetailEnvelopeSchema);
   return details[0];
+}
+
+const GRPC_NETWORK_ERRNO_RE =
+  /^(?:ECONNREFUSED|ECONNRESET|ETIMEDOUT|ENOTFOUND|EAI_AGAIN|EPIPE|EHOSTUNREACH)$/;
+
+function extractNetworkErrno(root: unknown): string | undefined {
+  const seen = new WeakSet<object>();
+  let current: unknown = root;
+  for (let depth = 0; depth < 5 && typeof current === 'object' && current !== null; depth += 1) {
+    if (seen.has(current)) {
+      break;
+    }
+    seen.add(current);
+    const rec = current as Record<string, unknown>;
+    if (typeof rec['code'] === 'string' && GRPC_NETWORK_ERRNO_RE.test(rec['code'])) {
+      return rec['code'];
+    }
+    current = rec['cause'];
+  }
+  return undefined;
 }
 
 function logClassifiedGrpcSeam(
@@ -188,6 +210,13 @@ export function classifyGrpcError(
   if (error instanceof ConnectError) {
     const envelope = extractErrorDetailEnvelope(error);
     const quota = mapProtoQuotaToDomain(envelope?.quota);
+    const fieldErrors = mapProtoFieldErrorsToDomain(envelope?.error);
+    const retryAfterSeconds =
+      typeof envelope?.retryAfterSeconds === 'number' &&
+      Number.isInteger(envelope.retryAfterSeconds) &&
+      envelope.retryAfterSeconds > 0
+        ? envelope.retryAfterSeconds
+        : undefined;
     const { entry, isTransportFallback } = resolveConnectCatalogEntry(
       error,
       envelope,
@@ -200,6 +229,7 @@ export function classifyGrpcError(
         message: entry.message,
         action: entry.action,
         correlationId,
+        ...(fieldErrors ? { fieldErrors } : {}),
       }),
       { correlationId, source: ctx.source },
     );
@@ -223,8 +253,37 @@ export function classifyGrpcError(
       publicError,
       diagnostic,
       ...(quota ? { quota } : {}),
+      ...(retryAfterSeconds !== undefined ? { retryAfterSeconds } : {}),
       isFallbackTransportError: isTransportFallback,
     };
+  }
+
+  const networkErrno = extractNetworkErrno(error);
+  if (networkErrno) {
+    const [message, action] = GRPC_CATALOG_BY_CODE.ERR_UPSTREAM_UNAVAILABLE;
+    const status = ctx.normalizeUnavailableStatus ?? 502;
+    const { publicError } = enforcePublicErrorBoundary(
+      createPublicAppError({
+        code: 'ERR_UPSTREAM_UNAVAILABLE',
+        status,
+        message,
+        action,
+        correlationId,
+      }),
+      { correlationId, source: ctx.source },
+    );
+    const diagnostic: DiagnosticAppError = {
+      code: publicError.code,
+      status: publicError.status,
+      severity: 'ERROR',
+      reasoning: `Upstream gRPC transport network error (${networkErrno})`,
+      correlationId,
+      source: ctx.source,
+      causeName: error instanceof Error ? error.name || 'Error' : 'NetworkError',
+      causeMessage: scrubDiagnosticCause(error instanceof Error ? error.message : networkErrno),
+    };
+    logClassifiedGrpcSeam(ctx.logger, diagnostic, networkErrno, true);
+    return { publicError, diagnostic, isFallbackTransportError: true };
   }
 
   const classified = classifyServerError(error, { correlationId, source: ctx.source });

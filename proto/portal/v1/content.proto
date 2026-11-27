@@ -1,0 +1,129 @@
+syntax = "proto3";
+
+package portal.v1;
+
+import "common/v1/error.proto";
+
+option go_package = "github.com/AndrewK4758/aklapper/packages/go/kit/gen/portal/v1;portalv1";
+
+service PortalContentService {
+  rpc GetRootContent(GetRootContentRequest) returns (GetRootContentResponse);
+  rpc GetHomeContent(GetHomeContentRequest) returns (GetHomeContentResponse);
+  rpc GetAboutContent(GetAboutContentRequest) returns (GetAboutContentResponse);
+  rpc GetAskContent(GetAskContentRequest) returns (GetAskContentResponse);
+  rpc GetCadenceContent(GetCadenceContentRequest) returns (GetCadenceContentResponse);
+  rpc GetContactContent(GetContactContentRequest) returns (GetContactContentResponse);
+}
+
+message TerminalInitialEntry {
+  string command = 1;
+  string output = 2;
+  string status = 3;
+  string duration_label = 4;
+  string timestamp = 5;
+  int32 sort_order = 6;
+}
+
+message TerminalCommandSpec {
+  string name = 1;
+  string description = 2;
+  string kind = 3;
+  string output = 4;
+  optional string target_route = 5;
+  repeated string allowed_routes = 6;
+  optional string error_template = 7;
+  int32 sort_order = 8;
+}
+
+message TerminalProfileData {
+  string slug = 1;
+  string banner_title = 2;
+  string banner_meta = 3;
+  string os_label = 4;
+  string directory = 5;
+  string vcs_branch = 6;
+  string vcs_state = 7;
+  string context_label = 8;
+  string placeholder = 9;
+  repeated string quick_commands = 10;
+  repeated TerminalInitialEntry initial_entries = 11;
+  repeated TerminalCommandSpec commands = 12;
+}
+
+message CareerDossierSection {
+  string heading = 1;
+  string body = 2;
+}
+
+message CareerDossier {
+  string slug = 1;
+  string kind = 2;
+  string title = 3;
+  string domain_label = 4;
+  string role_title = 5;
+  string timeframe = 6;
+  repeated string skills = 7;
+  string summary_body = 8;
+  repeated CareerDossierSection sections = 9;
+  string publish_status = 10;
+  optional string sanitization_verified_at = 11;
+  optional string denylist_hash = 12;
+  int32 sort_order = 13;
+  string updated_at = 14;
+}
+
+message CadencePreset {
+  string slug = 1;
+  string title = 2;
+  string starter_prompt = 3;
+  string expected_kind = 4;
+  string starter_artifact_html = 5;
+  int32 sort_order = 6;
+}
+
+message GetRootContentRequest {}
+
+message GetRootContentResponse {
+  string chrome_json = 1;
+  string home_content_json = 2;
+  TerminalProfileData terminal = 3;
+  string contact_form_json = 4;
+}
+
+message GetHomeContentRequest {}
+
+message GetHomeContentResponse {
+  string content_json = 1;
+  TerminalProfileData terminal = 2;
+  string contact_form_json = 3;
+}
+
+message GetAboutContentRequest {}
+
+message GetAboutContentResponse {
+  string content_json = 1;
+  repeated CareerDossier dossiers = 2;
+  optional string brand_contact_email = 3;
+}
+
+message GetAskContentRequest {
+  string session_id = 1;
+}
+
+message GetAskContentResponse {
+  string content_json = 1;
+  common.v1.QuotaStatus quota = 2;
+}
+
+message GetCadenceContentRequest {}
+
+message GetCadenceContentResponse {
+  string content_json = 1;
+  repeated CadencePreset presets = 2;
+}
+
+message GetContactContentRequest {}
+
+message GetContactContentResponse {
+  string content_json = 1;
+}

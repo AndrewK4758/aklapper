@@ -455,6 +455,8 @@ export async function proxyJson<T = unknown>(
   }
 }
 
+export { signInternalClientIpHeader } from './grpc/client-ip.ts';
+
 export async function proxySse(options: ProxySseOptions): Promise<Response> {
   return proxyGetSse(options);
 }

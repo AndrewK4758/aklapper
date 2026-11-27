@@ -1,6 +1,5 @@
 import { randomUUID } from 'node:crypto';
 
-import { isReactRouterPrerender } from '@aklapper/db';
 import {
   GUEST_SESSION_COOKIE_NAME,
   isSecureRequest,
@@ -9,6 +8,7 @@ import {
   signGuestSessionCookie,
   verifyGuestSessionCookie,
 } from '@aklapper/node-runtime/auth';
+import { isReactRouterPrerender } from '@aklapper/node-runtime/ssr/stream';
 
 const GUEST_SESSION_TTL_SECONDS = 60 * 60 * 24 * 7;
 

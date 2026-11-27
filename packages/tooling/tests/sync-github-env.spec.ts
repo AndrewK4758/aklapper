@@ -11,6 +11,8 @@ import {
   parseEnvFileContent,
   parseSyncCliArgs,
   resolveSecretId,
+  RUN_IAM_BINDER_ROLE_ID,
+  runGcpSyncAndBootstrap,
   syncGcpSecretVersions,
 } from '../src/index.ts';
 
@@ -19,9 +21,13 @@ const VALID_BASE_ENV: Record<string, string> = {
     'projects/120904484903/locations/global/workloadIdentityPools/aklapper-pool/providers/github-actions',
   GCP_WIF_SERVICE_ACCOUNT: 'aklapper-deployer@games-424800.iam.gserviceaccount.com',
   GCP_CLOUDRUN_SERVICE_ACCOUNT: 'aklapper-cloudrun@games-424800.iam.gserviceaccount.com',
+  GCP_PORTAL_SERVICE_ACCOUNT: 'aklapper-portal@games-424800.iam.gserviceaccount.com',
+  GCP_PORTAL_API_SERVICE_ACCOUNT: 'aklapper-portal-api@games-424800.iam.gserviceaccount.com',
   GCP_MIGRATOR_SERVICE_ACCOUNT: 'aklapper-migrator@games-424800.iam.gserviceaccount.com',
   GCP_PG19_VM_SERVICE_ACCOUNT: 'aklapper-pg19-vm@games-424800.iam.gserviceaccount.com',
   DATABASE_URL: 'postgres://aklapper:super-db-pass@10.128.0.10:5432/aklapper?sslmode=disable',
+  PORTAL_DATABASE_URL:
+    'postgres://portal_app:portal-db-pass@10.128.0.10:5432/aklapper?sslmode=disable',
   INTERNAL_AUTH_SECRET: 'internal-secret-val',
   TOTP_ENCRYPTION_KEY: 'totp-key-val',
   ANALYTICS_DAILY_SALT: 'analytics-salt-val',
@@ -95,6 +101,7 @@ describe('@aklapper/tooling GitHub Actions and GCP Secret Manager sync', () => {
       expect(plan.gcpSecrets.map(s => s.envKey)).not.toContain('MAXMIND_LICENSE_KEY');
       expect(plan.gcpSecrets.map(s => s.envKey)).toEqual([
         'DATABASE_URL',
+        'PORTAL_DATABASE_URL',
         'INTERNAL_AUTH_SECRET',
         'TOTP_ENCRYPTION_KEY',
         'ANALYTICS_DAILY_SALT',
@@ -116,6 +123,8 @@ describe('@aklapper/tooling GitHub Actions and GCP Secret Manager sync', () => {
           'VERTEX_EMBED_MODEL',
           'ADMIN_HANDLE',
           'GCP_CLOUDRUN_SERVICE_ACCOUNT',
+          'GCP_PORTAL_SERVICE_ACCOUNT',
+          'GCP_PORTAL_API_SERVICE_ACCOUNT',
           'GCP_MIGRATOR_SERVICE_ACCOUNT',
           'GCP_PG19_VM_SERVICE_ACCOUNT',
           'IAP_ACCESSOR_EMAIL',
@@ -152,6 +161,7 @@ describe('@aklapper/tooling GitHub Actions and GCP Secret Manager sync', () => {
       expect(minimalPlan.skippedOptionalVariables).toContain('VERTEX_THINKING_LEVEL');
       expect(minimalPlan.gcpSecrets.map(s => s.envKey)).toEqual([
         'DATABASE_URL',
+        'PORTAL_DATABASE_URL',
         'INTERNAL_AUTH_SECRET',
         'TOTP_ENCRYPTION_KEY',
         'ANALYTICS_DAILY_SALT',
@@ -389,17 +399,149 @@ describe('@aklapper/tooling GitHub Actions and GCP Secret Manager sync', () => {
     expect(() => parseSyncCliArgs(['--env', 'staging'])).toThrow(/production/);
   });
 
-  it('wires optional GeoLite2 pre-build staging with conditional v6 cache and secret-free portal Dockerfile COPY', () => {
+  it('executes Secret Manager secret sync strictly before WIF IAM bootstrap so per-secret bindings succeed', () => {
+    const order: string[] = [];
+    const plan = buildSyncPlan(VALID_BASE_ENV);
+    runGcpSyncAndBootstrap(
+      VALID_BASE_ENV,
+      plan,
+      { repo: 'AndrewK4758/aklapper', dryRun: false, bootstrapWif: true, skipGcpSecrets: false },
+      {
+        syncSecrets: () => {
+          order.push('syncSecrets');
+        },
+        bootstrapWif: () => {
+          order.push('bootstrapWif');
+        },
+      },
+    );
+    expect(order).toEqual(['syncSecrets', 'bootstrapWif']);
+  });
+
+  it('binds least-privilege portal and portal-api SAs with existence guards for pre-deploy portal-api and optional AGENSI_API_KEY', () => {
+    const calls: string[] = [];
+    const preDeployRunner = (args: readonly string[]): string => {
+      calls.push(args.join(' '));
+      if (args[0] === 'iam' && args[1] === 'roles' && args[2] === 'describe') {
+        throw new Error('NOT_FOUND');
+      }
+      if (
+        args[0] === 'run' &&
+        args[1] === 'services' &&
+        args[2] === 'describe' &&
+        args[3] === 'portal-api'
+      ) {
+        throw new Error('NOT_FOUND');
+      }
+      if (args[0] === 'secrets' && args[1] === 'describe' && args[2] === 'AGENSI_API_KEY') {
+        throw new Error('NOT_FOUND');
+      }
+      return '';
+    };
+
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    try {
+      ensureRuntimeServiceAccountBindings({
+        projectId: 'games-424800',
+        projectNumber: '120904484903',
+        region: 'us-central1',
+        deployerSa: 'aklapper-deployer@games-424800.iam.gserviceaccount.com',
+        runtimeSa: 'aklapper-cloudrun@games-424800.iam.gserviceaccount.com',
+        portalSa: 'aklapper-portal@games-424800.iam.gserviceaccount.com',
+        portalApiSa: 'aklapper-portal-api@games-424800.iam.gserviceaccount.com',
+        migratorSa: 'aklapper-migrator@games-424800.iam.gserviceaccount.com',
+        dryRun: false,
+        execGcloud: preDeployRunner,
+      });
+    } finally {
+      logSpy.mockRestore();
+    }
+
+    const joined = calls.join('\n');
+    // Deployer gets narrow custom role for Wave 1 portal-api IAM binding.
+    expect(joined).toContain(`iam roles create ${RUN_IAM_BINDER_ROLE_ID}`);
+    expect(joined).toContain('--permissions=run.services.getIamPolicy,run.services.setIamPolicy');
+    expect(joined).toContain(`--role=projects/games-424800/roles/${RUN_IAM_BINDER_ROLE_ID}`);
+
+    // Dedicated portal SA gets ONLY secret-level INTERNAL_AUTH_SECRET + invoker on existing Wave 1 services.
+    const portalSecretLines = calls.filter(
+      line => line.includes('aklapper-portal@') && line.includes('secretmanager.secretAccessor'),
+    );
+    expect(portalSecretLines).toEqual([
+      'secrets add-iam-policy-binding INTERNAL_AUTH_SECRET --project=games-424800 --member=serviceAccount:aklapper-portal@games-424800.iam.gserviceaccount.com --role=roles/secretmanager.secretAccessor',
+    ]);
+    expect(joined).not.toContain(
+      'projects add-iam-policy-binding games-424800 --member=serviceAccount:aklapper-portal@',
+    );
+    // Undeployed portal-api is cleanly skipped during initial bootstrap.
+    expect(joined).not.toContain('run services add-iam-policy-binding portal-api');
+    expect(joined).toContain(
+      'run services add-iam-policy-binding ai-ask --project=games-424800 --region=us-central1 --member=serviceAccount:aklapper-portal@games-424800.iam.gserviceaccount.com --role=roles/run.invoker',
+    );
+
+    // Dedicated portal-api SA gets strictly PORTAL_DATABASE_URL, INTERNAL_AUTH_SECRET, ANALYTICS_DAILY_SALT (absent AGENSI_API_KEY skipped).
+    const portalApiSecretLines = calls.filter(
+      line =>
+        line.includes('aklapper-portal-api@') && line.includes('secretmanager.secretAccessor'),
+    );
+    expect(portalApiSecretLines).toHaveLength(3);
+    expect(portalApiSecretLines.join('\n')).toContain('PORTAL_DATABASE_URL');
+    expect(portalApiSecretLines.join('\n')).toContain('INTERNAL_AUTH_SECRET');
+    expect(portalApiSecretLines.join('\n')).toContain('ANALYTICS_DAILY_SALT');
+    expect(portalApiSecretLines.join('\n')).not.toContain('AGENSI_API_KEY');
+    expect(portalApiSecretLines.join('\n')).not.toContain(' DATABASE_URL ');
+    expect(joined).not.toContain(
+      'projects add-iam-policy-binding games-424800 --member=serviceAccount:aklapper-portal-api@',
+    );
+
+    // Once portal-api and AGENSI_API_KEY exist, repeat bootstrap binds both cleanly.
+    const postDeployCalls: string[] = [];
+    ensureRuntimeServiceAccountBindings({
+      projectId: 'games-424800',
+      projectNumber: '120904484903',
+      region: 'us-central1',
+      deployerSa: 'aklapper-deployer@games-424800.iam.gserviceaccount.com',
+      portalSa: 'aklapper-portal@games-424800.iam.gserviceaccount.com',
+      portalApiSa: 'aklapper-portal-api@games-424800.iam.gserviceaccount.com',
+      dryRun: false,
+      execGcloud: args => {
+        postDeployCalls.push(args.join(' '));
+        return 'ok';
+      },
+    });
+    const postJoined = postDeployCalls.join('\n');
+    expect(postJoined).toContain(
+      'run services add-iam-policy-binding portal-api --project=games-424800 --region=us-central1 --member=serviceAccount:aklapper-portal@games-424800.iam.gserviceaccount.com --role=roles/run.invoker',
+    );
+    expect(postJoined).toContain(
+      'secrets add-iam-policy-binding AGENSI_API_KEY --project=games-424800 --member=serviceAccount:aklapper-portal-api@games-424800.iam.gserviceaccount.com --role=roles/secretmanager.secretAccessor',
+    );
+  });
+
+  it('wires optional GeoLite2 pre-build staging on portal-api with conditional v6 cache and strips DB/GeoLite2 from portal Dockerfile', () => {
     const repoRoot = resolve(import.meta.dirname, '../../..');
     const workflow = readFileSync(resolve(repoRoot, '.github/workflows/cd-gcp.yml'), 'utf8');
-    const dockerfile = readFileSync(resolve(repoRoot, 'apps/portal/portal/Dockerfile'), 'utf8');
+    const portalDockerfile = readFileSync(
+      resolve(repoRoot, 'apps/portal/portal/Dockerfile'),
+      'utf8',
+    );
+    const portalApiDockerfile = readFileSync(
+      resolve(repoRoot, 'apis/go/portal-api/portal-api/Dockerfile'),
+      'utf8',
+    );
     const gitignore = readFileSync(resolve(repoRoot, '.gitignore'), 'utf8');
 
     expect(gitignore).toContain('*.mmdb');
-    expect(dockerfile).toContain(
-      'COPY apps/portal/portal/data/geolite2 /prod/portal/data/geolite2',
+    expect(portalDockerfile).not.toContain('geolite2');
+    expect(portalDockerfile).not.toContain('packages/node/db');
+    expect(portalDockerfile).not.toContain('MAXMIND_');
+    expect(portalApiDockerfile).toContain(
+      'COPY --chown=nonroot:nonroot apis/go/portal-api/portal-api/data/geolite2 /data/geolite2',
     );
-    expect(dockerfile).not.toContain('MAXMIND_');
+    expect(portalApiDockerfile).not.toContain('MAXMIND_');
+    expect(workflow).toContain("matrix.service == 'portal-api'");
+    expect(workflow).toContain('apis/go/portal-api/portal-api/data/geolite2');
+    expect(workflow).not.toContain('apps/portal/portal/data/geolite2');
     expect(workflow).toContain('actions/cache/restore@v6');
     expect(workflow).toContain('actions/cache/save@v6');
     expect(workflow).toContain("steps.geolite2-stage.outputs.geolite2_ready == 'true'");

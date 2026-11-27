@@ -1,9 +1,15 @@
-import { QuotaStatusSchema, type AppErrorCode, type QuotaStatus } from '@aklapper/core';
+import {
+  QuotaStatusSchema,
+  type AppErrorCode,
+  type FormFieldErrorMap,
+  type QuotaStatus,
+} from '@aklapper/core';
 import type { DiagnosticSeverity } from '@aklapper/core/server-errors';
 import { Code, type ConnectError } from '@connectrpc/connect';
 
 import type {
   ErrorDetailEnvelope,
+  PublicAppError as ProtoPublicAppError,
   QuotaStatus as ProtoQuotaStatus,
 } from './gen/common/v1/error_pb.ts';
 
@@ -51,9 +57,28 @@ export function mapProtoQuotaToDomain(proto?: ProtoQuotaStatus): QuotaStatus | u
   return parsed.success ? parsed.data : undefined;
 }
 
+export function mapProtoFieldErrorsToDomain(
+  protoErr?: ProtoPublicAppError,
+): FormFieldErrorMap | undefined {
+  if (!protoErr?.fieldErrors) return undefined;
+  const out: FormFieldErrorMap = {};
+  let count = 0;
+  for (const [field, list] of Object.entries(protoErr.fieldErrors)) {
+    const cleanField = field.trim();
+    if (!cleanField || !list?.messages?.length) continue;
+    const msgs = list.messages.map(m => m.trim()).filter(Boolean);
+    if (msgs.length > 0) {
+      out[cleanField] = msgs;
+      count++;
+    }
+  }
+  return count > 0 ? out : undefined;
+}
+
 export function scrubDiagnosticCause(raw: string): string {
   return raw
     .replace(/x-internal-auth\s*[:=]\s*\S+/gi, 'x-internal-auth=[redacted]')
+    .replace(/x-internal-client-ip\s*[:=]\s*\S+/gi, 'x-internal-client-ip=[redacted]')
     .replace(/authorization\s*[:=]\s*\S+(?:\s+\S+)?/gi, 'authorization=[redacted]')
     .replace(/Bearer\s+[A-Za-z0-9._-]+/gi, 'Bearer [redacted]')
     .replace(/\bpostgres(?:ql)?:\/\/\S+/gi, 'postgresql://[redacted]')
@@ -111,7 +136,10 @@ export function resolveConnectCatalogEntry(
     }
     case Code.FailedPrecondition: {
       if (detailErr?.status === 422) {
-        const [message, action] = PRIVACY_422_CATALOG;
+        const hasFieldErrors = mapProtoFieldErrorsToDomain(detailErr) !== undefined;
+        const [message, action] = hasFieldErrors
+          ? GRPC_CATALOG_BY_CODE.ERR_CONSTRAINT
+          : PRIVACY_422_CATALOG;
         return {
           entry: { code: 'ERR_CONSTRAINT', status: 422, message, action, severity: 'WARN' },
           isTransportFallback: false,

@@ -4,12 +4,17 @@ package common.v1;
 
 option go_package = "github.com/AndrewK4758/aklapper/packages/go/kit/gen/common/v1;commonv1";
 
+message FieldErrorList {
+  repeated string messages = 1;
+}
+
 message PublicAppError {
   string code = 1;
   int32 status = 2;
   string message = 3;
   string action = 4;
   string correlation_id = 5;
+  map<string, FieldErrorList> field_errors = 6;
 }
 
 message QuotaStatus {
@@ -23,4 +28,5 @@ message QuotaStatus {
 message ErrorDetailEnvelope {
   PublicAppError error = 1;
   QuotaStatus quota = 2;
+  optional int32 retry_after_seconds = 3;
 }

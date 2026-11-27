@@ -21,6 +21,7 @@ export * from './career-dossiers.ts';
 export * from './client.ts';
 export * from './migrate.ts';
 export * from './prerender.ts';
+export * from './provision-portal-role.ts';
 export * from './qdrant.ts';
 export * from './queries.ts';
 export { GoldenRunImmutableError } from './sandbox-helpers.ts';

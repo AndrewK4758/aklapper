@@ -41,6 +41,7 @@ export async function loader({ request, context }: Route.LoaderArgs): Promise<Re
         transport: 'http',
         oidcAuth: false,
       },
+      { service: 'portal-api', url: process.env['PORTAL_API_URL'], transport: 'grpc' },
       { service: 'ai-ask', url: process.env['AI_ASK_URL'], transport: 'grpc' },
       { service: 'cadence-demo', url: process.env['CADENCE_DEMO_URL'], transport: 'grpc' },
     ],

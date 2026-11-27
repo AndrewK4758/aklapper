@@ -972,6 +972,7 @@ type ListRunsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Runs          []*CadenceRunResult    `protobuf:"bytes,1,rep,name=runs,proto3" json:"runs,omitempty"`
 	Quota         *v1.QuotaStatus        `protobuf:"bytes,2,opt,name=quota,proto3" json:"quota,omitempty"`
+	GoldenRuns    []*CadenceRunResult    `protobuf:"bytes,3,rep,name=golden_runs,json=goldenRuns,proto3" json:"golden_runs,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1020,6 +1021,93 @@ func (x *ListRunsResponse) GetQuota() *v1.QuotaStatus {
 	return nil
 }
 
+func (x *ListRunsResponse) GetGoldenRuns() []*CadenceRunResult {
+	if x != nil {
+		return x.GoldenRuns
+	}
+	return nil
+}
+
+type ClearSessionRunsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ClearSessionRunsRequest) Reset() {
+	*x = ClearSessionRunsRequest{}
+	mi := &file_cadence_v1_cadence_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ClearSessionRunsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ClearSessionRunsRequest) ProtoMessage() {}
+
+func (x *ClearSessionRunsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_cadence_v1_cadence_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ClearSessionRunsRequest.ProtoReflect.Descriptor instead.
+func (*ClearSessionRunsRequest) Descriptor() ([]byte, []int) {
+	return file_cadence_v1_cadence_proto_rawDescGZIP(), []int{12}
+}
+
+type ClearSessionRunsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	DeletedCount  int32                  `protobuf:"varint,1,opt,name=deleted_count,json=deletedCount,proto3" json:"deleted_count,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ClearSessionRunsResponse) Reset() {
+	*x = ClearSessionRunsResponse{}
+	mi := &file_cadence_v1_cadence_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ClearSessionRunsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ClearSessionRunsResponse) ProtoMessage() {}
+
+func (x *ClearSessionRunsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_cadence_v1_cadence_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ClearSessionRunsResponse.ProtoReflect.Descriptor instead.
+func (*ClearSessionRunsResponse) Descriptor() ([]byte, []int) {
+	return file_cadence_v1_cadence_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *ClearSessionRunsResponse) GetDeletedCount() int32 {
+	if x != nil {
+		return x.DeletedCount
+	}
+	return 0
+}
+
 type ApproveSpecGateRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	RunId         string                 `protobuf:"bytes,1,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
@@ -1029,7 +1117,7 @@ type ApproveSpecGateRequest struct {
 
 func (x *ApproveSpecGateRequest) Reset() {
 	*x = ApproveSpecGateRequest{}
-	mi := &file_cadence_v1_cadence_proto_msgTypes[12]
+	mi := &file_cadence_v1_cadence_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1041,7 +1129,7 @@ func (x *ApproveSpecGateRequest) String() string {
 func (*ApproveSpecGateRequest) ProtoMessage() {}
 
 func (x *ApproveSpecGateRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_cadence_v1_cadence_proto_msgTypes[12]
+	mi := &file_cadence_v1_cadence_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1054,7 +1142,7 @@ func (x *ApproveSpecGateRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ApproveSpecGateRequest.ProtoReflect.Descriptor instead.
 func (*ApproveSpecGateRequest) Descriptor() ([]byte, []int) {
-	return file_cadence_v1_cadence_proto_rawDescGZIP(), []int{12}
+	return file_cadence_v1_cadence_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *ApproveSpecGateRequest) GetRunId() string {
@@ -1074,7 +1162,7 @@ type ApproveSpecGateResponse struct {
 
 func (x *ApproveSpecGateResponse) Reset() {
 	*x = ApproveSpecGateResponse{}
-	mi := &file_cadence_v1_cadence_proto_msgTypes[13]
+	mi := &file_cadence_v1_cadence_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1086,7 +1174,7 @@ func (x *ApproveSpecGateResponse) String() string {
 func (*ApproveSpecGateResponse) ProtoMessage() {}
 
 func (x *ApproveSpecGateResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_cadence_v1_cadence_proto_msgTypes[13]
+	mi := &file_cadence_v1_cadence_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1099,7 +1187,7 @@ func (x *ApproveSpecGateResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ApproveSpecGateResponse.ProtoReflect.Descriptor instead.
 func (*ApproveSpecGateResponse) Descriptor() ([]byte, []int) {
-	return file_cadence_v1_cadence_proto_rawDescGZIP(), []int{13}
+	return file_cadence_v1_cadence_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *ApproveSpecGateResponse) GetRun() *CadenceRunResult {
@@ -1126,7 +1214,7 @@ type SubmitGateVerdictRequest struct {
 
 func (x *SubmitGateVerdictRequest) Reset() {
 	*x = SubmitGateVerdictRequest{}
-	mi := &file_cadence_v1_cadence_proto_msgTypes[14]
+	mi := &file_cadence_v1_cadence_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1138,7 +1226,7 @@ func (x *SubmitGateVerdictRequest) String() string {
 func (*SubmitGateVerdictRequest) ProtoMessage() {}
 
 func (x *SubmitGateVerdictRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_cadence_v1_cadence_proto_msgTypes[14]
+	mi := &file_cadence_v1_cadence_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1151,7 +1239,7 @@ func (x *SubmitGateVerdictRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SubmitGateVerdictRequest.ProtoReflect.Descriptor instead.
 func (*SubmitGateVerdictRequest) Descriptor() ([]byte, []int) {
-	return file_cadence_v1_cadence_proto_rawDescGZIP(), []int{14}
+	return file_cadence_v1_cadence_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *SubmitGateVerdictRequest) GetRunId() string {
@@ -1177,7 +1265,7 @@ type SubmitGateVerdictResponse struct {
 
 func (x *SubmitGateVerdictResponse) Reset() {
 	*x = SubmitGateVerdictResponse{}
-	mi := &file_cadence_v1_cadence_proto_msgTypes[15]
+	mi := &file_cadence_v1_cadence_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1189,7 +1277,7 @@ func (x *SubmitGateVerdictResponse) String() string {
 func (*SubmitGateVerdictResponse) ProtoMessage() {}
 
 func (x *SubmitGateVerdictResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_cadence_v1_cadence_proto_msgTypes[15]
+	mi := &file_cadence_v1_cadence_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1202,7 +1290,7 @@ func (x *SubmitGateVerdictResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SubmitGateVerdictResponse.ProtoReflect.Descriptor instead.
 func (*SubmitGateVerdictResponse) Descriptor() ([]byte, []int) {
-	return file_cadence_v1_cadence_proto_rawDescGZIP(), []int{15}
+	return file_cadence_v1_cadence_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *SubmitGateVerdictResponse) GetRun() *CadenceRunResult {
@@ -1221,7 +1309,7 @@ type StreamRunRequest struct {
 
 func (x *StreamRunRequest) Reset() {
 	*x = StreamRunRequest{}
-	mi := &file_cadence_v1_cadence_proto_msgTypes[16]
+	mi := &file_cadence_v1_cadence_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1233,7 +1321,7 @@ func (x *StreamRunRequest) String() string {
 func (*StreamRunRequest) ProtoMessage() {}
 
 func (x *StreamRunRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_cadence_v1_cadence_proto_msgTypes[16]
+	mi := &file_cadence_v1_cadence_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1246,7 +1334,7 @@ func (x *StreamRunRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StreamRunRequest.ProtoReflect.Descriptor instead.
 func (*StreamRunRequest) Descriptor() ([]byte, []int) {
-	return file_cadence_v1_cadence_proto_rawDescGZIP(), []int{16}
+	return file_cadence_v1_cadence_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *StreamRunRequest) GetRunId() string {
@@ -1270,7 +1358,7 @@ type CadenceStreamPhaseEvent struct {
 
 func (x *CadenceStreamPhaseEvent) Reset() {
 	*x = CadenceStreamPhaseEvent{}
-	mi := &file_cadence_v1_cadence_proto_msgTypes[17]
+	mi := &file_cadence_v1_cadence_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1282,7 +1370,7 @@ func (x *CadenceStreamPhaseEvent) String() string {
 func (*CadenceStreamPhaseEvent) ProtoMessage() {}
 
 func (x *CadenceStreamPhaseEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_cadence_v1_cadence_proto_msgTypes[17]
+	mi := &file_cadence_v1_cadence_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1295,7 +1383,7 @@ func (x *CadenceStreamPhaseEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CadenceStreamPhaseEvent.ProtoReflect.Descriptor instead.
 func (*CadenceStreamPhaseEvent) Descriptor() ([]byte, []int) {
-	return file_cadence_v1_cadence_proto_rawDescGZIP(), []int{17}
+	return file_cadence_v1_cadence_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *CadenceStreamPhaseEvent) GetRunId() string {
@@ -1351,7 +1439,7 @@ type CadenceStreamLogEvent struct {
 
 func (x *CadenceStreamLogEvent) Reset() {
 	*x = CadenceStreamLogEvent{}
-	mi := &file_cadence_v1_cadence_proto_msgTypes[18]
+	mi := &file_cadence_v1_cadence_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1363,7 +1451,7 @@ func (x *CadenceStreamLogEvent) String() string {
 func (*CadenceStreamLogEvent) ProtoMessage() {}
 
 func (x *CadenceStreamLogEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_cadence_v1_cadence_proto_msgTypes[18]
+	mi := &file_cadence_v1_cadence_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1376,7 +1464,7 @@ func (x *CadenceStreamLogEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CadenceStreamLogEvent.ProtoReflect.Descriptor instead.
 func (*CadenceStreamLogEvent) Descriptor() ([]byte, []int) {
-	return file_cadence_v1_cadence_proto_rawDescGZIP(), []int{18}
+	return file_cadence_v1_cadence_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *CadenceStreamLogEvent) GetRunId() string {
@@ -1410,7 +1498,7 @@ type CadenceStreamCompleteEvent struct {
 
 func (x *CadenceStreamCompleteEvent) Reset() {
 	*x = CadenceStreamCompleteEvent{}
-	mi := &file_cadence_v1_cadence_proto_msgTypes[19]
+	mi := &file_cadence_v1_cadence_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1422,7 +1510,7 @@ func (x *CadenceStreamCompleteEvent) String() string {
 func (*CadenceStreamCompleteEvent) ProtoMessage() {}
 
 func (x *CadenceStreamCompleteEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_cadence_v1_cadence_proto_msgTypes[19]
+	mi := &file_cadence_v1_cadence_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1435,7 +1523,7 @@ func (x *CadenceStreamCompleteEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CadenceStreamCompleteEvent.ProtoReflect.Descriptor instead.
 func (*CadenceStreamCompleteEvent) Descriptor() ([]byte, []int) {
-	return file_cadence_v1_cadence_proto_rawDescGZIP(), []int{19}
+	return file_cadence_v1_cadence_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *CadenceStreamCompleteEvent) GetRun() *CadenceRunResult {
@@ -1464,7 +1552,7 @@ type CadenceStreamErrorEvent struct {
 
 func (x *CadenceStreamErrorEvent) Reset() {
 	*x = CadenceStreamErrorEvent{}
-	mi := &file_cadence_v1_cadence_proto_msgTypes[20]
+	mi := &file_cadence_v1_cadence_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1476,7 +1564,7 @@ func (x *CadenceStreamErrorEvent) String() string {
 func (*CadenceStreamErrorEvent) ProtoMessage() {}
 
 func (x *CadenceStreamErrorEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_cadence_v1_cadence_proto_msgTypes[20]
+	mi := &file_cadence_v1_cadence_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1489,7 +1577,7 @@ func (x *CadenceStreamErrorEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CadenceStreamErrorEvent.ProtoReflect.Descriptor instead.
 func (*CadenceStreamErrorEvent) Descriptor() ([]byte, []int) {
-	return file_cadence_v1_cadence_proto_rawDescGZIP(), []int{20}
+	return file_cadence_v1_cadence_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *CadenceStreamErrorEvent) GetRunId() string {
@@ -1535,7 +1623,7 @@ type StreamRunResponse struct {
 
 func (x *StreamRunResponse) Reset() {
 	*x = StreamRunResponse{}
-	mi := &file_cadence_v1_cadence_proto_msgTypes[21]
+	mi := &file_cadence_v1_cadence_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1547,7 +1635,7 @@ func (x *StreamRunResponse) String() string {
 func (*StreamRunResponse) ProtoMessage() {}
 
 func (x *StreamRunResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_cadence_v1_cadence_proto_msgTypes[21]
+	mi := &file_cadence_v1_cadence_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1560,7 +1648,7 @@ func (x *StreamRunResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StreamRunResponse.ProtoReflect.Descriptor instead.
 func (*StreamRunResponse) Descriptor() ([]byte, []int) {
-	return file_cadence_v1_cadence_proto_rawDescGZIP(), []int{21}
+	return file_cadence_v1_cadence_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *StreamRunResponse) GetPayload() isStreamRunResponse_Payload {
@@ -1736,10 +1824,15 @@ const file_cadence_v1_cadence_proto_rawDesc = "" +
 	"\x0fListRunsRequest\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\x12\x14\n" +
-	"\x05limit\x18\x02 \x01(\x05R\x05limit\"r\n" +
+	"\x05limit\x18\x02 \x01(\x05R\x05limit\"\xb1\x01\n" +
 	"\x10ListRunsResponse\x120\n" +
 	"\x04runs\x18\x01 \x03(\v2\x1c.cadence.v1.CadenceRunResultR\x04runs\x12,\n" +
-	"\x05quota\x18\x02 \x01(\v2\x16.common.v1.QuotaStatusR\x05quota\"/\n" +
+	"\x05quota\x18\x02 \x01(\v2\x16.common.v1.QuotaStatusR\x05quota\x12=\n" +
+	"\vgolden_runs\x18\x03 \x03(\v2\x1c.cadence.v1.CadenceRunResultR\n" +
+	"goldenRuns\"\x19\n" +
+	"\x17ClearSessionRunsRequest\"?\n" +
+	"\x18ClearSessionRunsResponse\x12#\n" +
+	"\rdeleted_count\x18\x01 \x01(\x05R\fdeletedCount\"/\n" +
 	"\x16ApproveSpecGateRequest\x12\x15\n" +
 	"\x06run_id\x18\x01 \x01(\tR\x05runId\"w\n" +
 	"\x17ApproveSpecGateResponse\x12.\n" +
@@ -1779,12 +1872,13 @@ const file_cadence_v1_cadence_proto_rawDesc = "" +
 	"\x03log\x18\x02 \x01(\v2!.cadence.v1.CadenceStreamLogEventH\x00R\x03log\x12D\n" +
 	"\bcomplete\x18\x03 \x01(\v2&.cadence.v1.CadenceStreamCompleteEventH\x00R\bcomplete\x12;\n" +
 	"\x05error\x18\x04 \x01(\v2#.cadence.v1.CadenceStreamErrorEventH\x00R\x05errorB\t\n" +
-	"\apayload2\xab\x03\n" +
+	"\apayload2\x8a\x04\n" +
 	"\x0eCadenceService\x12H\n" +
 	"\tCreateRun\x12\x1c.cadence.v1.CreateRunRequest\x1a\x1d.cadence.v1.CreateRunResponse\x12E\n" +
 	"\bListRuns\x12\x1b.cadence.v1.ListRunsRequest\x1a\x1c.cadence.v1.ListRunsResponse\x12Z\n" +
 	"\x0fApproveSpecGate\x12\".cadence.v1.ApproveSpecGateRequest\x1a#.cadence.v1.ApproveSpecGateResponse\x12`\n" +
-	"\x11SubmitGateVerdict\x12$.cadence.v1.SubmitGateVerdictRequest\x1a%.cadence.v1.SubmitGateVerdictResponse\x12J\n" +
+	"\x11SubmitGateVerdict\x12$.cadence.v1.SubmitGateVerdictRequest\x1a%.cadence.v1.SubmitGateVerdictResponse\x12]\n" +
+	"\x10ClearSessionRuns\x12#.cadence.v1.ClearSessionRunsRequest\x1a$.cadence.v1.ClearSessionRunsResponse\x12J\n" +
 	"\tStreamRun\x12\x1c.cadence.v1.StreamRunRequest\x1a\x1d.cadence.v1.StreamRunResponse0\x01B\xb1\x01\n" +
 	"\x0ecom.cadence.v1B\fCadenceProtoP\x01ZHgithub.com/AndrewK4758/aklapper/packages/go/kit/gen/cadence/v1;cadencev1\xa2\x02\x03CXX\xaa\x02\n" +
 	"Cadence.V1\xca\x02\n" +
@@ -1802,7 +1896,7 @@ func file_cadence_v1_cadence_proto_rawDescGZIP() []byte {
 	return file_cadence_v1_cadence_proto_rawDescData
 }
 
-var file_cadence_v1_cadence_proto_msgTypes = make([]protoimpl.MessageInfo, 23)
+var file_cadence_v1_cadence_proto_msgTypes = make([]protoimpl.MessageInfo, 25)
 var file_cadence_v1_cadence_proto_goTypes = []any{
 	(*Osc7501Status)(nil),              // 0: cadence.v1.Osc7501Status
 	(*CadenceSpecArtifact)(nil),        // 1: cadence.v1.CadenceSpecArtifact
@@ -1816,59 +1910,64 @@ var file_cadence_v1_cadence_proto_goTypes = []any{
 	(*CreateRunResponse)(nil),          // 9: cadence.v1.CreateRunResponse
 	(*ListRunsRequest)(nil),            // 10: cadence.v1.ListRunsRequest
 	(*ListRunsResponse)(nil),           // 11: cadence.v1.ListRunsResponse
-	(*ApproveSpecGateRequest)(nil),     // 12: cadence.v1.ApproveSpecGateRequest
-	(*ApproveSpecGateResponse)(nil),    // 13: cadence.v1.ApproveSpecGateResponse
-	(*SubmitGateVerdictRequest)(nil),   // 14: cadence.v1.SubmitGateVerdictRequest
-	(*SubmitGateVerdictResponse)(nil),  // 15: cadence.v1.SubmitGateVerdictResponse
-	(*StreamRunRequest)(nil),           // 16: cadence.v1.StreamRunRequest
-	(*CadenceStreamPhaseEvent)(nil),    // 17: cadence.v1.CadenceStreamPhaseEvent
-	(*CadenceStreamLogEvent)(nil),      // 18: cadence.v1.CadenceStreamLogEvent
-	(*CadenceStreamCompleteEvent)(nil), // 19: cadence.v1.CadenceStreamCompleteEvent
-	(*CadenceStreamErrorEvent)(nil),    // 20: cadence.v1.CadenceStreamErrorEvent
-	(*StreamRunResponse)(nil),          // 21: cadence.v1.StreamRunResponse
-	nil,                                // 22: cadence.v1.CadenceTurn.PayloadEntry
-	(*v1.QuotaStatus)(nil),             // 23: common.v1.QuotaStatus
+	(*ClearSessionRunsRequest)(nil),    // 12: cadence.v1.ClearSessionRunsRequest
+	(*ClearSessionRunsResponse)(nil),   // 13: cadence.v1.ClearSessionRunsResponse
+	(*ApproveSpecGateRequest)(nil),     // 14: cadence.v1.ApproveSpecGateRequest
+	(*ApproveSpecGateResponse)(nil),    // 15: cadence.v1.ApproveSpecGateResponse
+	(*SubmitGateVerdictRequest)(nil),   // 16: cadence.v1.SubmitGateVerdictRequest
+	(*SubmitGateVerdictResponse)(nil),  // 17: cadence.v1.SubmitGateVerdictResponse
+	(*StreamRunRequest)(nil),           // 18: cadence.v1.StreamRunRequest
+	(*CadenceStreamPhaseEvent)(nil),    // 19: cadence.v1.CadenceStreamPhaseEvent
+	(*CadenceStreamLogEvent)(nil),      // 20: cadence.v1.CadenceStreamLogEvent
+	(*CadenceStreamCompleteEvent)(nil), // 21: cadence.v1.CadenceStreamCompleteEvent
+	(*CadenceStreamErrorEvent)(nil),    // 22: cadence.v1.CadenceStreamErrorEvent
+	(*StreamRunResponse)(nil),          // 23: cadence.v1.StreamRunResponse
+	nil,                                // 24: cadence.v1.CadenceTurn.PayloadEntry
+	(*v1.QuotaStatus)(nil),             // 25: common.v1.QuotaStatus
 }
 var file_cadence_v1_cadence_proto_depIdxs = []int32{
 	2,  // 0: cadence.v1.CadenceGateAudit.checks:type_name -> cadence.v1.CadenceGateCheckItem
 	4,  // 1: cadence.v1.CadenceTurnPayloadValue.string_list_value:type_name -> cadence.v1.CadenceStringList
-	22, // 2: cadence.v1.CadenceTurn.payload:type_name -> cadence.v1.CadenceTurn.PayloadEntry
+	24, // 2: cadence.v1.CadenceTurn.payload:type_name -> cadence.v1.CadenceTurn.PayloadEntry
 	1,  // 3: cadence.v1.CadenceRunResult.spec:type_name -> cadence.v1.CadenceSpecArtifact
 	3,  // 4: cadence.v1.CadenceRunResult.gate_audit:type_name -> cadence.v1.CadenceGateAudit
 	0,  // 5: cadence.v1.CadenceRunResult.status:type_name -> cadence.v1.Osc7501Status
 	6,  // 6: cadence.v1.CadenceRunResult.turns:type_name -> cadence.v1.CadenceTurn
-	23, // 7: cadence.v1.CadenceRunResult.quota:type_name -> common.v1.QuotaStatus
+	25, // 7: cadence.v1.CadenceRunResult.quota:type_name -> common.v1.QuotaStatus
 	7,  // 8: cadence.v1.CreateRunResponse.run:type_name -> cadence.v1.CadenceRunResult
 	7,  // 9: cadence.v1.ListRunsResponse.runs:type_name -> cadence.v1.CadenceRunResult
-	23, // 10: cadence.v1.ListRunsResponse.quota:type_name -> common.v1.QuotaStatus
-	7,  // 11: cadence.v1.ApproveSpecGateResponse.run:type_name -> cadence.v1.CadenceRunResult
-	23, // 12: cadence.v1.ApproveSpecGateResponse.quota:type_name -> common.v1.QuotaStatus
-	7,  // 13: cadence.v1.SubmitGateVerdictResponse.run:type_name -> cadence.v1.CadenceRunResult
-	0,  // 14: cadence.v1.CadenceStreamPhaseEvent.status:type_name -> cadence.v1.Osc7501Status
-	6,  // 15: cadence.v1.CadenceStreamPhaseEvent.turn:type_name -> cadence.v1.CadenceTurn
-	1,  // 16: cadence.v1.CadenceStreamPhaseEvent.spec:type_name -> cadence.v1.CadenceSpecArtifact
-	7,  // 17: cadence.v1.CadenceStreamCompleteEvent.run:type_name -> cadence.v1.CadenceRunResult
-	23, // 18: cadence.v1.CadenceStreamCompleteEvent.quota:type_name -> common.v1.QuotaStatus
-	17, // 19: cadence.v1.StreamRunResponse.phase:type_name -> cadence.v1.CadenceStreamPhaseEvent
-	18, // 20: cadence.v1.StreamRunResponse.log:type_name -> cadence.v1.CadenceStreamLogEvent
-	19, // 21: cadence.v1.StreamRunResponse.complete:type_name -> cadence.v1.CadenceStreamCompleteEvent
-	20, // 22: cadence.v1.StreamRunResponse.error:type_name -> cadence.v1.CadenceStreamErrorEvent
-	5,  // 23: cadence.v1.CadenceTurn.PayloadEntry.value:type_name -> cadence.v1.CadenceTurnPayloadValue
-	8,  // 24: cadence.v1.CadenceService.CreateRun:input_type -> cadence.v1.CreateRunRequest
-	10, // 25: cadence.v1.CadenceService.ListRuns:input_type -> cadence.v1.ListRunsRequest
-	12, // 26: cadence.v1.CadenceService.ApproveSpecGate:input_type -> cadence.v1.ApproveSpecGateRequest
-	14, // 27: cadence.v1.CadenceService.SubmitGateVerdict:input_type -> cadence.v1.SubmitGateVerdictRequest
-	16, // 28: cadence.v1.CadenceService.StreamRun:input_type -> cadence.v1.StreamRunRequest
-	9,  // 29: cadence.v1.CadenceService.CreateRun:output_type -> cadence.v1.CreateRunResponse
-	11, // 30: cadence.v1.CadenceService.ListRuns:output_type -> cadence.v1.ListRunsResponse
-	13, // 31: cadence.v1.CadenceService.ApproveSpecGate:output_type -> cadence.v1.ApproveSpecGateResponse
-	15, // 32: cadence.v1.CadenceService.SubmitGateVerdict:output_type -> cadence.v1.SubmitGateVerdictResponse
-	21, // 33: cadence.v1.CadenceService.StreamRun:output_type -> cadence.v1.StreamRunResponse
-	29, // [29:34] is the sub-list for method output_type
-	24, // [24:29] is the sub-list for method input_type
-	24, // [24:24] is the sub-list for extension type_name
-	24, // [24:24] is the sub-list for extension extendee
-	0,  // [0:24] is the sub-list for field type_name
+	25, // 10: cadence.v1.ListRunsResponse.quota:type_name -> common.v1.QuotaStatus
+	7,  // 11: cadence.v1.ListRunsResponse.golden_runs:type_name -> cadence.v1.CadenceRunResult
+	7,  // 12: cadence.v1.ApproveSpecGateResponse.run:type_name -> cadence.v1.CadenceRunResult
+	25, // 13: cadence.v1.ApproveSpecGateResponse.quota:type_name -> common.v1.QuotaStatus
+	7,  // 14: cadence.v1.SubmitGateVerdictResponse.run:type_name -> cadence.v1.CadenceRunResult
+	0,  // 15: cadence.v1.CadenceStreamPhaseEvent.status:type_name -> cadence.v1.Osc7501Status
+	6,  // 16: cadence.v1.CadenceStreamPhaseEvent.turn:type_name -> cadence.v1.CadenceTurn
+	1,  // 17: cadence.v1.CadenceStreamPhaseEvent.spec:type_name -> cadence.v1.CadenceSpecArtifact
+	7,  // 18: cadence.v1.CadenceStreamCompleteEvent.run:type_name -> cadence.v1.CadenceRunResult
+	25, // 19: cadence.v1.CadenceStreamCompleteEvent.quota:type_name -> common.v1.QuotaStatus
+	19, // 20: cadence.v1.StreamRunResponse.phase:type_name -> cadence.v1.CadenceStreamPhaseEvent
+	20, // 21: cadence.v1.StreamRunResponse.log:type_name -> cadence.v1.CadenceStreamLogEvent
+	21, // 22: cadence.v1.StreamRunResponse.complete:type_name -> cadence.v1.CadenceStreamCompleteEvent
+	22, // 23: cadence.v1.StreamRunResponse.error:type_name -> cadence.v1.CadenceStreamErrorEvent
+	5,  // 24: cadence.v1.CadenceTurn.PayloadEntry.value:type_name -> cadence.v1.CadenceTurnPayloadValue
+	8,  // 25: cadence.v1.CadenceService.CreateRun:input_type -> cadence.v1.CreateRunRequest
+	10, // 26: cadence.v1.CadenceService.ListRuns:input_type -> cadence.v1.ListRunsRequest
+	14, // 27: cadence.v1.CadenceService.ApproveSpecGate:input_type -> cadence.v1.ApproveSpecGateRequest
+	16, // 28: cadence.v1.CadenceService.SubmitGateVerdict:input_type -> cadence.v1.SubmitGateVerdictRequest
+	12, // 29: cadence.v1.CadenceService.ClearSessionRuns:input_type -> cadence.v1.ClearSessionRunsRequest
+	18, // 30: cadence.v1.CadenceService.StreamRun:input_type -> cadence.v1.StreamRunRequest
+	9,  // 31: cadence.v1.CadenceService.CreateRun:output_type -> cadence.v1.CreateRunResponse
+	11, // 32: cadence.v1.CadenceService.ListRuns:output_type -> cadence.v1.ListRunsResponse
+	15, // 33: cadence.v1.CadenceService.ApproveSpecGate:output_type -> cadence.v1.ApproveSpecGateResponse
+	17, // 34: cadence.v1.CadenceService.SubmitGateVerdict:output_type -> cadence.v1.SubmitGateVerdictResponse
+	13, // 35: cadence.v1.CadenceService.ClearSessionRuns:output_type -> cadence.v1.ClearSessionRunsResponse
+	23, // 36: cadence.v1.CadenceService.StreamRun:output_type -> cadence.v1.StreamRunResponse
+	31, // [31:37] is the sub-list for method output_type
+	25, // [25:31] is the sub-list for method input_type
+	25, // [25:25] is the sub-list for extension type_name
+	25, // [25:25] is the sub-list for extension extendee
+	0,  // [0:25] is the sub-list for field type_name
 }
 
 func init() { file_cadence_v1_cadence_proto_init() }
@@ -1886,8 +1985,8 @@ func file_cadence_v1_cadence_proto_init() {
 	}
 	file_cadence_v1_cadence_proto_msgTypes[6].OneofWrappers = []any{}
 	file_cadence_v1_cadence_proto_msgTypes[7].OneofWrappers = []any{}
-	file_cadence_v1_cadence_proto_msgTypes[17].OneofWrappers = []any{}
-	file_cadence_v1_cadence_proto_msgTypes[21].OneofWrappers = []any{
+	file_cadence_v1_cadence_proto_msgTypes[19].OneofWrappers = []any{}
+	file_cadence_v1_cadence_proto_msgTypes[23].OneofWrappers = []any{
 		(*StreamRunResponse_Phase)(nil),
 		(*StreamRunResponse_Log)(nil),
 		(*StreamRunResponse_Complete)(nil),
@@ -1899,7 +1998,7 @@ func file_cadence_v1_cadence_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_cadence_v1_cadence_proto_rawDesc), len(file_cadence_v1_cadence_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   23,
+			NumMessages:   25,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
