@@ -8,8 +8,6 @@ const localhostBaseURL = `http://localhost:${port}`;
 const parsedExternalUrl =
   externalBaseURL && externalBaseURL.length > 0 ? new URL(externalBaseURL) : null;
 const resolvedBaseURL = parsedExternalUrl ? parsedExternalUrl.toString() : localhostBaseURL;
-const webAuthnRpId = parsedExternalUrl ? parsedExternalUrl.hostname : 'localhost';
-const webAuthnOrigin = parsedExternalUrl ? parsedExternalUrl.origin : localhostBaseURL;
 
 const baseConfig = createSsrPlaywrightConfig({
   configDir: import.meta.dirname,
@@ -19,19 +17,24 @@ const baseConfig = createSsrPlaywrightConfig({
   portEnvVar: 'ADMIN_PORT',
   extraEnv: {
     HOST: '0.0.0.0',
+    ADMIN_INTERNAL_AUTH_SECRET:
+      process.env['ADMIN_INTERNAL_AUTH_SECRET'] || 'admin-e2e-internal-auth-secret-not-for-prod',
     INTERNAL_AUTH_SECRET:
       process.env['INTERNAL_AUTH_SECRET'] || 'e2e-internal-auth-secret-local-only',
-    TOTP_ENCRYPTION_KEY: process.env['TOTP_ENCRYPTION_KEY'] || 'e2e-totp-encryption-key-local-only',
-    DOSSIER_PRIVACY_DENYLIST:
-      process.env['DOSSIER_PRIVACY_DENYLIST'] ||
-      Buffer.from(JSON.stringify(['SyntheticConfidentialClientX']), 'utf8').toString('base64'),
-    WEBAUTHN_RP_ID: webAuthnRpId,
-    WEBAUTHN_ORIGIN: webAuthnOrigin,
   },
 });
 
 const config: PlaywrightTestConfig = {
   ...baseConfig,
+  ...(baseConfig.webServer && !Array.isArray(baseConfig.webServer)
+    ? {
+        webServer: {
+          ...baseConfig.webServer,
+          command:
+            'exec node --conditions=@aklapper/source ../admin-e2e/src/admin-api-harness.ts --serve-admin',
+        },
+      }
+    : {}),
   // Admin E2E mutates shared singleton Postgres rows (guest quota policy)
   // across browser projects; run serially to prevent cross-project races.
   fullyParallel: false,

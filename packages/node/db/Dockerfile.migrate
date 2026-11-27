@@ -1,0 +1,39 @@
+FROM golang:1.27-alpine AS go-builder
+WORKDIR /src
+COPY packages/go/kit ./packages/go/kit
+RUN cd /src/packages/go/kit \
+  && GOWORK=off CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/privacy-check ./cmd/privacy-check
+
+FROM node:26-slim AS node-builder
+WORKDIR /workspace
+
+RUN npm install -g pnpm@12.23.0
+
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
+COPY packages/shared/core ./packages/shared/core
+COPY packages/node/runtime ./packages/node/runtime
+COPY packages/node/db ./packages/node/db
+
+RUN pnpm install --frozen-lockfile --ignore-scripts
+RUN pnpm --dir packages/shared/core exec tsc --build tsconfig.lib.json \
+  && pnpm --dir packages/node/runtime exec tsc --build tsconfig.lib.json \
+  && pnpm --dir packages/node/db exec tsc --build tsconfig.lib.json
+RUN pnpm --config.shamefully-hoist=true --filter @aklapper/db deploy --prod --legacy /prod/db-migrate \
+  && rm -rf /prod/db-migrate/dist /prod/db-migrate/drizzle \
+  && cp -r /workspace/packages/node/db/dist /prod/db-migrate/dist \
+  && cp -r /workspace/packages/node/db/drizzle /prod/db-migrate/drizzle \
+  && cp -r /workspace/packages/shared/core/dist /prod/db-migrate/node_modules/@aklapper/core/dist \
+  && cp -r /workspace/packages/node/runtime/dist /prod/db-migrate/node_modules/@aklapper/node-runtime/dist
+
+FROM node:26-slim AS runtime
+WORKDIR /app
+
+ENV NODE_ENV=production
+ENV PRIVACY_CHECK_BIN=/usr/local/bin/privacy-check
+
+COPY --from=go-builder --chmod=0755 /out/privacy-check /usr/local/bin/privacy-check
+COPY --from=node-builder --chown=node:node /prod/db-migrate ./
+
+USER node
+
+CMD ["node", "dist/migrate.js"]

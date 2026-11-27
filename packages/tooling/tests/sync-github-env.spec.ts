@@ -23,12 +23,17 @@ const VALID_BASE_ENV: Record<string, string> = {
   GCP_CLOUDRUN_SERVICE_ACCOUNT: 'aklapper-cloudrun@games-424800.iam.gserviceaccount.com',
   GCP_PORTAL_SERVICE_ACCOUNT: 'aklapper-portal@games-424800.iam.gserviceaccount.com',
   GCP_PORTAL_API_SERVICE_ACCOUNT: 'aklapper-portal-api@games-424800.iam.gserviceaccount.com',
+  GCP_ADMIN_SERVICE_ACCOUNT: 'aklapper-admin@games-424800.iam.gserviceaccount.com',
+  GCP_ADMIN_API_SERVICE_ACCOUNT: 'aklapper-admin-api@games-424800.iam.gserviceaccount.com',
   GCP_MIGRATOR_SERVICE_ACCOUNT: 'aklapper-migrator@games-424800.iam.gserviceaccount.com',
   GCP_PG19_VM_SERVICE_ACCOUNT: 'aklapper-pg19-vm@games-424800.iam.gserviceaccount.com',
   DATABASE_URL: 'postgres://aklapper:super-db-pass@10.128.0.10:5432/aklapper?sslmode=disable',
   PORTAL_DATABASE_URL:
     'postgres://portal_app:portal-db-pass@10.128.0.10:5432/aklapper?sslmode=disable',
+  ADMIN_DATABASE_URL:
+    'postgres://admin_app:admin-db-pass@10.128.0.10:5432/aklapper?sslmode=disable',
   INTERNAL_AUTH_SECRET: 'internal-secret-val',
+  ADMIN_INTERNAL_AUTH_SECRET: 'admin-internal-secret-val',
   TOTP_ENCRYPTION_KEY: 'totp-key-val',
   ANALYTICS_DAILY_SALT: 'analytics-salt-val',
   GCP_PROJECT_ID: 'games-424800',
@@ -102,7 +107,9 @@ describe('@aklapper/tooling GitHub Actions and GCP Secret Manager sync', () => {
       expect(plan.gcpSecrets.map(s => s.envKey)).toEqual([
         'DATABASE_URL',
         'PORTAL_DATABASE_URL',
+        'ADMIN_DATABASE_URL',
         'INTERNAL_AUTH_SECRET',
+        'ADMIN_INTERNAL_AUTH_SECRET',
         'TOTP_ENCRYPTION_KEY',
         'ANALYTICS_DAILY_SALT',
         'QDRANT_API_KEY',
@@ -125,6 +132,8 @@ describe('@aklapper/tooling GitHub Actions and GCP Secret Manager sync', () => {
           'GCP_CLOUDRUN_SERVICE_ACCOUNT',
           'GCP_PORTAL_SERVICE_ACCOUNT',
           'GCP_PORTAL_API_SERVICE_ACCOUNT',
+          'GCP_ADMIN_SERVICE_ACCOUNT',
+          'GCP_ADMIN_API_SERVICE_ACCOUNT',
           'GCP_MIGRATOR_SERVICE_ACCOUNT',
           'GCP_PG19_VM_SERVICE_ACCOUNT',
           'IAP_ACCESSOR_EMAIL',
@@ -162,7 +171,9 @@ describe('@aklapper/tooling GitHub Actions and GCP Secret Manager sync', () => {
       expect(minimalPlan.gcpSecrets.map(s => s.envKey)).toEqual([
         'DATABASE_URL',
         'PORTAL_DATABASE_URL',
+        'ADMIN_DATABASE_URL',
         'INTERNAL_AUTH_SECRET',
+        'ADMIN_INTERNAL_AUTH_SECRET',
         'TOTP_ENCRYPTION_KEY',
         'ANALYTICS_DAILY_SALT',
       ]);
@@ -546,5 +557,84 @@ describe('@aklapper/tooling GitHub Actions and GCP Secret Manager sync', () => {
     expect(workflow).toContain('actions/cache/save@v6');
     expect(workflow).toContain("steps.geolite2-stage.outputs.geolite2_ready == 'true'");
     expect(workflow).toContain('MaxMind.com');
+
+    const adminDockerfile = readFileSync(resolve(repoRoot, 'apps/admin/admin/Dockerfile'), 'utf8');
+    expect(adminDockerfile).not.toContain('packages/node/db');
+    expect(adminDockerfile).not.toContain('drizzle');
+  });
+
+  it('binds least-privilege admin SSR and admin-api SAs and fails closed on blank or asymmetric admin SA inputs', () => {
+    const calls: string[] = [];
+    const runner = (args: readonly string[]): string => {
+      calls.push(args.join(' '));
+      return 'ok';
+    };
+
+    expect(() =>
+      ensureRuntimeServiceAccountBindings({
+        projectId: 'games-424800',
+        deployerSa: 'aklapper-deployer@games-424800.iam.gserviceaccount.com',
+        adminSa: '   ',
+        adminApiSa: 'aklapper-admin-api@games-424800.iam.gserviceaccount.com',
+        dryRun: true,
+        execGcloud: runner,
+      }),
+    ).toThrow(/GCP_ADMIN_SERVICE_ACCOUNT/);
+
+    expect(() =>
+      ensureRuntimeServiceAccountBindings({
+        projectId: 'games-424800',
+        deployerSa: 'aklapper-deployer@games-424800.iam.gserviceaccount.com',
+        adminSa: 'aklapper-admin@games-424800.iam.gserviceaccount.com',
+        dryRun: true,
+        execGcloud: runner,
+      }),
+    ).toThrow(/Both adminSa/);
+
+    ensureRuntimeServiceAccountBindings({
+      projectId: 'games-424800',
+      projectNumber: '120904484903',
+      region: 'us-central1',
+      deployerSa: 'aklapper-deployer@games-424800.iam.gserviceaccount.com',
+      adminSa: 'aklapper-admin@games-424800.iam.gserviceaccount.com',
+      adminApiSa: 'aklapper-admin-api@games-424800.iam.gserviceaccount.com',
+      dryRun: false,
+      execGcloud: runner,
+    });
+
+    const joined = calls.join('\n');
+    const adminSecretLines = calls.filter(
+      line => line.includes('aklapper-admin@') && line.includes('secretmanager.secretAccessor'),
+    );
+    expect(adminSecretLines).toEqual([
+      'secrets add-iam-policy-binding ADMIN_INTERNAL_AUTH_SECRET --project=games-424800 --member=serviceAccount:aklapper-admin@games-424800.iam.gserviceaccount.com --role=roles/secretmanager.secretAccessor',
+      'secrets add-iam-policy-binding INTERNAL_AUTH_SECRET --project=games-424800 --member=serviceAccount:aklapper-admin@games-424800.iam.gserviceaccount.com --role=roles/secretmanager.secretAccessor',
+    ]);
+    for (const svc of ['admin-api', 'portal-api', 'ai-ask', 'cadence-demo']) {
+      expect(joined).toContain(
+        `run services add-iam-policy-binding ${svc} --project=games-424800 --region=us-central1 --member=serviceAccount:aklapper-admin@games-424800.iam.gserviceaccount.com --role=roles/run.invoker`,
+      );
+    }
+
+    const adminApiSecretLines = calls.filter(
+      line => line.includes('aklapper-admin-api@') && line.includes('secretmanager.secretAccessor'),
+    );
+    expect(adminApiSecretLines.join('\n')).toContain('ADMIN_DATABASE_URL');
+    expect(adminApiSecretLines.join('\n')).toContain('ADMIN_INTERNAL_AUTH_SECRET');
+    expect(adminApiSecretLines.join('\n')).toContain('TOTP_ENCRYPTION_KEY');
+    expect(adminApiSecretLines.join('\n')).toContain('ANALYTICS_DAILY_SALT');
+    expect(adminApiSecretLines.join('\n')).toContain('DOSSIER_PRIVACY_DENYLIST');
+    expect(adminApiSecretLines.join('\n')).toContain('QDRANT_API_KEY');
+    expect(adminApiSecretLines.join('\n')).toContain('AGENSI_API_KEY');
+    expect(adminApiSecretLines.join('\n')).not.toContain(' DATABASE_URL ');
+    expect(joined).toContain(
+      'run services add-iam-policy-binding ai-ask --project=games-424800 --region=us-central1 --member=serviceAccount:aklapper-admin-api@games-424800.iam.gserviceaccount.com --role=roles/run.invoker',
+    );
+    expect(joined).not.toContain(
+      'projects add-iam-policy-binding games-424800 --member=serviceAccount:aklapper-admin@',
+    );
+    expect(joined).not.toContain(
+      'projects add-iam-policy-binding games-424800 --member=serviceAccount:aklapper-admin-api@',
+    );
   });
 });

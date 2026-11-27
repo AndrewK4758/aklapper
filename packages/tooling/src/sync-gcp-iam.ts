@@ -27,6 +27,23 @@ export const PORTAL_API_SA_REQUIRED_SECRETS = [
 ] as const;
 export const PORTAL_API_SA_OPTIONAL_SECRETS = ['AGENSI_API_KEY'] as const;
 
+export const ADMIN_SA_ALLOWED_SECRETS = [
+  'ADMIN_INTERNAL_AUTH_SECRET',
+  'INTERNAL_AUTH_SECRET',
+] as const;
+export const ADMIN_API_SA_REQUIRED_SECRETS = [
+  'ADMIN_DATABASE_URL',
+  'ADMIN_INTERNAL_AUTH_SECRET',
+  'TOTP_ENCRYPTION_KEY',
+  'ANALYTICS_DAILY_SALT',
+] as const;
+export const ADMIN_API_SA_OPTIONAL_SECRETS = [
+  'DOSSIER_PRIVACY_DENYLIST',
+  'QDRANT_API_KEY',
+  'AGENSI_API_KEY',
+  'INTERNAL_AUTH_SECRET',
+] as const;
+
 export interface EnsureRuntimeServiceAccountBindingsOptions {
   readonly projectId: string;
   readonly projectNumber?: string;
@@ -35,12 +52,75 @@ export interface EnsureRuntimeServiceAccountBindingsOptions {
   readonly runtimeSa?: string;
   readonly portalSa?: string;
   readonly portalApiSa?: string;
+  readonly adminSa?: string;
+  readonly adminApiSa?: string;
   readonly migratorSa?: string;
   readonly pg19VmSa?: string;
   readonly pg19BackupBucket?: string;
   readonly iapAccessorEmail?: string;
   readonly dryRun: boolean;
   readonly execGcloud?: GcloudExecRunner;
+}
+
+interface ScopedSaBindingSpec {
+  readonly serviceAccount: string;
+  readonly requiredSecrets: readonly string[];
+  readonly optionalSecrets?: readonly string[];
+  readonly invokerServices?: readonly string[];
+}
+
+function bindScopedRuntimeServiceAccount(
+  context: {
+    readonly projectId: string;
+    readonly region: string;
+    readonly deployerSa: string;
+    readonly dryRun: boolean;
+    readonly execGcloud: GcloudExecRunner;
+  },
+  spec: ScopedSaBindingSpec,
+): void {
+  const member = `serviceAccount:${spec.serviceAccount}`;
+  addServiceAccountBinding(
+    context.projectId,
+    spec.serviceAccount,
+    'roles/iam.serviceAccountUser',
+    `serviceAccount:${context.deployerSa}`,
+    context.dryRun,
+    context.execGcloud,
+  );
+  for (const secretId of spec.requiredSecrets) {
+    addSecretBinding(
+      context.projectId,
+      secretId,
+      member,
+      'roles/secretmanager.secretAccessor',
+      context.dryRun,
+      context.execGcloud,
+    );
+  }
+  for (const secretId of spec.optionalSecrets ?? []) {
+    addSecretBinding(
+      context.projectId,
+      secretId,
+      member,
+      'roles/secretmanager.secretAccessor',
+      context.dryRun,
+      context.execGcloud,
+      { optional: true },
+    );
+  }
+  for (const svc of spec.invokerServices ?? []) {
+    addCloudRunServiceBinding(
+      context.projectId,
+      context.region,
+      svc,
+      member,
+      'roles/run.invoker',
+      context.dryRun,
+      context.execGcloud,
+      { optional: true },
+    );
+  }
 }
 
 export function ensureRuntimeServiceAccountBindings(
@@ -54,6 +134,8 @@ export function ensureRuntimeServiceAccountBindings(
     runtimeSa,
     portalSa,
     portalApiSa,
+    adminSa,
+    adminApiSa,
     migratorSa,
     pg19VmSa,
     pg19BackupBucket,
@@ -65,6 +147,24 @@ export function ensureRuntimeServiceAccountBindings(
   const normalizedDeployer = deployerSa.trim();
   if (!normalizedProject || !normalizedDeployer) {
     throw new Error('projectId and deployerSa are required for runtime SA IAM bindings.');
+  }
+
+  const normalizedAdminSa = adminSa?.trim() ?? '';
+  const normalizedAdminApiSa = adminApiSa?.trim() ?? '';
+  if ('adminSa' in options && options.adminSa !== undefined && !normalizedAdminSa) {
+    throw new Error(
+      'adminSa (GCP_ADMIN_SERVICE_ACCOUNT) must be non-empty when provided (fail-closed; no fallback to GCP_CLOUDRUN_SERVICE_ACCOUNT).',
+    );
+  }
+  if ('adminApiSa' in options && options.adminApiSa !== undefined && !normalizedAdminApiSa) {
+    throw new Error(
+      'adminApiSa (GCP_ADMIN_API_SERVICE_ACCOUNT) must be non-empty when provided (fail-closed; no fallback to GCP_CLOUDRUN_SERVICE_ACCOUNT).',
+    );
+  }
+  if (Boolean(normalizedAdminSa) !== Boolean(normalizedAdminApiSa)) {
+    throw new Error(
+      'Both adminSa (GCP_ADMIN_SERVICE_ACCOUNT) and adminApiSa (GCP_ADMIN_API_SERVICE_ACCOUNT) must be provided together (fail-closed; no fallback to GCP_CLOUDRUN_SERVICE_ACCOUNT).',
+    );
   }
 
   for (const role of ['roles/run.invoker', 'roles/run.developer']) {
@@ -115,73 +215,47 @@ export function ensureRuntimeServiceAccountBindings(
     }
   }
 
-  // Dedicated least-privilege public portal SA: strictly INTERNAL_AUTH_SECRET + invoker on Wave 1 Go services.
+  const scopedContext = {
+    projectId: normalizedProject,
+    region: normalizedRegion,
+    deployerSa: normalizedDeployer,
+    dryRun,
+    execGcloud,
+  };
+
   const normalizedPortalSa = portalSa?.trim();
   if (normalizedPortalSa) {
-    addServiceAccountBinding(
-      normalizedProject,
-      normalizedPortalSa,
-      'roles/iam.serviceAccountUser',
-      `serviceAccount:${normalizedDeployer}`,
-      dryRun,
-      execGcloud,
-    );
-    for (const secretId of PORTAL_SA_ALLOWED_SECRETS) {
-      addSecretBinding(
-        normalizedProject,
-        secretId,
-        `serviceAccount:${normalizedPortalSa}`,
-        'roles/secretmanager.secretAccessor',
-        dryRun,
-        execGcloud,
-      );
-    }
-    for (const svc of ['ai-ask', 'cadence-demo', 'portal-api'] as const) {
-      addCloudRunServiceBinding(
-        normalizedProject,
-        normalizedRegion,
-        svc,
-        `serviceAccount:${normalizedPortalSa}`,
-        'roles/run.invoker',
-        dryRun,
-        execGcloud,
-        { optional: true },
-      );
-    }
+    bindScopedRuntimeServiceAccount(scopedContext, {
+      serviceAccount: normalizedPortalSa,
+      requiredSecrets: PORTAL_SA_ALLOWED_SECRETS,
+      invokerServices: ['ai-ask', 'cadence-demo', 'portal-api'],
+    });
   }
 
-  // Dedicated least-privilege portal-api SA: strictly portal_app DSN, HMAC secret, daily salt, and optional Agensi key.
   const normalizedPortalApiSa = portalApiSa?.trim();
   if (normalizedPortalApiSa) {
-    addServiceAccountBinding(
-      normalizedProject,
-      normalizedPortalApiSa,
-      'roles/iam.serviceAccountUser',
-      `serviceAccount:${normalizedDeployer}`,
-      dryRun,
-      execGcloud,
-    );
-    for (const secretId of PORTAL_API_SA_REQUIRED_SECRETS) {
-      addSecretBinding(
-        normalizedProject,
-        secretId,
-        `serviceAccount:${normalizedPortalApiSa}`,
-        'roles/secretmanager.secretAccessor',
-        dryRun,
-        execGcloud,
-      );
-    }
-    for (const secretId of PORTAL_API_SA_OPTIONAL_SECRETS) {
-      addSecretBinding(
-        normalizedProject,
-        secretId,
-        `serviceAccount:${normalizedPortalApiSa}`,
-        'roles/secretmanager.secretAccessor',
-        dryRun,
-        execGcloud,
-        { optional: true },
-      );
-    }
+    bindScopedRuntimeServiceAccount(scopedContext, {
+      serviceAccount: normalizedPortalApiSa,
+      requiredSecrets: PORTAL_API_SA_REQUIRED_SECRETS,
+      optionalSecrets: PORTAL_API_SA_OPTIONAL_SECRETS,
+    });
+  }
+
+  if (normalizedAdminSa) {
+    bindScopedRuntimeServiceAccount(scopedContext, {
+      serviceAccount: normalizedAdminSa,
+      requiredSecrets: ADMIN_SA_ALLOWED_SECRETS,
+      invokerServices: ['admin-api', 'portal-api', 'ai-ask', 'cadence-demo'],
+    });
+  }
+
+  if (normalizedAdminApiSa) {
+    bindScopedRuntimeServiceAccount(scopedContext, {
+      serviceAccount: normalizedAdminApiSa,
+      requiredSecrets: ADMIN_API_SA_REQUIRED_SECRETS,
+      optionalSecrets: ADMIN_API_SA_OPTIONAL_SECRETS,
+      invokerServices: ['ai-ask'],
+    });
   }
 
   const normalizedPg19VmSa = pg19VmSa?.trim();
