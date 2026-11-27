@@ -77,6 +77,12 @@
       "types": "./dist/runtime-health.d.ts",
       "import": "./dist/runtime-health.js",
       "default": "./dist/runtime-health.js"
+    },
+    "./grpc": {
+      "@aklapper/source": "./src/grpc.ts",
+      "types": "./dist/grpc.d.ts",
+      "import": "./dist/grpc.js",
+      "default": "./dist/grpc.js"
     }
   },
   "dependencies": {
