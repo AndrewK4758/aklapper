@@ -133,6 +133,7 @@ export interface TerminalWorkspaceProps {
   routeKey?: string;
   workspaceStore?: WorkspaceStoreAdapter;
   navigatePrimaryInPaneRoutes?: boolean;
+  onCommandExecute?: (commandName: string, status: 'ok' | 'error') => void;
 }
 
 interface EmbeddedTerminalPaneContextValue {
@@ -143,6 +144,7 @@ interface EmbeddedTerminalPaneContextValue {
   readonly focusToken: number;
   readonly initialCommandHistory?: readonly string[];
   readonly onCommandHistoryChange?: (paneId: string, history: readonly string[]) => void;
+  readonly onCommandExecute?: (commandName: string, status: 'ok' | 'error') => void;
   readonly onFocus: (paneId: string) => void;
   readonly onSplit: (paneId: string, direction: SplitCreateDirection) => void;
   readonly onRotate: (paneId: string) => void;
@@ -794,6 +796,7 @@ interface TerminalLeafContentProps {
   focusToken: number;
   initialCommandHistory?: readonly string[];
   onCommandHistoryChange?: (paneId: string, history: readonly string[]) => void;
+  onCommandExecute?: (commandName: string, status: 'ok' | 'error') => void;
   navigate?: (to: string) => void | Promise<void>;
   onFocus: (paneId: string) => void;
   onSplit: (paneId: string, direction: SplitCreateDirection) => void;
@@ -819,6 +822,7 @@ function TerminalLeafContent({
   focusToken,
   initialCommandHistory,
   onCommandHistoryChange,
+  onCommandExecute,
   navigate,
   onFocus,
   onSplit,
@@ -970,6 +974,7 @@ function TerminalLeafContent({
         onCommandHistoryChange={
           onCommandHistoryChange ? history => onCommandHistoryChange(pane.id, history) : undefined
         }
+        onCommandExecute={onCommandExecute}
         placeholder={terminal.placeholder}
         focusOnMount={isActive}
         isActive={isActive}
@@ -1002,6 +1007,7 @@ function TerminalLeafView({
   focusToken,
   initialCommandHistory,
   onCommandHistoryChange,
+  onCommandExecute,
   navigate,
   paneNav,
   renderPaneView,
@@ -1048,6 +1054,7 @@ function TerminalLeafView({
       focusToken={focusToken}
       initialCommandHistory={initialCommandHistory}
       onCommandHistoryChange={onCommandHistoryChange}
+      onCommandExecute={onCommandExecute}
       navigate={navigate}
       onFocus={onFocus}
       onSplit={onSplit}
@@ -1220,6 +1227,7 @@ interface PrimaryPaneViewProps extends PaneDragHandlers {
   focusToken: number;
   initialCommandHistory?: readonly string[];
   onCommandHistoryChange?: (paneId: string, history: readonly string[]) => void;
+  onCommandExecute?: (commandName: string, status: 'ok' | 'error') => void;
   paneNav: PaneNavigationContextValue | null;
   renderPaneView?: (context: TerminalPaneViewContext) => ReactNode;
   initialDeepLinkRoute: string | null;
@@ -1247,6 +1255,7 @@ function PrimaryPaneView({
   focusToken,
   initialCommandHistory,
   onCommandHistoryChange,
+  onCommandExecute,
   paneNav,
   renderPaneView,
   initialDeepLinkRoute,
@@ -1290,6 +1299,7 @@ function PrimaryPaneView({
       focusToken,
       initialCommandHistory,
       onCommandHistoryChange,
+      onCommandExecute,
       onFocus,
       onSplit,
       onRotate,
@@ -1311,6 +1321,7 @@ function PrimaryPaneView({
       focusToken,
       initialCommandHistory,
       onCommandHistoryChange,
+      onCommandExecute,
       onFocus,
       onSplit,
       onRotate,
@@ -1468,6 +1479,7 @@ function StandaloneTerminalWorkspace({
   routeKey,
   workspaceStore,
   navigatePrimaryInPaneRoutes = false,
+  onCommandExecute,
 }: TerminalWorkspaceProps) {
   const isDockedMode = dockTuiWindows ?? Boolean(renderPaneView);
   const initialDeepLinkRoute = initialPrimaryTuiStack?.[0] ?? null;
@@ -2421,6 +2433,7 @@ function StandaloneTerminalWorkspace({
                               : undefined
                           }
                           onCommandHistoryChange={handleCommandHistoryChange}
+                          onCommandExecute={onCommandExecute}
                           paneNav={paneNav}
                           renderPaneView={renderPaneView}
                           initialDeepLinkRoute={initialDeepLinkRoute}
@@ -2479,6 +2492,7 @@ function StandaloneTerminalWorkspace({
                               : undefined
                           }
                           onCommandHistoryChange={handleCommandHistoryChange}
+                          onCommandExecute={onCommandExecute}
                           navigate={navigate}
                           paneNav={paneNav}
                           renderPaneView={renderPaneView}
@@ -2584,6 +2598,7 @@ export function TerminalWorkspace(props: TerminalWorkspaceProps) {
         focusToken={embeddedCtx.focusToken}
         initialCommandHistory={embeddedCtx.initialCommandHistory}
         onCommandHistoryChange={embeddedCtx.onCommandHistoryChange}
+        onCommandExecute={props.onCommandExecute ?? embeddedCtx.onCommandExecute}
         navigate={props.navigate}
         onFocus={embeddedCtx.onFocus}
         onSplit={embeddedCtx.onSplit}

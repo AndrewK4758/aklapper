@@ -1711,4 +1711,47 @@ describe('TerminalWorkspace', () => {
       expect(pane1().getAttribute('data-tui-depth')).toBe('0');
     });
   });
+
+  it('invokes onCommandExecute with sanitized allow-listed tokens (including terminalForms) and never leaks raw arguments', async () => {
+    const { CONTACT_FORM_DEFINITION } = await import('@aklapper/core');
+    const onCommandExecute = vi.fn<(commandName: string, status: 'ok' | 'error') => void>();
+    render(
+      <TerminalWorkspace
+        terminal={TERMINAL_FIXTURE}
+        onCommandExecute={onCommandExecute}
+        terminalForms={{
+          contact: {
+            definition: CONTACT_FORM_DEFINITION,
+            submit: async () => ({
+              ok: false,
+              source: 'client',
+              formError: 'stub',
+              fieldErrors: {},
+            }),
+          },
+        }}
+      />,
+    );
+
+    const run = (value: string) => {
+      const input = screen.getByLabelText('Terminal command input') as HTMLInputElement;
+      fireEvent.change(input, { target: { value } });
+      fireEvent.submit(input.closest('form') as HTMLFormElement);
+    };
+
+    run('help --verbose');
+    run('secretcmd john.doe@corp.com 555-0199');
+    run('contact --name Ada');
+
+    expect(onCommandExecute.mock.calls).toEqual([
+      ['help', 'ok'],
+      ['unknown', 'error'],
+      ['contact', 'ok'],
+    ]);
+    const serialized = JSON.stringify(onCommandExecute.mock.calls);
+    expect(serialized).not.toContain('secretcmd');
+    expect(serialized).not.toContain('john.doe@corp.com');
+    expect(serialized).not.toContain('555-0199');
+    expect(serialized).not.toContain('Ada');
+  });
 });

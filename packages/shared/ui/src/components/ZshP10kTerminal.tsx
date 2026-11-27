@@ -123,6 +123,7 @@ export interface ZshP10kTerminalProps {
   initialCommandHistory?: readonly string[];
   maxCommandHistory?: number;
   onCommandHistoryChange?: (history: readonly string[]) => void;
+  onCommandExecute?: (commandName: string, status: 'ok' | 'error') => void;
   placeholder?: string;
   initialTime?: string;
   focusOnMount?: boolean;
@@ -282,6 +283,7 @@ export function ZshP10kTerminal({
   initialCommandHistory,
   maxCommandHistory = MAX_TERMINAL_HISTORY_ENTRIES,
   onCommandHistoryChange,
+  onCommandExecute,
   placeholder = 'type a command (try: help, status)',
   initialTime = '00:00:00',
   focusOnMount = false,
@@ -602,6 +604,9 @@ export function ZshP10kTerminal({
     const cmdName = (parts[0] ?? '').toLowerCase();
     const args = parts.slice(1);
     const formConfig = terminalForms?.[cmdName];
+    const handler = commands[cmdName];
+    const isKnownCommand = Boolean(formConfig || handler);
+    onCommandExecute?.(isKnownCommand ? cmdName : 'unknown', isKnownCommand ? 'ok' : 'error');
 
     if (formConfig) {
       const outcome = startTerminalFormSession(formConfig.definition, trimmed);
@@ -672,8 +677,6 @@ export function ZshP10kTerminal({
       });
       return;
     }
-
-    const handler = commands[cmdName];
 
     let result: ZshCommandResult;
     if (handler) {
