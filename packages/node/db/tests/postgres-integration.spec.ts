@@ -2257,6 +2257,14 @@ describe('@aklapper/db PostgreSQL 19 integration (ephemeral container)', () => {
 
     try {
       isoPool = createDbPool(isolatedUrl.toString());
+      // Suppress expected 57P01 errors emitted on draining sockets when DROP DATABASE WITH (FORCE) runs in finally.
+      isoPool.on('error', (err: unknown) => {
+        const code =
+          typeof err === 'object' && err !== null && 'code' in err ? err.code : undefined;
+        if (code !== '57P01') {
+          throw err;
+        }
+      });
       const isoDb = createDb(isoPool);
 
       const getTableColumns = async (tableName: string): Promise<string[]> => {

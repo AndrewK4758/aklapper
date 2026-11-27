@@ -163,6 +163,6 @@
   },
   "analytics": true,
   "affected": {
-    "legacy": true
+    "legacy": false
   }
 }
