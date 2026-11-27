@@ -11,8 +11,8 @@ import {
 } from '../src/terminal-portrait';
 
 describe('@aklapper/ui/terminal-portrait', () => {
-  it('isolates TerminalPortrait strictly on the subpath export and renders bundled greyscale portrait with explicit dimensions', () => {
-    expect('TerminalPortrait' in rootUiExports).toBe(false);
+  it('exports the unified TerminalPortrait subpath and renders bundled greyscale portrait with explicit dimensions', () => {
+    expect(rootUiExports.TerminalPortrait).toBe(TerminalPortrait);
     expect(DEFAULT_PORTRAIT_PATH).toBe('/images/andrew-klapper-portrait.webp');
     expect(DEFAULT_PORTRAIT_WIDTH).toBe(440);
     expect(DEFAULT_PORTRAIT_HEIGHT).toBe(520);

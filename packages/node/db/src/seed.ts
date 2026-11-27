@@ -25,6 +25,7 @@ import {
   sanitizeCareerDossierPayload,
   sanitizePortalAboutSiteContent,
   sanitizePortalAskSiteContent,
+  sanitizePortalHomeSiteContent,
 } from '@aklapper/node-runtime/privacy';
 import { and, eq, inArray, sql } from 'drizzle-orm';
 
@@ -997,6 +998,14 @@ export async function seedDatabase(
   for (const content of siteContentSeeds) {
     if (content.key === SITE_CONTENT_KEYS.portalAbout) {
       sanitizePortalAboutSiteContent(
+        content.markdownBody,
+        content.metadataJson,
+        rawDenylist,
+        undefined,
+        env,
+      );
+    } else if (content.key === SITE_CONTENT_KEYS.portalHome) {
+      sanitizePortalHomeSiteContent(
         content.markdownBody,
         content.metadataJson,
         rawDenylist,

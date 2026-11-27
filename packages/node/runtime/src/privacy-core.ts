@@ -182,6 +182,20 @@ export function scanTextForPrivacyFindings(
 
   const matchedPatternRules = new Set<string>();
 
+  const matchesPatternRule = (rule: PrivacyPatternRule, text: string): boolean => {
+    rule.regex.lastIndex = 0;
+    if (rule.ruleId === 'pii.email_address' && options?.allowedEmails) {
+      for (const emailMatch of text.matchAll(rule.regex)) {
+        const matchedEmail = emailMatch[0].trim().toLowerCase();
+        if (!options.allowedEmails.has(matchedEmail)) {
+          return true;
+        }
+      }
+      return false;
+    }
+    return rule.regex.test(text);
+  };
+
   for (let lineIdx = 0; lineIdx < lines.length; lineIdx += 1) {
     const rawLine = lines[lineIdx] ?? '';
     if (!rawLine.trim()) {
@@ -191,24 +205,7 @@ export function scanTextForPrivacyFindings(
     const normalizedLine = stripInvisibleAndNormalize(rawLine);
 
     for (const rule of rules) {
-      rule.regex.lastIndex = 0;
-      if (rule.ruleId === 'pii.email_address' && options?.allowedEmails) {
-        for (const emailMatch of normalizedLine.matchAll(rule.regex)) {
-          const matchedEmail = emailMatch[0].trim().toLowerCase();
-          if (!options.allowedEmails.has(matchedEmail)) {
-            addFindingUnique(findings, seen, {
-              ruleId: rule.ruleId,
-              category: rule.category,
-              field,
-              location,
-            });
-            break;
-          }
-        }
-        continue;
-      }
-
-      if (rule.regex.test(normalizedLine)) {
+      if (matchesPatternRule(rule, normalizedLine)) {
         matchedPatternRules.add(rule.ruleId);
         addFindingUnique(findings, seen, {
           ruleId: rule.ruleId,
@@ -240,12 +237,11 @@ export function scanTextForPrivacyFindings(
 
   if (lines.length > 1) {
     const normalizedJoined = stripInvisibleAndNormalize(lines.join(' '));
-    for (const rule of PRIVACY_PATTERN_RULES) {
+    for (const rule of rules) {
       if (matchedPatternRules.has(rule.ruleId)) {
         continue;
       }
-      rule.regex.lastIndex = 0;
-      if (rule.regex.test(normalizedJoined)) {
+      if (matchesPatternRule(rule, normalizedJoined)) {
         matchedPatternRules.add(rule.ruleId);
         addFindingUnique(findings, seen, {
           ruleId: rule.ruleId,

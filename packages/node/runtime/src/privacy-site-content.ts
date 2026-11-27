@@ -1,6 +1,5 @@
 import type { PrivacySanitizationFinding } from '@aklapper/core';
 
-import { collectStringLeaves } from './privacy-patterns.ts';
 import {
   emitDenylistEmptyInProdLog,
   emitSanitizationRejectedLog,
@@ -9,6 +8,7 @@ import {
   PrivacySanitizationError,
   scanTextForPrivacyFindings,
 } from './privacy-core.ts';
+import { collectStringLeaves } from './privacy-patterns.ts';
 
 export function sanitizeSiteContentPayload(
   surface: string,

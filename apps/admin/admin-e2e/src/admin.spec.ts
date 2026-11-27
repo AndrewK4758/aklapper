@@ -283,6 +283,7 @@ test.describe('admin SSR end-to-end journeys', () => {
         const originalCategory = await skillCategoryInput.inputValue();
         await skillCategoryInput.fill('Core Languages');
 
+        await page.getByRole('button', { name: 'Show Preview', exact: true }).click();
         const previewAside = page.getByLabel('Live site content preview');
         await expect(previewAside).toBeVisible();
         await expect(previewAside).toContainText('Core Languages');

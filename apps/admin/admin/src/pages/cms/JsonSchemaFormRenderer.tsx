@@ -94,8 +94,21 @@ export function JsonSchemaFormRenderer({
         }
 
         if (propKey === 'portrait') {
+          const portraitProps = propSchema.properties ?? {};
+          if ('src' in portraitProps) {
+            return (
+              <HomePortraitEditor
+                key={propKey}
+                fieldKey={propKey}
+                label={label}
+                value={currentValue}
+                issuesByPath={issuesByPath}
+                onChange={onChange}
+              />
+            );
+          }
           return (
-            <HomePortraitEditor
+            <AboutPortraitEditor
               key={propKey}
               fieldKey={propKey}
               label={label}
@@ -134,19 +147,6 @@ export function JsonSchemaFormRenderer({
         if (propKey === 'identity') {
           return (
             <AboutIdentityEditor
-              key={propKey}
-              fieldKey={propKey}
-              label={label}
-              value={currentValue}
-              issuesByPath={issuesByPath}
-              onChange={onChange}
-            />
-          );
-        }
-
-        if (propKey === 'portrait') {
-          return (
-            <AboutPortraitEditor
               key={propKey}
               fieldKey={propKey}
               label={label}

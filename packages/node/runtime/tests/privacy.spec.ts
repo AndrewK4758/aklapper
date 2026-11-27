@@ -608,12 +608,20 @@ describe('@aklapper/node-runtime/privacy fail-closed sanitization', () => {
       }),
     ]);
 
-    // Benign multiline prose produces zero false positives
+    // Benign multiline prose produces zero false positives (including allow-listed email across lines)
     expect(
       scanTextForPrivacyFindings(
         'deployed in\n40000 pods\nserving id\n12345 in ms\n15000',
         'description',
         emptyDenylist,
+      ),
+    ).toEqual([]);
+    expect(
+      scanTextForPrivacyFindings(
+        'Public contact: andrew@andrew-k.us\nSenior Full-Stack & Systems Engineer',
+        'bio',
+        emptyDenylist,
+        { allowedEmails: PORTAL_HOME_ALLOWED_PUBLIC_EMAILS },
       ),
     ).toEqual([]);
 

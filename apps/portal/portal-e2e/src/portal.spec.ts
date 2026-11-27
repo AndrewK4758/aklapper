@@ -64,14 +64,16 @@ test.describe('portal SSR end-to-end journeys', () => {
           activeForm &&
           companionEl.compareDocumentPosition(activeForm) & Node.DOCUMENT_POSITION_FOLLOWING,
         ),
-        brokenAboutLinks: document.querySelectorAll('a[href="/about"]').length,
+        companionAboutLinks: companionEl?.querySelectorAll('a[href="/about"]').length ?? 0,
+        headerAboutLinks: document.querySelectorAll('header a[href="/about"]').length,
       };
     });
     expect(layoutOrder.scrollTop).toBe(0);
     expect(layoutOrder.scrollWidth).toBeLessThanOrEqual(layoutOrder.innerWidth);
     expect(layoutOrder.companionInsideFirstEntry).toBe(true);
     expect(layoutOrder.companionBeforeForm).toBe(true);
-    expect(layoutOrder.brokenAboutLinks).toBe(0);
+    expect(layoutOrder.companionAboutLinks).toBe(0);
+    expect(layoutOrder.headerAboutLinks).toBe(testInfo.project.name === 'mobile-chrome' ? 0 : 1);
 
     await expect(
       companion.getByText('Senior Full-Stack & Systems Engineer · Marietta, GA'),
