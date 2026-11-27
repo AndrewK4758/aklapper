@@ -71,10 +71,12 @@ var (
 			QuickCheck: func(s string) bool { return strings.Contains(s, "AIza") },
 		},
 		{
-			RuleID:     "secret.github_token",
-			Category:   "secret",
-			Regex:      regexp.MustCompile(`\b(?:gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,})\b`),
-			QuickCheck: func(s string) bool { return strings.Contains(s, "_") && (strings.Contains(s, "gh") || strings.Contains(s, "github_pat_")) },
+			RuleID:   "secret.github_token",
+			Category: "secret",
+			Regex:    regexp.MustCompile(`\b(?:gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,})\b`),
+			QuickCheck: func(s string) bool {
+				return strings.Contains(s, "_") && (strings.Contains(s, "gh") || strings.Contains(s, "github_pat_"))
+			},
 		},
 		{
 			RuleID:     "secret.openai_key",
@@ -125,10 +127,12 @@ var (
 			QuickCheck: func(s string) bool { return containsASCIIFold(s, "cadence") },
 		},
 		{
-			RuleID:     "workspace.private_governance_file",
-			Category:   "workspace",
-			Regex:      regexp.MustCompile(`(?i)\b(?:CADENCE_ORG\.md|CADENCE_DIRECTIVES\.md|triage-context\.md|design-options\.md|evidence\.yaml|certainty[-_]gate)\b`),
-			QuickCheck: func(s string) bool { return strings.Contains(s, ".") || strings.Contains(s, "-") || strings.Contains(s, "_") },
+			RuleID:   "workspace.private_governance_file",
+			Category: "workspace",
+			Regex:    regexp.MustCompile(`(?i)\b(?:CADENCE_ORG\.md|CADENCE_DIRECTIVES\.md|triage-context\.md|design-options\.md|evidence\.yaml|certainty[-_]gate)\b`),
+			QuickCheck: func(s string) bool {
+				return strings.Contains(s, ".") || strings.Contains(s, "-") || strings.Contains(s, "_")
+			},
 		},
 		{
 			RuleID:     "workspace.local_project_path",

@@ -66,6 +66,11 @@ func (c checkOnlyChecker) Check(
 // and every non-empty serviceName as SERVING for unary Check without requiring x-internal-auth,
 // while leaving streaming Watch unimplemented and auth-gated.
 func NewHealthHandler(serviceNames ...string) (string, http.Handler) {
+	return NewHealthHandlerWithSecret("", serviceNames...)
+}
+
+// NewHealthHandlerWithSecret behaves like NewHealthHandler using explicitSecret on auth-gated procedures.
+func NewHealthHandlerWithSecret(explicitSecret string, serviceNames ...string) (string, http.Handler) {
 	cleaned := make([]string, 0, len(serviceNames))
 	for _, svc := range serviceNames {
 		if trimmed := strings.TrimSpace(svc); trimmed != "" {
@@ -75,7 +80,7 @@ func NewHealthHandler(serviceNames ...string) (string, http.Handler) {
 	checker := checkOnlyChecker{inner: grpchealth.NewStaticChecker(cleaned...)}
 	path, handler := grpchealth.NewHandler(
 		checker,
-		connect.WithInterceptors(NewServerAuthInterceptor("")),
+		connect.WithInterceptors(NewServerAuthInterceptor(explicitSecret)),
 	)
 	return path, NewGRPCOnlyMiddleware(handler)
 }

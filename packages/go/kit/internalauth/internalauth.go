@@ -25,16 +25,20 @@ const (
 	// and INTERNAL_AUTH_SECRET is unset. Production always fails closed.
 	DevFallbackSecret = "aklapper-dev-internal-auth-secret-do-not-use-in-prod"
 
+	// DevFallbackAdminSecret is used ONLY outside production when ADMIN_INTERNAL_AUTH_SECRET is unset.
+	DevFallbackAdminSecret = "aklapper-dev-admin-internal-auth-secret-do-not-use-in-prod"
+
 	clockSkewToleranceSeconds = int64(30)
 )
 
 var (
-	ErrMissingSecret    = errors.New("INTERNAL_AUTH_SECRET is required in production")
-	ErrInvalidToken     = errors.New("invalid internal auth token")
-	ErrInvalidSignature = errors.New("invalid internal auth signature")
-	ErrExpiredToken     = errors.New("internal auth token expired")
-	ErrInvalidRole      = errors.New("invalid internal auth role")
-	ErrInvalidSubject   = errors.New("internal auth subject must be non-empty")
+	ErrMissingSecret      = errors.New("INTERNAL_AUTH_SECRET is required in production")
+	ErrMissingAdminSecret = errors.New("ADMIN_INTERNAL_AUTH_SECRET is required in production")
+	ErrInvalidToken       = errors.New("invalid internal auth token")
+	ErrInvalidSignature   = errors.New("invalid internal auth signature")
+	ErrExpiredToken       = errors.New("internal auth token expired")
+	ErrInvalidRole        = errors.New("invalid internal auth role")
+	ErrInvalidSubject     = errors.New("internal auth subject must be non-empty")
 )
 
 type Claims struct {
@@ -73,6 +77,21 @@ func ResolveSecret(explicitSecret string) (string, error) {
 	}
 	_, _ = fmt.Fprintln(os.Stderr, `{"event":"k8s.internalauth.prod_secret_missing","seam":"UNSOUND_CONDITION"}`)
 	return "", ErrMissingSecret
+}
+
+// ResolveAdminSecret returns explicitSecret if non-empty, otherwise ADMIN_INTERNAL_AUTH_SECRET,
+// otherwise DevFallbackAdminSecret ONLY outside production.
+func ResolveAdminSecret(explicitSecret string) (string, error) {
+	if s := strings.TrimSpace(explicitSecret); s != "" {
+		return s, nil
+	}
+	if s := strings.TrimSpace(os.Getenv("ADMIN_INTERNAL_AUTH_SECRET")); s != "" {
+		return s, nil
+	}
+	if !isProductionEnv() {
+		return DevFallbackAdminSecret, nil
+	}
+	return "", ErrMissingAdminSecret
 }
 
 // SignWithClock creates a signed v1.<base64url(payload)>.<base64url(hmac)> token

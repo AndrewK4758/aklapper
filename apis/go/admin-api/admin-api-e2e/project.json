@@ -1,0 +1,25 @@
+{
+  "name": "go-admin-api-e2e",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "library",
+  "sourceRoot": "apis/go/admin-api/admin-api-e2e",
+  "implicitDependencies": ["go-admin-api"],
+  "tags": ["scope:go", "scope:e2e", "type:e2e"],
+  "targets": {
+    "e2e": {
+      "executor": "nx:run-commands",
+      "cache": true,
+      "dependsOn": ["go-admin-api:build"],
+      "inputs": [
+        "default",
+        "{workspaceRoot}/apis/go/admin-api/admin-api/**/*.go",
+        "{workspaceRoot}/apis/go/admin-api/admin-api/go.mod",
+        "{workspaceRoot}/packages/go/**/*.go"
+      ],
+      "options": {
+        "cwd": "apis/go/admin-api/admin-api-e2e",
+        "command": "go test -v -count=1 ./..."
+      }
+    }
+  }
+}

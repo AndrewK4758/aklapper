@@ -75,41 +75,7 @@ func waitWithContext(ctx context.Context, d time.Duration) error {
 // OpenLazyPool creates a pgxpool-backed Store with MinConns=0 and MaxConnIdleTime=30s
 // so scale-to-zero Cloud Run services hold zero idle PG19 sockets during cutover and idle periods.
 func OpenLazyPool(ctx context.Context, dsn string, maxConns int, verifyPing bool) (*Store, error) {
-	if err := ValidateDSN(dsn); err != nil {
-		return nil, err
-	}
-	poolCfg, err := pgxpool.ParseConfig(dsn)
-	if err != nil {
-		return nil, errors.New("PostgreSQL connection URI could not be parsed by pgxpool")
-	}
-	if maxConns <= 0 {
-		maxConns = DefaultPortalMaxConns
-	}
-	poolCfg.MinConns = 0
-	poolCfg.MaxConns = int32(maxConns)
-	poolCfg.MaxConnIdleTime = DefaultPortalMaxConnIdle
-
-	pool, err := pgxpool.NewWithConfig(ctx, poolCfg)
-	if err != nil {
-		return nil, err
-	}
-
-	if verifyPing {
-		if err := pingPoolWithBackoff(ctx, pool, Config{DatabaseURL: dsn, MaxConns: maxConns}); err != nil {
-			pool.Close()
-			return nil, err
-		}
-	}
-
-	return &Store{
-		pool:                pool,
-		AgensiCreatorHandle: ResolveAgensiCreatorHandle(),
-		policies:            defaultPolicies(),
-		buckets:             make(map[string]*memBucket),
-		turns:               make(map[string]*TurnRecord),
-		dossiers:            make(map[string]CareerDossierRecord),
-		runsByID:            make(map[string]*SandboxRun),
-	}, nil
+	return openLazyPoolWithIdle(ctx, dsn, maxConns, DefaultPortalMaxConnIdle, verifyPing)
 }
 
 // OpenPortalServiceFromEnv opens a lazy MinConns=0 PostgreSQL 19 pool for portal-api using
