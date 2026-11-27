@@ -15,7 +15,11 @@ export {
   GOLDEN_SHOWCASE_HTML,
   type GoldenHtmlSpec,
 } from './prerender/prerender-golden-html.ts';
-export { getPrerenderGoldenSandboxRuns } from './prerender/prerender-golden.ts';
+export {
+  buildGoldenShowcaseArtifacts,
+  getPrerenderGoldenSandboxRuns,
+  type GoldenShowcaseArtifacts,
+} from './prerender/prerender-golden.ts';
 export {
   AGENSI_SKILL_SEEDS,
   DEFAULT_GUEST_QUOTA,

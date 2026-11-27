@@ -157,7 +157,7 @@ func fetchWithValidatedRedirects(
 }
 
 func readBoundedBody(resp *http.Response, maxBytes int64, correlationID string) (string, *FetchResult, error) {
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.ContentLength > maxBytes {
 		_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, 4096))
 		EmitSeamLog("BOUNDARY_FAULT", "agensi.catalog.payload_too_large", map[string]any{

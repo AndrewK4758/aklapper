@@ -1,5 +1,6 @@
 import type { CadenceGateAudit, CadenceSpecArtifact } from '@aklapper/core';
 import {
+  buildGoldenShowcaseArtifacts,
   CADENCE_PRESET_SEEDS,
   getPrerenderGoldenSandboxRuns,
   GOLDEN_SHOWCASE_DEFINITIONS,
@@ -36,8 +37,6 @@ export interface GoldenSandboxRunSeed {
   }>;
 }
 
-const utf8Encoder = new TextEncoder();
-
 export const CADENCE_GOLDEN_RUN_SEEDS: readonly GoldenSandboxRunSeed[] =
   GOLDEN_SHOWCASE_DEFINITIONS.map(def => {
     const html = GOLDEN_SHOWCASE_HTML[def.slug] ?? '';
@@ -48,23 +47,11 @@ export const CADENCE_GOLDEN_RUN_SEEDS: readonly GoldenSandboxRunSeed[] =
       mode: 'llm',
       prompt: def.starterPrompt,
     });
-    const artifactBytes = utf8Encoder.encode(html).byteLength;
-    const gateAuditJson: CadenceGateAudit = {
-      summary: def.gateAudit.summary,
-      sanitized: def.gateAudit.sanitized,
+    const {
       artifactBytes,
-      checks: def.gateAudit.checks.map(c => ({ ...c })),
-    };
-    const specJson: CadenceSpecArtifact = {
-      title: def.spec.title,
-      summary: def.spec.summary,
-      conditions: [...def.spec.conditions],
-      handling: [...def.spec.handling],
-      outcomes: [...def.spec.outcomes],
-      rules: [...def.spec.rules],
-      deltas: [...def.spec.deltas],
-      recalledPatterns: [...def.spec.recalledPatterns],
-    };
+      gateAudit: gateAuditJson,
+      spec: specJson,
+    } = buildGoldenShowcaseArtifacts(def, html);
     return {
       id: def.id,
       sessionId: 'golden-showcase',

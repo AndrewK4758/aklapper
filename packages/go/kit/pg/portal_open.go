@@ -37,6 +37,41 @@ func parsePositiveMaxConns(defaultMax int) (int, error) {
 	return parsed, nil
 }
 
+func pingPoolOnce(ctx context.Context, pool *pgxpool.Pool) error {
+	pingCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+	return pool.Ping(pingCtx)
+}
+
+func pingPoolWithBackoff(ctx context.Context, pool *pgxpool.Pool, cfg Config) error {
+	maxAttempts, baseInterval := resolveStartupRetryBudget(cfg)
+	var err error
+	for attempt := 1; attempt <= maxAttempts; attempt++ {
+		if err = pingPoolOnce(ctx, pool); err == nil {
+			return nil
+		}
+		if attempt == maxAttempts {
+			return err
+		}
+		delay := min(time.Duration(attempt)*baseInterval, 2*time.Second)
+		if waitErr := waitWithContext(ctx, delay); waitErr != nil {
+			return waitErr
+		}
+	}
+	return err
+}
+
+func waitWithContext(ctx context.Context, d time.Duration) error {
+	timer := time.NewTimer(d)
+	defer timer.Stop()
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-timer.C:
+		return nil
+	}
+}
+
 // OpenLazyPool creates a pgxpool-backed Store with MinConns=0 and MaxConnIdleTime=30s
 // so scale-to-zero Cloud Run services hold zero idle PG19 sockets during cutover and idle periods.
 func OpenLazyPool(ctx context.Context, dsn string, maxConns int, verifyPing bool) (*Store, error) {
@@ -60,28 +95,9 @@ func OpenLazyPool(ctx context.Context, dsn string, maxConns int, verifyPing bool
 	}
 
 	if verifyPing {
-		maxAttempts, baseInterval := resolveStartupRetryBudget(Config{DatabaseURL: dsn, MaxConns: maxConns})
-		var lastPingErr error
-		for attempt := 1; attempt <= maxAttempts; attempt++ {
-			pingCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
-			lastPingErr = pool.Ping(pingCtx)
-			cancel()
-			if lastPingErr == nil {
-				break
-			}
-			if attempt == maxAttempts {
-				pool.Close()
-				return nil, lastPingErr
-			}
-			backoff := min(time.Duration(attempt)*baseInterval, 2*time.Second)
-			timer := time.NewTimer(backoff)
-			select {
-			case <-ctx.Done():
-				timer.Stop()
-				pool.Close()
-				return nil, ctx.Err()
-			case <-timer.C:
-			}
+		if err := pingPoolWithBackoff(ctx, pool, Config{DatabaseURL: dsn, MaxConns: maxConns}); err != nil {
+			pool.Close()
+			return nil, err
 		}
 	}
 

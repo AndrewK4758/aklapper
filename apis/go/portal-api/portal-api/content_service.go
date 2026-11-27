@@ -52,6 +52,29 @@ func extractBrandContactEmail(chromeJSON string) *string {
 	return &trimmed
 }
 
+func (s *contentServiceServer) loadHomeBundle(
+	ctx context.Context,
+	corrID string,
+) (string, *portalv1.TerminalProfileData, string, error) {
+	homeJSON, err := s.deps.store.LoadSiteContentJSON(ctx, "portal-home")
+	if err != nil {
+		return "", nil, "", mapStoreErrorToConnect(err, corrID)
+	}
+	terminal, err := s.deps.store.LoadTerminalProfile(ctx, pg.PortalHomeTerminalSlug)
+	if err != nil {
+		return "", nil, "", mapStoreErrorToConnect(err, corrID)
+	}
+	contactJSON, err := s.deps.store.LoadSiteContentJSON(ctx, "portal-contact")
+	if err != nil {
+		return "", nil, "", mapStoreErrorToConnect(err, corrID)
+	}
+	formJSON, err := extractContactFormJSON(contactJSON)
+	if err != nil {
+		return "", nil, "", mapStoreErrorToConnect(err, corrID)
+	}
+	return homeJSON, toProtoTerminalProfile(terminal), formJSON, nil
+}
+
 func (s *contentServiceServer) GetRootContent(
 	ctx context.Context,
 	_ *connect.Request[portalv1.GetRootContentRequest],
@@ -61,26 +84,14 @@ func (s *contentServiceServer) GetRootContent(
 	if err != nil {
 		return nil, mapStoreErrorToConnect(err, corrID)
 	}
-	homeJSON, err := s.deps.store.LoadSiteContentJSON(ctx, "portal-home")
+	homeJSON, terminal, formJSON, err := s.loadHomeBundle(ctx, corrID)
 	if err != nil {
-		return nil, mapStoreErrorToConnect(err, corrID)
-	}
-	terminal, err := s.deps.store.LoadTerminalProfile(ctx, pg.PortalHomeTerminalSlug)
-	if err != nil {
-		return nil, mapStoreErrorToConnect(err, corrID)
-	}
-	contactJSON, err := s.deps.store.LoadSiteContentJSON(ctx, "portal-contact")
-	if err != nil {
-		return nil, mapStoreErrorToConnect(err, corrID)
-	}
-	formJSON, err := extractContactFormJSON(contactJSON)
-	if err != nil {
-		return nil, mapStoreErrorToConnect(err, corrID)
+		return nil, err
 	}
 	return connect.NewResponse(&portalv1.GetRootContentResponse{
 		ChromeJson:      chromeJSON,
 		HomeContentJson: homeJSON,
-		Terminal:        toProtoTerminalProfile(terminal),
+		Terminal:        terminal,
 		ContactFormJson: formJSON,
 	}), nil
 }
@@ -90,25 +101,13 @@ func (s *contentServiceServer) GetHomeContent(
 	_ *connect.Request[portalv1.GetHomeContentRequest],
 ) (*connect.Response[portalv1.GetHomeContentResponse], error) {
 	corrID := resolveCorrID(ctx)
-	homeJSON, err := s.deps.store.LoadSiteContentJSON(ctx, "portal-home")
+	homeJSON, terminal, formJSON, err := s.loadHomeBundle(ctx, corrID)
 	if err != nil {
-		return nil, mapStoreErrorToConnect(err, corrID)
-	}
-	terminal, err := s.deps.store.LoadTerminalProfile(ctx, pg.PortalHomeTerminalSlug)
-	if err != nil {
-		return nil, mapStoreErrorToConnect(err, corrID)
-	}
-	contactJSON, err := s.deps.store.LoadSiteContentJSON(ctx, "portal-contact")
-	if err != nil {
-		return nil, mapStoreErrorToConnect(err, corrID)
-	}
-	formJSON, err := extractContactFormJSON(contactJSON)
-	if err != nil {
-		return nil, mapStoreErrorToConnect(err, corrID)
+		return nil, err
 	}
 	return connect.NewResponse(&portalv1.GetHomeContentResponse{
 		ContentJson:     homeJSON,
-		Terminal:        toProtoTerminalProfile(terminal),
+		Terminal:        terminal,
 		ContactFormJson: formJSON,
 	}), nil
 }
