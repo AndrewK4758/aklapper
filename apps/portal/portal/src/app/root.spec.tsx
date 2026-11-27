@@ -12,25 +12,28 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { createRoutesStub, RouterContextProvider } from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-const {
-  loadPortalRootDataWithPrerenderMock,
-  capturePortalSsrHitMock,
-  getSharedDbMock,
-  reportPortalPublicErrorMock,
-} = vi.hoisted(() => ({
-  loadPortalRootDataWithPrerenderMock: vi.fn<() => Promise<PortalRootLoaderData>>(),
-  capturePortalSsrHitMock: vi.fn<(...args: unknown[]) => Promise<unknown>>(async () => null),
-  getSharedDbMock: vi.fn<() => Record<string, never>>(() => ({})),
-  reportPortalPublicErrorMock: vi.fn<(error: unknown, context?: unknown) => void>(),
-}));
+const { loadPortalRootDataWithPrerenderMock, recordPortalSsrHitMock, reportPortalPublicErrorMock } =
+  vi.hoisted(() => ({
+    loadPortalRootDataWithPrerenderMock: vi.fn<() => Promise<PortalRootLoaderData>>(),
+    recordPortalSsrHitMock: vi.fn<(...args: unknown[]) => Promise<string>>(
+      async () => 'sess_ssr_1',
+    ),
+    reportPortalPublicErrorMock: vi.fn<(error: unknown, context?: unknown) => void>(),
+  }));
 
-vi.mock('@aklapper/db', async importOriginal => {
-  const actual = await importOriginal<typeof import('@aklapper/db')>();
+vi.mock('../app/portal-api.server', async importOriginal => {
+  const actual = await importOriginal<typeof import('./portal-api.server')>();
   return {
     ...actual,
     loadPortalRootDataWithPrerender: loadPortalRootDataWithPrerenderMock,
-    capturePortalSsrHit: capturePortalSsrHitMock,
-    getSharedDb: getSharedDbMock,
+  };
+});
+
+vi.mock('@aklapper/node-runtime/grpc', async importOriginal => {
+  const actual = await importOriginal<typeof import('@aklapper/node-runtime/grpc')>();
+  return {
+    ...actual,
+    recordPortalSsrHit: recordPortalSsrHitMock,
   };
 });
 
@@ -162,7 +165,11 @@ describe('PortalRoot', () => {
     expect('maintenanceMode' in result).toBe(false);
     expect(result.correlationId).toBe('corr-nav-1');
     expect(loadPortalRootDataWithPrerenderMock).toHaveBeenCalledTimes(1);
-    expect(loadPortalRootDataWithPrerenderMock).toHaveBeenCalledWith();
+    expect(loadPortalRootDataWithPrerenderMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        correlationId: 'corr-nav-1',
+      }),
+    );
     expect(result.rootPayload).toBeInstanceOf(Promise);
     expect(infoCalls).toContainEqual(
       expect.objectContaining({
@@ -759,13 +766,13 @@ describe('PortalRoot', () => {
     expect(await screen.findByText('Agensi Route Content')).toBeTruthy();
   });
 
-  it('launches non-blocking SSR hit capture on navigable GET and skips 404, Single Fetch .data, non-GET, prerender, and missing DATABASE_URL', async () => {
-    const origDbUrl = process.env['DATABASE_URL'];
+  it('launches non-blocking SSR hit capture on navigable GET and skips 404, Single Fetch .data, non-GET, prerender, and missing PORTAL_API_URL', async () => {
+    const origPortalApiUrl = process.env['PORTAL_API_URL'];
     const origPrerender = process.env['IS_RR_BUILD_REQUEST'];
     const origAuthSecret = process.env['INTERNAL_AUTH_SECRET'];
 
     try {
-      process.env['DATABASE_URL'] = 'postgres://localhost:5432/test';
+      process.env['PORTAL_API_URL'] = 'http://127.0.0.1:8084';
       delete process.env['IS_RR_BUILD_REQUEST'];
       delete process.env['INTERNAL_AUTH_SECRET'];
 
@@ -775,7 +782,7 @@ describe('PortalRoot', () => {
       });
 
       // Never-resolving capture promise must NOT block synchronous loader return
-      capturePortalSsrHitMock.mockImplementationOnce(() => new Promise(() => undefined));
+      recordPortalSsrHitMock.mockImplementationOnce(() => new Promise(() => undefined));
 
       const { args: navigableArgs } = makeRootLoaderArgs(
         'https://andrew-k.us/about?ref=recruiter',
@@ -785,20 +792,23 @@ describe('PortalRoot', () => {
       const result = loader(navigableArgs);
       expect(result.isNotFound).toBe(false);
       expect(result.rootPayload).not.toBeNull();
-      expect(capturePortalSsrHitMock).toHaveBeenCalledTimes(1);
-      expect(capturePortalSsrHitMock).toHaveBeenCalledWith(
-        expect.anything(),
-        navigableArgs.request,
+      expect(recordPortalSsrHitMock).toHaveBeenCalledTimes(1);
+      expect(recordPortalSsrHitMock).toHaveBeenCalledWith(
         expect.objectContaining({
-          pathname: '/about',
-          guestSessionId: null,
+          baseUrl: 'http://127.0.0.1:8084',
           correlationId: 'corr-ssr-hit',
           timeoutMs: 1_500,
+          signedClientIp: expect.any(String),
+        }),
+        '/about',
+        expect.objectContaining({
+          userAgent: 'Mozilla/5.0',
+          guestSessionId: '',
         }),
       );
 
-      // Zero SSR capture on 404, Single Fetch .data, non-GET, prerender, or absent DATABASE_URL
-      capturePortalSsrHitMock.mockClear();
+      // Zero SSR capture on 404, Single Fetch .data, non-GET, prerender, or absent PORTAL_API_URL
+      recordPortalSsrHitMock.mockClear();
       const { args: notFoundArgs } = makeRootLoaderArgs('https://andrew-k.us/does-not-exist');
       expect(loader(notFoundArgs).isNotFound).toBe(true);
       const { args: dataArgs } = makeRootLoaderArgs('https://andrew-k.us/about.data');
@@ -815,13 +825,13 @@ describe('PortalRoot', () => {
       loader(makeRootLoaderArgs('https://andrew-k.us/').args);
       delete process.env['IS_RR_BUILD_REQUEST'];
 
-      delete process.env['DATABASE_URL'];
+      delete process.env['PORTAL_API_URL'];
       loader(makeRootLoaderArgs('https://andrew-k.us/').args);
 
-      expect(capturePortalSsrHitMock).not.toHaveBeenCalled();
+      expect(recordPortalSsrHitMock).not.toHaveBeenCalled();
     } finally {
-      if (origDbUrl === undefined) delete process.env['DATABASE_URL'];
-      else process.env['DATABASE_URL'] = origDbUrl;
+      if (origPortalApiUrl === undefined) delete process.env['PORTAL_API_URL'];
+      else process.env['PORTAL_API_URL'] = origPortalApiUrl;
       if (origPrerender === undefined) delete process.env['IS_RR_BUILD_REQUEST'];
       else process.env['IS_RR_BUILD_REQUEST'] = origPrerender;
       if (origAuthSecret === undefined) delete process.env['INTERNAL_AUTH_SECRET'];

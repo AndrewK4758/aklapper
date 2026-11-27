@@ -7,7 +7,6 @@ import {
   createPublicAppError,
 } from '@aklapper/core';
 import { classifyServerError } from '@aklapper/core/server-errors';
-import { loadPortalAskDataWithPrerender } from '@aklapper/db';
 import { callAsk, classifyGrpcError, getAskStatus } from '@aklapper/node-runtime/grpc';
 import {
   createFallbackLogger,
@@ -26,6 +25,7 @@ import { triggerPortalGuestSessionBinding } from '../contact-analytics-link.serv
 import { ChatRouteView } from '../features/ChatFeatureView';
 import { createPrimaryRouteClientAction } from '../features/paneClientAction';
 import { resolveGuestSession } from '../guest-session.server';
+import { loadPortalAskDataWithPrerender } from '../portal-api.server';
 import { buildPortalPageMeta } from '../seo';
 import type { Route } from './+types/chat';
 
@@ -68,11 +68,18 @@ export function loader({ request, context }: Route.LoaderArgs) {
   return data(
     {
       correlationId,
-      payload: deferStreamResult(loadPortalAskDataWithPrerender(sessionId), {
-        request,
-        context,
-        source: 'portal.chat.loader',
-      }),
+      payload: deferStreamResult(
+        loadPortalAskDataWithPrerender(sessionId, {
+          correlationId,
+          ...(reqCtx?.logger ? { logger: reqCtx.logger } : {}),
+          signal: reqCtx?.signal ?? request.signal,
+        }),
+        {
+          request,
+          context,
+          source: 'portal.chat.loader',
+        },
+      ),
       askStatusPayload: deferStreamResult(
         probeAskServiceStatus(aiAskUrl, reqCtx?.signal ?? request.signal, correlationId),
         {

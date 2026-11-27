@@ -54,6 +54,11 @@ export {
   type ClassifyGrpcErrorContext,
 } from './grpc/errors.ts';
 export {
+  ErrorDetailEnvelopeSchema,
+  FieldErrorListSchema,
+  PublicAppErrorSchema,
+} from './grpc/gen/common/v1/error_pb.ts';
+export {
   probeGrpcServiceHealth,
   type GrpcHealthProbeResult,
   type ProbeGrpcServiceHealthOptions,

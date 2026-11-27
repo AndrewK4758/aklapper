@@ -6,7 +6,6 @@ RUN npm install -g pnpm@12.23.0
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
 COPY packages/shared/core ./packages/shared/core
 COPY packages/shared/ui ./packages/shared/ui
-COPY packages/node/db ./packages/node/db
 COPY packages/node/runtime ./packages/node/runtime
 COPY packages/tooling ./packages/tooling
 COPY apps/portal/portal ./apps/portal/portal
@@ -14,7 +13,6 @@ COPY apps/portal/portal ./apps/portal/portal
 RUN pnpm install --frozen-lockfile --ignore-scripts
 RUN pnpm --dir packages/shared/core exec tsc --build tsconfig.lib.json \
   && pnpm --dir packages/node/runtime exec tsc --build tsconfig.lib.json \
-  && pnpm --dir packages/node/db exec tsc --build tsconfig.lib.json \
   && pnpm --dir packages/tooling exec tsc --build tsconfig.lib.json \
   && pnpm --dir packages/shared/ui exec vite build \
   && pnpm --dir apps/portal/portal exec react-router build --mode production
@@ -24,10 +22,7 @@ RUN pnpm --config.shamefully-hoist=true --filter @aklapper/portal deploy --prod 
   && mkdir -p /prod/portal/src \
   && cp /workspace/apps/portal/portal/src/server.ts /prod/portal/src/server.ts \
   && cp -r /workspace/packages/shared/core/dist /prod/portal/node_modules/@aklapper/core/dist \
-  && cp -r /workspace/packages/node/db/dist /prod/portal/node_modules/@aklapper/db/dist \
-  && cp -r /workspace/packages/node/db/drizzle /prod/portal/node_modules/@aklapper/db/drizzle \
   && cp -r /workspace/packages/node/runtime/dist /prod/portal/node_modules/@aklapper/node-runtime/dist
-COPY apps/portal/portal/data/geolite2 /prod/portal/data/geolite2
 
 FROM node:26-slim AS runtime
 WORKDIR /app
