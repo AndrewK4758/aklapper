@@ -1,5 +1,5 @@
 import type { AnalyticsAskTurnItem } from '@aklapper/core';
-import { Link } from 'react-router';
+import { href, Link } from 'react-router';
 
 import { formatAnalyticsLocation } from './analytics-filter-url';
 
@@ -43,7 +43,7 @@ export function AdminAnalyticsAskFeed({ turns }: AdminAnalyticsAskFeedProps) {
                     ) : null}
                     {turn.contactId && turn.contactName ? (
                       <Link
-                        to={`/inbox?selected=${encodeURIComponent(turn.contactId)}`}
+                        to={`${href('/inbox')}?selected=${encodeURIComponent(turn.contactId)}`}
                         prefetch='intent'
                         className={styles.contactBadge}
                       >

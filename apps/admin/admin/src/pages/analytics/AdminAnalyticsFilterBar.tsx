@@ -4,7 +4,7 @@ import type {
   AdminAnalyticsIdentifiedFilter,
   AdminAnalyticsWindow,
 } from '@aklapper/core';
-import { Link } from 'react-router';
+import { href, Link } from 'react-router';
 
 import { buildAdminAnalyticsHref, hasActiveDrilldownFilters } from './analytics-filter-url';
 
@@ -117,7 +117,7 @@ export function AdminAnalyticsFilterBar({ filter }: AdminAnalyticsFilterBarProps
           ))}
           {showClear ? (
             <Link
-              to={`/analytics?window=${filter.window}`}
+              to={`${href('/analytics')}?window=${filter.window}`}
               prefetch='intent'
               className={styles.clearFiltersLink}
             >

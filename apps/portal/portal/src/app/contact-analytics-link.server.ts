@@ -94,18 +94,17 @@ export function triggerPortalGuestSessionBinding(
   request: Request,
   guestSessionId: string | null | undefined,
   logger?: SsrStructuredLogger,
+  landingPath?: string,
 ): void {
   const trimmed = guestSessionId?.trim();
   if (!trimmed || isReactRouterPrerender() || !process.env['DATABASE_URL']?.trim()) {
     return;
   }
   try {
-    void bindGuestSessionToAnalyticsSession(
-      getSharedDb(),
-      request,
-      trimmed,
-      logger ? { logger } : undefined,
-    ).catch(() => undefined);
+    void bindGuestSessionToAnalyticsSession(getSharedDb(), request, trimmed, {
+      ...(logger ? { logger } : {}),
+      ...(landingPath ? { landingPath } : {}),
+    }).catch(() => undefined);
   } catch {
     // Fail-open: never impact guest-session routes
   }

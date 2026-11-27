@@ -1741,10 +1741,14 @@ describe('TerminalWorkspace', () => {
 
     run('help --verbose');
     run('secretcmd john.doe@corp.com 555-0199');
+    run('constructor');
+    run('__proto__');
     run('contact --name Ada');
 
     expect(onCommandExecute.mock.calls).toEqual([
       ['help', 'ok'],
+      ['unknown', 'error'],
+      ['unknown', 'error'],
       ['unknown', 'error'],
       ['contact', 'ok'],
     ]);

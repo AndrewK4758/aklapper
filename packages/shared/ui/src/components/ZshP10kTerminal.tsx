@@ -603,8 +603,9 @@ export function ZshP10kTerminal({
     const parts = trimmed.split(/\s+/);
     const cmdName = (parts[0] ?? '').toLowerCase();
     const args = parts.slice(1);
-    const formConfig = terminalForms?.[cmdName];
-    const handler = commands[cmdName];
+    const formConfig =
+      terminalForms && Object.hasOwn(terminalForms, cmdName) ? terminalForms[cmdName] : undefined;
+    const handler = Object.hasOwn(commands, cmdName) ? commands[cmdName] : undefined;
     const isKnownCommand = Boolean(formConfig || handler);
     onCommandExecute?.(isKnownCommand ? cmdName : 'unknown', isKnownCommand ? 'ok' : 'error');
 
@@ -679,7 +680,7 @@ export function ZshP10kTerminal({
     }
 
     let result: ZshCommandResult;
-    if (handler) {
+    if (typeof handler === 'function') {
       result = handler(args, trimmed);
     } else {
       result = {

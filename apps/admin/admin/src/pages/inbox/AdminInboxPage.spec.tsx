@@ -306,4 +306,41 @@ describe('AdminInboxPage multi-select and bulk delete', () => {
       'No linked visitor session',
     );
   });
+
+  it('clears stale manual selection when routeSelectedId transitions Alice -> Bob click -> Carol -> Alice', async () => {
+    function RouteSelectionHarness() {
+      const [routeSelectedId, setRouteSelectedId] = useState<string>(ITEMS_FIXTURE[0].id);
+      return (
+        <>
+          <button type='button' onClick={() => setRouteSelectedId(ITEMS_FIXTURE[2].id)}>
+            Deep-Link Cara
+          </button>
+          <button type='button' onClick={() => setRouteSelectedId(ITEMS_FIXTURE[0].id)}>
+            Deep-Link Alice
+          </button>
+          <AdminInboxPage
+            data={{ ...makeInboxData(ITEMS_FIXTURE), selectedId: routeSelectedId }}
+            actionData={null}
+          />
+        </>
+      );
+    }
+
+    const Stub = createRoutesStub([{ path: '/inbox', Component: RouteSelectionHarness }]);
+    render(<Stub initialEntries={['/inbox']} />);
+
+    const detail = await screen.findByRole('article', { name: 'Selected submission detail' });
+    expect(detail.textContent).toContain('Alice Vance');
+
+    // Manually click Bob while routeSelectedId is Alice
+    fireEvent.click(screen.getByRole('button', { name: /Bob Mercer/i }));
+    expect(detail.textContent).toContain('Bob Mercer');
+
+    // Navigate routeSelectedId to Cara, then back to Alice -> MUST show Alice (not stale Bob)
+    fireEvent.click(screen.getByRole('button', { name: 'Deep-Link Cara' }));
+    expect(detail.textContent).toContain('Cara Singh');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Deep-Link Alice' }));
+    expect(detail.textContent).toContain('Alice Vance');
+  });
 });

@@ -48,7 +48,7 @@ type LexicalDossierHit struct {
 }
 
 func truncateRunes(raw string, maxChars int) string {
-	trimmed := strings.TrimSpace(raw)
+	trimmed := strings.TrimSpace(strings.ReplaceAll(raw, "\x00", ""))
 	if maxChars <= 0 || utf8.RuneCountInString(trimmed) <= maxChars {
 		return trimmed
 	}

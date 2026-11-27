@@ -43,25 +43,23 @@ export function AdminInboxPage({ data, actionData }: AdminInboxPageProps) {
   const { items, totalCount, page, pageSize, query } = data;
   const routeSelectedId = data.selectedId ?? null;
   const pinnedItem = data.selectedItem ?? null;
-  const [manualSelection, setManualSelection] = useState<{
-    readonly routeSelectedId: string | null;
-    readonly itemId: string;
-  } | null>(null);
+  const [prevRouteSelectedId, setPrevRouteSelectedId] = useState<string | null>(routeSelectedId);
+  const [manualSelectedId, setManualSelectedId] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [rawSelectedIds, setRawSelectedIds] = useState<ReadonlySet<string>>(() => new Set());
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
 
-  // Pure render-time selection honoring deep-linked ?selected=<id> without useEffect.
-  const activeManualId =
-    manualSelection && manualSelection.routeSelectedId === routeSelectedId
-      ? manualSelection.itemId
-      : null;
+  // Pure render-time reset honoring deep-linked ?selected=<id> changes without useEffect.
+  if (prevRouteSelectedId !== routeSelectedId) {
+    setPrevRouteSelectedId(routeSelectedId);
+    setManualSelectedId(null);
+  }
   const resolveById = (id: string | null): AdminInboxItem | null => {
     if (!id) return null;
     return items.find(item => item.id === id) ?? (pinnedItem?.id === id ? pinnedItem : null);
   };
   const selectedItem: AdminInboxItem | null =
-    resolveById(activeManualId) ?? resolveById(routeSelectedId) ?? pinnedItem ?? items[0] ?? null;
+    resolveById(manualSelectedId) ?? resolveById(routeSelectedId) ?? pinnedItem ?? items[0] ?? null;
 
   const itemIds = items.map(item => item.id);
   const activeSelectedIds = pruneSelectedIds(rawSelectedIds, itemIds);
@@ -220,7 +218,7 @@ export function AdminInboxPage({ data, actionData }: AdminInboxPageProps) {
                       data-selected={isSelected ? 'true' : 'false'}
                       className={styles.itemButton}
                       onClick={() => {
-                        setManualSelection({ routeSelectedId, itemId: item.id });
+                        setManualSelectedId(item.id);
                       }}
                     >
                       <div className={styles.itemHeader}>

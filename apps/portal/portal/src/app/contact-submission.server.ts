@@ -324,10 +324,15 @@ export async function processContactSubmission(
     logger,
   });
 
+  let fkFallbackUsed = false;
+
   try {
     const submission = await insertContactSubmission(db, parsed.data, {
       analyticsSessionId: analyticsLink.analyticsSessionId,
       guestSessionId: analyticsLink.guestSessionId,
+      onAnalyticsSessionFkFallback: () => {
+        fkFallbackUsed = true;
+      },
     });
     if (!submission?.id) {
       emitOutcomeAuditGap(correlationId, 'insertContactSubmission resolved without submission.id');
@@ -339,11 +344,21 @@ export async function processContactSubmission(
       );
     }
 
-    await recordContactSubmittedAnalyticsEvent(db, analyticsLink.analyticsSessionId);
+    const effectiveAnalyticsSessionId = fkFallbackUsed ? null : analyticsLink.analyticsSessionId;
+    const effectiveLinkMethod = fkFallbackUsed ? 'fail_open_null' : analyticsLink.linkMethod;
+
+    if (effectiveAnalyticsSessionId) {
+      await recordContactSubmittedAnalyticsEvent(
+        db,
+        effectiveAnalyticsSessionId,
+        undefined,
+        logger,
+      );
+    }
     emitContactAnalyticsCommitAudit(logger, {
       submissionId: submission.id,
-      linkMethod: analyticsLink.linkMethod,
-      linkedSessionPresent: analyticsLink.analyticsSessionId !== null,
+      linkMethod: effectiveLinkMethod,
+      linkedSessionPresent: effectiveAnalyticsSessionId !== null,
       guestSessionLinked: analyticsLink.guestSessionId !== null,
       correlationId,
     });

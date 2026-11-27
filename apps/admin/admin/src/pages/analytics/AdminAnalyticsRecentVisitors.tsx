@@ -1,5 +1,5 @@
 import type { AnalyticsRecentVisitor } from '@aklapper/core';
-import { Link } from 'react-router';
+import { href, Link } from 'react-router';
 
 import { formatAnalyticsLocation, formatDeviceLabel } from './analytics-filter-url';
 
@@ -68,7 +68,7 @@ export function AdminAnalyticsRecentVisitors({ visitors }: AdminAnalyticsRecentV
                     {visitor.isBot ? <span className={styles.botBadge}>Bot</span> : null}
                     {visitor.contactId && visitor.contactName ? (
                       <Link
-                        to={`/inbox?selected=${encodeURIComponent(visitor.contactId)}`}
+                        to={`${href('/inbox')}?selected=${encodeURIComponent(visitor.contactId)}`}
                         prefetch='intent'
                         className={styles.contactBadge}
                         data-testid={`visitor-contact-link-${visitor.contactId}`}

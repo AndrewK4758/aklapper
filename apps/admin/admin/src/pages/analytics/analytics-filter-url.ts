@@ -1,4 +1,5 @@
 import type { AdminAnalyticsFilter, AdminAnalyticsWindow } from '@aklapper/core';
+import { href } from 'react-router';
 
 export const DEFAULT_ADMIN_ANALYTICS_FILTER: AdminAnalyticsFilter = {
   window: '7d',
@@ -38,7 +39,7 @@ export function buildAdminAnalyticsHref(
   if (next.path) params.set('path', next.path);
   if (next.campaign) params.set('campaign', next.campaign);
 
-  return `/analytics?${params.toString()}`;
+  return `${href('/analytics')}?${params.toString()}`;
 }
 
 export function hasActiveDrilldownFilters(filter: AdminAnalyticsFilter): boolean {

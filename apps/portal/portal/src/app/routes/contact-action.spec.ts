@@ -30,14 +30,17 @@ const {
     ) => Promise<{ allowed: boolean; remaining: number; retryAfterSeconds: number }>
   >(async () => ({ allowed: true, remaining: 19, retryAfterSeconds: 60 })),
   loadPortalContactDataMock: vi.fn<() => Promise<PortalContactLoaderData>>(),
-  insertContactSubmissionMock:
-    vi.fn<
-      (
-        db: unknown,
-        submission: ContactFormSubmission,
-        link?: { analyticsSessionId?: string | null; guestSessionId?: string | null },
-      ) => Promise<ContactSubmissionSummary>
-    >(),
+  insertContactSubmissionMock: vi.fn<
+    (
+      db: unknown,
+      submission: ContactFormSubmission,
+      link?: {
+        analyticsSessionId?: string | null;
+        guestSessionId?: string | null;
+        onAnalyticsSessionFkFallback?: () => void;
+      },
+    ) => Promise<ContactSubmissionSummary>
+  >(),
   handleAnalyticsIngestRequestMock:
     vi.fn<(request: Request, options?: Record<string, unknown>) => Promise<Response>>(),
   resolveOrCreateContactAnalyticsSessionMock: vi.fn<
@@ -58,7 +61,12 @@ const {
     spoofRejected: false,
   })),
   recordContactSubmittedAnalyticsEventMock: vi.fn<
-    (db: unknown, sessionId: string | null | undefined) => Promise<void>
+    (
+      db: unknown,
+      sessionId: string | null | undefined,
+      now?: Date,
+      logger?: SsrStructuredLogger,
+    ) => Promise<void>
   >(async () => undefined),
 }));
 
@@ -280,7 +288,7 @@ describe('processContactSubmission & resource action routes', () => {
         email: 'grace@example.com',
         attachment: expect.objectContaining({ filename: 'spec.txt', sha256: expectedSha }),
       }),
-      { analyticsSessionId: 'sess_default_linked', guestSessionId: null },
+      expect.objectContaining({ analyticsSessionId: 'sess_default_linked', guestSessionId: null }),
     );
   });
 
@@ -583,13 +591,16 @@ describe('processContactSubmission & resource action routes', () => {
     }
   });
 
-  it('links verified analytics session, emits commit audit without PII, and stays HTTP 201 when analytics linking throws', async () => {
+  it('links verified analytics session, emits commit audit without PII, reports truthful FK fallback, and stays HTTP 201 when analytics linking throws', async () => {
     const infoCalls: Array<Record<string, unknown>> = [];
+    const warnCalls: Array<Record<string, unknown>> = [];
     const logger: SsrStructuredLogger = {
       info: vi.fn<(obj: Record<string, unknown>, msg?: string) => void>(obj => {
         infoCalls.push(obj);
       }),
-      warn: vi.fn<(obj: Record<string, unknown>, msg?: string) => void>(),
+      warn: vi.fn<(obj: Record<string, unknown>, msg?: string) => void>(obj => {
+        warnCalls.push(obj);
+      }),
       error: vi.fn<(obj: Record<string, unknown>, msg?: string) => void>(),
     };
     loadPortalContactDataMock.mockResolvedValue(CONTACT_LOADER_FIXTURE);
@@ -628,11 +639,16 @@ describe('processContactSubmission & resource action routes', () => {
     expect(insertContactSubmissionMock).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({ name: 'Ada Lovelace', email: 'ada@example.com' }),
-      { analyticsSessionId: 'sess_verified_99', guestSessionId: 'guest_chat_99' },
+      expect.objectContaining({
+        analyticsSessionId: 'sess_verified_99',
+        guestSessionId: 'guest_chat_99',
+      }),
     );
     expect(recordContactSubmittedAnalyticsEventMock).toHaveBeenCalledWith(
       expect.anything(),
       'sess_verified_99',
+      undefined,
+      logger,
     );
     const auditRecord = infoCalls.find(
       c => c['event'] === 'portal.contact.analytics_link_committed',
@@ -649,7 +665,47 @@ describe('processContactSubmission & resource action routes', () => {
     expect(JSON.stringify(auditRecord)).not.toContain('ada@example.com');
     expect(JSON.stringify(auditRecord)).not.toContain('203.0.113.55');
 
-    // Fail-open: analytics resolver throwing must NEVER block HTTP 201 commit
+    // PG 23503 FK fallback skips contact_submitted event and emits truthful linkedSessionPresent: false
+    recordContactSubmittedAnalyticsEventMock.mockClear();
+    resolveOrCreateContactAnalyticsSessionMock.mockResolvedValueOnce({
+      analyticsSessionId: 'sess_deleted_before_insert',
+      guestSessionId: null,
+      linkMethod: 'verified_client_session',
+      spoofRejected: false,
+    });
+    insertContactSubmissionMock.mockImplementationOnce(async (_db, _sub, link) => {
+      link?.onAnalyticsSessionFkFallback?.();
+      return {
+        id: '77777777-7777-4777-8777-777777777777',
+        name: 'Ada Lovelace',
+        email: 'ada@example.com',
+        phone: null,
+        attachmentName: null,
+        attachmentSizeBytes: null,
+        attachmentSha256: null,
+        createdAt: '2026-11-27T01:02:00.000Z',
+      };
+    });
+    const fkFallbackRes = await processContactSubmission(
+      makeRequest(async () => makeValidFormData()),
+      { correlationId: 'corr-fk-fallback', logger },
+    );
+    expect(fkFallbackRes.status).toBe(201);
+    expect(recordContactSubmittedAnalyticsEventMock).not.toHaveBeenCalled();
+    expect(
+      infoCalls.find(
+        c =>
+          c['event'] === 'portal.contact.analytics_link_committed' &&
+          c['correlationId'] === 'corr-fk-fallback',
+      ),
+    ).toMatchObject({
+      seam_type: 'DELTA_AUDIT_GAP',
+      submissionId: '77777777-7777-4777-8777-777777777777',
+      linkMethod: 'fail_open_null',
+      linkedSessionPresent: false,
+    });
+
+    // Fail-open: analytics resolver throwing emits BOUNDARY_FAULT and must NEVER block HTTP 201 commit
     resolveOrCreateContactAnalyticsSessionMock.mockRejectedValueOnce(
       new Error('analytics db timeout'),
     );
@@ -671,8 +727,16 @@ describe('processContactSubmission & resource action routes', () => {
     expect(insertContactSubmissionMock).toHaveBeenLastCalledWith(
       expect.anything(),
       expect.objectContaining({ email: 'ada@example.com' }),
-      { analyticsSessionId: null, guestSessionId: null },
+      expect.objectContaining({ analyticsSessionId: null, guestSessionId: null }),
     );
+    expect(
+      warnCalls.some(
+        c =>
+          c['seam_type'] === 'BOUNDARY_FAULT' &&
+          c['event'] === 'portal.contact.analytics_link_failed' &&
+          c['correlationId'] === 'corr-link-fail-open',
+      ),
+    ).toBe(true);
   });
 
   it('attaches active in-memory analyticsSessionId in submitPortalContactForm without mutating caller FormData unexpectedly', async () => {

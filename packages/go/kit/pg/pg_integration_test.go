@@ -421,6 +421,26 @@ func TestPostgresLiveQuotaTurnsAndLoadCorpusDocs(t *testing.T) {
 		t.Fatalf("expected 0 lexical hits on off-topic owner-name query, got %+v err=%v", offTopicHits, err)
 	}
 
+	// Verify NUL bytes in raw PromptText are stripped cleanly so PG19 never rejects with SQLSTATE 22021
+	nulID := newUUIDv4()
+	nulSession := "sess-nul-" + newUUIDv4()
+	nulRes, nulAllowed, err := store.ReserveTurnTx(ctx, ReserveTurnInput{
+		AttemptID:     nulID,
+		SessionID:     nulSession,
+		Role:          contracts.RoleGuest,
+		Mode:          "jd_match",
+		PromptHash:    "hash-nul-" + nulID,
+		PromptText:    "Principal\x00 Platform\x00 Engineer",
+		CorrelationID: "corr-nul-pg",
+		ReserveTokens: 64,
+	})
+	if err != nil || !nulAllowed {
+		t.Fatalf("expected ReserveTurnTx to strip NUL bytes cleanly, allowed=%v err=%v", nulAllowed, err)
+	}
+	if nulRes.Turn.PromptText != "Principal Platform Engineer" {
+		t.Fatalf("unexpected NUL-stripped prompt text: %q", nulRes.Turn.PromptText)
+	}
+
 	// Verify session-pinned advisory lock contention & clean unlock release
 	rel1, acq1, lockErr1 := store.TryAcquireReindexLock(ctx)
 	if lockErr1 != nil || !acq1 {

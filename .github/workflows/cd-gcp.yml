@@ -311,7 +311,7 @@ jobs:
         run: |
           node --input-type=module -e '
             import { execFileSync } from "node:child_process";
-            import { appendFileSync, copyFileSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+            import { appendFileSync, copyFileSync, lstatSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
             import { tmpdir } from "node:os";
             import { join } from "node:path";
 
@@ -330,10 +330,12 @@ jobs:
             function findFile(dir, filename) {
               for (const entry of readdirSync(dir)) {
                 const full = join(dir, entry);
-                if (statSync(full).isDirectory()) {
+                const st = lstatSync(full);
+                if (st.isSymbolicLink()) continue;
+                if (st.isDirectory()) {
                   const found = findFile(full, filename);
                   if (found) return found;
-                } else if (entry === filename) {
+                } else if (st.isFile() && entry === filename) {
                   return full;
                 }
               }

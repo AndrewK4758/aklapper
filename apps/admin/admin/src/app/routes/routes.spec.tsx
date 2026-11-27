@@ -8,7 +8,7 @@ import {
   type QdrantHealthStatus,
   type StreamResult,
 } from '@aklapper/core';
-import { ADMIN_OPS_TERMINAL_PROFILE } from '@aklapper/db';
+import { ADMIN_OPS_TERMINAL_PROFILE, closeSharedDb } from '@aklapper/db';
 import { INTERNAL_AUTH_HEADER, verifyInternalAuthToken } from '@aklapper/node-runtime/http';
 import { requestContextKey } from '@aklapper/node-runtime/ssr/stream';
 import { fireEvent, render, screen } from '@testing-library/react';
@@ -18,6 +18,21 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 const authMocks = vi.hoisted(() => ({
   resolveAdminSessionFromRequest: vi.fn<(request: Request) => Promise<unknown>>(),
 }));
+
+const dbSpies = vi.hoisted(() => ({
+  listContactSubmissions: vi.fn<(...args: unknown[]) => Promise<unknown>>(),
+}));
+
+vi.mock('@aklapper/db', async importOriginal => {
+  const actual = await importOriginal<typeof import('@aklapper/db')>();
+  return {
+    ...actual,
+    listContactSubmissions: (...args: unknown[]) => {
+      dbSpies.listContactSubmissions(...args);
+      return (actual.listContactSubmissions as (...a: unknown[]) => Promise<unknown>)(...args);
+    },
+  };
+});
 
 vi.mock('@aklapper/db/auth', () => authMocks);
 
@@ -74,7 +89,8 @@ function makeArgs(
 describe('Admin streaming routes, auth guards & SEO', () => {
   const originalDatabaseUrl = process.env['DATABASE_URL'];
 
-  afterEach(() => {
+  afterEach(async () => {
+    await closeSharedDb();
     if (originalDatabaseUrl === undefined) {
       delete process.env['DATABASE_URL'];
     } else {
@@ -294,6 +310,7 @@ describe('Admin streaming routes, auth guards & SEO', () => {
     expect((attThrown as Response).status).toBe(503);
     expect((attThrown as Response).headers.get('X-Correlation-Id')).toBe('corr-child-503');
 
+    await closeSharedDb();
     delete process.env['DATABASE_URL'];
     authMocks.resolveAdminSessionFromRequest.mockResolvedValueOnce(AUTH_STATUS);
     const deferredResult = await cmsLoader(
@@ -736,7 +753,10 @@ describe('Admin streaming routes, auth guards & SEO', () => {
 
   it('parses all 7 analytics URL filters, emits UNSOUND_CONDITION on clamped params, and forwards selectedId on /inbox', async () => {
     const origPrerender = process.env['IS_RR_BUILD_REQUEST'];
+    const origDbUrl = process.env['DATABASE_URL'];
     try {
+      await closeSharedDb();
+      delete process.env['DATABASE_URL'];
       process.env['IS_RR_BUILD_REQUEST'] = 'yes';
       authMocks.resolveAdminSessionFromRequest.mockResolvedValue(AUTH_STATUS);
 
@@ -799,9 +819,39 @@ describe('Admin streaming routes, auth guards & SEO', () => {
         campaign: 'fall26',
       });
       await Promise.all([validStream.summaryPayload, validStream.breakdownsPayload]);
+
+      // Verify /inbox loader forwards ?selected=<uuid> into listContactSubmissions
+      const targetUuid = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+      const origUrlForInbox = origDbUrl;
+      if (origUrlForInbox) {
+        process.env['DATABASE_URL'] = origUrlForInbox;
+      } else {
+        process.env['DATABASE_URL'] = 'postgres://postgres:postgres@127.0.0.1:1/unused';
+      }
+      const inboxStream = await inboxLoader(
+        makeArgs(
+          `http://localhost:4301/inbox?q=ada&page=2&selected=${targetUuid}`,
+          '/inbox',
+          {},
+          context,
+        ) as never,
+      );
+      await inboxStream.payload;
+      expect(dbSpies.listContactSubmissions).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          query: 'ada',
+          page: 2,
+          pageSize: 20,
+          selectedId: targetUuid,
+        }),
+      );
     } finally {
+      await closeSharedDb();
       if (origPrerender === undefined) delete process.env['IS_RR_BUILD_REQUEST'];
       else process.env['IS_RR_BUILD_REQUEST'] = origPrerender;
+      if (origDbUrl === undefined) delete process.env['DATABASE_URL'];
+      else process.env['DATABASE_URL'] = origDbUrl;
     }
   });
 });

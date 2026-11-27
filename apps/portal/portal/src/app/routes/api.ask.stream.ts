@@ -68,7 +68,7 @@ export async function action({ request, context }: Route.ActionArgs): Promise<Re
   const reqCtx = getRequestContext(context);
   const correlationId = getOrCreateCorrelationId(request, context);
   const logger = reqCtx?.logger ?? createFallbackLogger('portal-ask-stream');
-  triggerPortalGuestSessionBinding(request, sessionId, logger);
+  triggerPortalGuestSessionBinding(request, sessionId, logger, '/chat');
 
   let rawBody: unknown;
   try {
