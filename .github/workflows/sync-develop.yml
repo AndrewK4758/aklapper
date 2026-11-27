@@ -1,0 +1,62 @@
+name: Sync main into develop
+
+# Keep `develop` up to date with `main` after release merges so the next
+# `develop` -> `main` PR opens already up to date with `strict: true` branch
+# protection (avoiding duplicate cancelled CI runs).
+# Note: GitHub natively skips `push` workflows on `[skip ci]` commits; use
+# `workflow_dispatch` on `main` if you ever merge to `main` with `[skip ci]`.
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: sync-develop
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  sync-develop:
+    name: Fast-forward develop from main
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Sync origin/main into origin/develop
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git fetch origin main develop
+
+          if git merge-base --is-ancestor origin/main origin/develop; then
+            echo "develop is already up to date with main."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git checkout -B develop origin/develop
+
+          if git merge --ff-only origin/main; then
+            echo "Fast-forwarded develop to $(git rev-parse --short HEAD)."
+          else
+            echo "develop has newer commits; merging origin/main into develop."
+            if ! git merge --no-edit -m "chore(git): sync main into develop" origin/main; then
+              git merge --abort || true
+              echo "::error::Failed to merge origin/main into develop due to conflicts; resolve manually."
+              exit 1
+            fi
+          fi
+
+          git push origin HEAD:refs/heads/develop
