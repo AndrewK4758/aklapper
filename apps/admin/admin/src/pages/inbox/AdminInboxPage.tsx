@@ -14,6 +14,8 @@ import {
 import { useState } from 'react';
 import { Form, Link } from 'react-router';
 
+import { InboxVisitorContextStrip } from './InboxVisitorContextStrip';
+
 import styles from './AdminInboxPage.module.css';
 
 export interface AdminInboxActionData extends ActionErrorMetadata {
@@ -39,13 +41,27 @@ function isValidSha256Hex(value: string | null): boolean {
 
 export function AdminInboxPage({ data, actionData }: AdminInboxPageProps) {
   const { items, totalCount, page, pageSize, query } = data;
-  const [selectedId, setSelectedId] = useState<string | null>(items[0]?.id ?? null);
+  const routeSelectedId = data.selectedId ?? null;
+  const pinnedItem = data.selectedItem ?? null;
+  const [manualSelection, setManualSelection] = useState<{
+    readonly routeSelectedId: string | null;
+    readonly itemId: string;
+  } | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [rawSelectedIds, setRawSelectedIds] = useState<ReadonlySet<string>>(() => new Set());
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
 
+  // Pure render-time selection honoring deep-linked ?selected=<id> without useEffect.
+  const activeManualId =
+    manualSelection && manualSelection.routeSelectedId === routeSelectedId
+      ? manualSelection.itemId
+      : null;
+  const resolveById = (id: string | null): AdminInboxItem | null => {
+    if (!id) return null;
+    return items.find(item => item.id === id) ?? (pinnedItem?.id === id ? pinnedItem : null);
+  };
   const selectedItem: AdminInboxItem | null =
-    items.find(item => item.id === selectedId) ?? items[0] ?? null;
+    resolveById(activeManualId) ?? resolveById(routeSelectedId) ?? pinnedItem ?? items[0] ?? null;
 
   const itemIds = items.map(item => item.id);
   const activeSelectedIds = pruneSelectedIds(rawSelectedIds, itemIds);
@@ -123,7 +139,7 @@ export function AdminInboxPage({ data, actionData }: AdminInboxPageProps) {
 
         <Separator.Root />
 
-        {items.length === 0 ? (
+        {items.length === 0 && !selectedItem ? (
           <p className={styles.metaCount}>No contact submissions match this filter.</p>
         ) : (
           <div className={styles.splitLayout}>
@@ -204,7 +220,7 @@ export function AdminInboxPage({ data, actionData }: AdminInboxPageProps) {
                       data-selected={isSelected ? 'true' : 'false'}
                       className={styles.itemButton}
                       onClick={() => {
-                        setSelectedId(item.id);
+                        setManualSelection({ routeSelectedId, itemId: item.id });
                       }}
                     >
                       <div className={styles.itemHeader}>
@@ -299,6 +315,8 @@ export function AdminInboxPage({ data, actionData }: AdminInboxPageProps) {
                     <span>{selectedItem.id}</span>
                   </div>
                 </div>
+
+                <InboxVisitorContextStrip context={selectedItem.visitorContext} />
 
                 <pre className={styles.messageBody}>{selectedItem.message}</pre>
 

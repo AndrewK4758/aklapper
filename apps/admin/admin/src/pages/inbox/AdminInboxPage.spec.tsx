@@ -232,4 +232,78 @@ describe('AdminInboxPage multi-select and bulk delete', () => {
       id: ITEMS_FIXTURE[1].id,
     });
   });
+
+  it('honors ?selected deep-link (including beyond page 1 via selectedItem) and renders compact Visitor Context strip cleanly for linked and unlinked items', async () => {
+    const pinnedItem: AdminInboxItem = {
+      id: '99999999-9999-4999-8999-999999999999',
+      name: 'Grace Hopper',
+      email: 'grace@example.com',
+      phone: null,
+      message: 'Deep-linked contact beyond page 1',
+      createdAt: '2026-11-27T01:00:00.000Z',
+      attachmentName: null,
+      attachmentMimeType: null,
+      attachmentSizeBytes: null,
+      attachmentSha256: null,
+      visitorContext: {
+        analyticsSessionId: 'sess_grace_1',
+        guestSessionId: 'guest_grace_1',
+        country: 'US',
+        region: 'GA',
+        city: 'Atlanta',
+        asnOrg: 'Acme Corp',
+        referrerHost: 'linkedin.com',
+        referrerCategory: 'social',
+        landingPath: '/about',
+        refParam: 'recruiter',
+        utmSource: 'linkedin',
+        utmCampaign: 'fall26',
+        deviceType: 'desktop',
+        osName: 'macOS',
+        browserName: 'Chrome',
+        viewedPaths: ['/about', '/chat', '/contact'],
+        paneOpenCount: 2,
+        askTurnCount: 2,
+        latestAskPromptExcerpt: 'Tell me about your Go and GCP experience',
+        startedAt: '2026-11-27T00:50:00.000Z',
+        lastSeenAt: '2026-11-27T01:00:00.000Z',
+      },
+    };
+
+    const deepLinkedData: AdminInboxLoaderData = {
+      ...makeInboxData(ITEMS_FIXTURE),
+      selectedId: pinnedItem.id,
+      selectedItem: pinnedItem,
+    };
+
+    const Stub = createRoutesStub([
+      {
+        path: '/inbox',
+        Component: () => <AdminInboxPage data={deepLinkedData} actionData={null} />,
+      },
+    ]);
+
+    render(<Stub initialEntries={[`/inbox?selected=${pinnedItem.id}`]} />);
+    const detail = await screen.findByRole('article', { name: 'Selected submission detail' });
+    expect(detail.textContent).toContain('Grace Hopper');
+    expect(detail.textContent).toContain('Deep-linked contact beyond page 1');
+
+    const contextStrip = screen.getByTestId('inbox-visitor-context');
+    expect(contextStrip.textContent).toContain('Atlanta, GA, US');
+    expect(contextStrip.textContent).toContain('Acme Corp');
+    expect(contextStrip.textContent).toContain('linkedin.com');
+    expect(contextStrip.textContent).toContain('fall26');
+    expect(contextStrip.textContent).toContain('Desktop');
+    expect(contextStrip.textContent).toContain('macOS');
+    expect(contextStrip.textContent).toContain('Chrome');
+    expect(contextStrip.textContent).toContain('/about');
+    expect(contextStrip.textContent).toContain('Tell me about your Go and GCP experience');
+
+    // Clicking an unlinked legacy submission switches detail and shows graceful empty visitor context
+    fireEvent.click(screen.getByRole('button', { name: /Alice Vance/i }));
+    expect(detail.textContent).toContain('Alice Vance');
+    expect(screen.getByTestId('inbox-visitor-context').textContent).toContain(
+      'No linked visitor session',
+    );
+  });
 });

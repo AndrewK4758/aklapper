@@ -39,11 +39,18 @@ export async function loader({
   const query = url.searchParams.get('q') ?? '';
   const rawPage = Number.parseInt(url.searchParams.get('page') ?? '1', 10);
   const page = Number.isFinite(rawPage) && rawPage > 0 ? rawPage : 1;
+  const selectedId = url.searchParams.get('selected')?.trim() || undefined;
 
   return {
     correlationId,
     payload: deferStreamResult(
-      (async () => listContactSubmissions(getSharedDb(), { query, page, pageSize: 20 }))(),
+      (async () =>
+        listContactSubmissions(getSharedDb(), {
+          query,
+          page,
+          pageSize: 20,
+          ...(selectedId ? { selectedId } : {}),
+        }))(),
       { request, context, source: 'admin.inbox.loader' },
     ),
   };

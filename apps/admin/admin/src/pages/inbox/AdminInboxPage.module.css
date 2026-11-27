@@ -157,6 +157,50 @@
     gap: var(--sf-space-4);
   }
 
+  .visitorContextStrip {
+    display: grid;
+    gap: var(--sf-space-3);
+    padding: var(--sf-space-4);
+    background: var(--sf-bg-editor);
+    border: var(--sf-border-width) solid var(--sf-border-subtle);
+    border-radius: var(--sf-radius-sm);
+    font-size: var(--sf-text-xs);
+  }
+
+  .visitorContextGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(10rem, 100%), 1fr));
+    gap: var(--sf-space-3);
+  }
+
+  .visitorContextRow {
+    display: grid;
+    gap: var(--sf-space-1);
+  }
+
+  .visitorPathList {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sf-space-2);
+  }
+
+  .visitorPathPill {
+    padding: 0.1rem var(--sf-space-2);
+    border-radius: var(--sf-radius-sm);
+    border: var(--sf-border-width) solid var(--sf-border);
+    background: var(--sf-bg-panel);
+    font-family: var(--sf-font-code);
+    font-size: var(--sf-text-2xs);
+    color: var(--sf-gold);
+  }
+
+  .visitorContextExcerpt,
+  .visitorContextEmpty {
+    margin: var(--sf-space-0);
+    color: var(--sf-fg-prop);
+    line-height: var(--sf-leading-relaxed);
+  }
+
   @media (max-width: 56rem) {
     .splitLayout {
       grid-template-columns: 1fr;

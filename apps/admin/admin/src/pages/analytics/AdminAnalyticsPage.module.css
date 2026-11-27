@@ -149,4 +149,216 @@
     font-size: var(--sf-text-xs);
     color: var(--sf-fg-cmt);
   }
+
+  .headerStack {
+    display: grid;
+    gap: var(--sf-space-4);
+  }
+
+  .description {
+    margin: var(--sf-space-0);
+    font-size: var(--sf-text-sm);
+    color: var(--sf-fg-prop);
+  }
+
+  .filterSection {
+    display: grid;
+    gap: var(--sf-space-3);
+  }
+
+  .filterControlsRow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: var(--sf-align-center);
+    gap: var(--sf-space-4);
+  }
+
+  .chipRow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: var(--sf-align-center);
+    gap: var(--sf-space-2);
+  }
+
+  .filterChip {
+    display: inline-flex;
+    align-items: var(--sf-align-center);
+    gap: var(--sf-space-2);
+    padding: var(--sf-space-1) var(--sf-space-3);
+    border-radius: var(--sf-radius-sm);
+    border: var(--sf-border-width) solid var(--sf-accent-border);
+    background: var(--sf-accent-subtle);
+    color: var(--sf-gold);
+    font-size: var(--sf-text-xs);
+    text-decoration: none;
+  }
+
+  .clearFiltersLink {
+    font-size: var(--sf-text-xs);
+    color: var(--sf-fg-cmt);
+    text-decoration: underline;
+    padding: var(--sf-space-1) var(--sf-space-2);
+  }
+
+  .filterCellLink {
+    color: var(--sf-fg-bone);
+    text-decoration: none;
+  }
+
+  .filterCellLink:hover,
+  .filterCellLink[data-active='true'] {
+    color: var(--sf-gold);
+    text-decoration: underline;
+  }
+
+  .trendList {
+    display: grid;
+    gap: var(--sf-space-2);
+  }
+
+  .trendRow {
+    display: grid;
+    grid-template-columns: 6.5rem minmax(4rem, 1fr) auto;
+    align-items: var(--sf-align-center);
+    gap: var(--sf-space-3);
+    font-size: var(--sf-text-xs);
+  }
+
+  .trendDate {
+    font-family: var(--sf-font-code);
+    color: var(--sf-fg-prop);
+  }
+
+  .trendBarTrack {
+    height: 0.5rem;
+    background: var(--sf-bg-editor);
+    border-radius: var(--sf-radius-sm);
+    overflow: hidden;
+  }
+
+  .trendBarFill {
+    height: 100%;
+    background: var(--sf-gold);
+    border-radius: var(--sf-radius-sm);
+  }
+
+  .trendStats {
+    font-variant-numeric: tabular-nums;
+    color: var(--sf-fg-cmt);
+  }
+
+  .visitorList,
+  .askList {
+    display: grid;
+    gap: var(--sf-space-3);
+  }
+
+  .visitorCard,
+  .askCard {
+    display: grid;
+    gap: var(--sf-space-2);
+    padding: var(--sf-space-4);
+    background: var(--sf-bg-editor);
+    border: var(--sf-border-width) solid var(--sf-border-subtle);
+    border-radius: var(--sf-radius-sm);
+  }
+
+  .visitorHeader {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: var(--sf-align-center);
+    justify-content: var(--sf-justify-between);
+    gap: var(--sf-space-3);
+    font-size: var(--sf-text-xs);
+  }
+
+  .visitorIdentity {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: var(--sf-align-center);
+    gap: var(--sf-space-2);
+  }
+
+  .visitorOrg {
+    color: var(--sf-fg-prop);
+    font-size: var(--sf-text-xs);
+  }
+
+  .botBadge,
+  .modeBadge,
+  .statusBadge {
+    padding: 0.1rem var(--sf-space-2);
+    border-radius: var(--sf-radius-sm);
+    border: var(--sf-border-width) solid var(--sf-border);
+    background: var(--sf-bg-panel);
+    color: var(--sf-fg-prop);
+    font-size: var(--sf-text-2xs);
+    text-transform: uppercase;
+  }
+
+  .contactBadge {
+    padding: 0.1rem var(--sf-space-3);
+    border-radius: var(--sf-radius-sm);
+    border: var(--sf-border-width) solid var(--sf-accent-border);
+    background: var(--sf-accent-subtle);
+    color: var(--sf-gold);
+    font-size: var(--sf-text-xs);
+    font-weight: var(--sf-weight-semibold);
+    text-decoration: none;
+  }
+
+  .visitorMetaRow {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sf-space-4);
+    font-size: var(--sf-text-xs);
+    color: var(--sf-fg-cmt);
+  }
+
+  .trailDetails {
+    font-size: var(--sf-text-xs);
+  }
+
+  .trailSummary {
+    cursor: pointer;
+    color: var(--sf-gold);
+  }
+
+  .trailList {
+    margin: var(--sf-space-2) var(--sf-space-0) var(--sf-space-0);
+    padding-left: var(--sf-space-5);
+    display: grid;
+    gap: var(--sf-space-1);
+  }
+
+  .trailItem {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sf-space-2);
+    font-family: var(--sf-font-code);
+    font-size: var(--sf-text-2xs);
+  }
+
+  .trailTime {
+    color: var(--sf-fg-cmt);
+  }
+
+  .trailName {
+    color: var(--sf-gold);
+  }
+
+  .trailPath {
+    color: var(--sf-fg-bone);
+  }
+
+  .trailDetail {
+    color: var(--sf-fg-prop);
+  }
+
+  .askExcerpt {
+    margin: var(--sf-space-0);
+    font-size: var(--sf-text-xs);
+    color: var(--sf-fg-bone);
+    line-height: var(--sf-leading-relaxed);
+  }
 }

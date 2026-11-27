@@ -733,4 +733,70 @@ describe('Admin streaming routes, auth guards & SEO', () => {
     expect(await screen.findByText(/node-api-analytics/i)).toBeTruthy();
     analyticsView.unmount();
   });
+
+  it('parses all 7 analytics URL filters, emits UNSOUND_CONDITION on clamped params, and forwards selectedId on /inbox', async () => {
+    const origPrerender = process.env['IS_RR_BUILD_REQUEST'];
+    try {
+      process.env['IS_RR_BUILD_REQUEST'] = 'yes';
+      authMocks.resolveAdminSessionFromRequest.mockResolvedValue(AUTH_STATUS);
+
+      const logger = { info: vi.fn<LogFn>(), warn: vi.fn<LogFn>(), error: vi.fn<LogFn>() };
+      const context = new RouterContextProvider();
+      context.set(requestContextKey, {
+        correlationId: 'corr-filter-clamp',
+        logger,
+        serviceName: 'admin-ssr',
+        signal: new AbortController().signal,
+      });
+
+      const clampedStream = await analyticsLoader(
+        makeArgs(
+          'http://localhost:4301/analytics?window=999y&bots=invalid&identified=nope&country=US&source=linkedin.com',
+          '/analytics',
+          {},
+          context,
+        ) as never,
+      );
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          seam_type: 'UNSOUND_CONDITION',
+          event: 'admin.analytics.invalid_filter_clamped',
+          correlationId: 'corr-filter-clamp',
+          clampedFields: expect.arrayContaining(['window', 'bots', 'identified']),
+        }),
+        expect.any(String),
+      );
+      expect(clampedStream.filter).toEqual({
+        window: '7d',
+        bots: 'exclude',
+        identified: 'all',
+        country: 'US',
+        source: 'linkedin.com',
+      });
+      const resolvedSummary = await clampedStream.summaryPayload;
+      expect(resolvedSummary).toMatchObject({
+        ok: true,
+        data: { filters: clampedStream.filter },
+      });
+
+      const validStream = await analyticsLoader(
+        makeArgs(
+          'http://localhost:4301/analytics?window=30d&bots=include&identified=true&path=/about&campaign=fall26',
+          '/analytics',
+          {},
+          context,
+        ) as never,
+      );
+      expect(validStream.filter).toEqual({
+        window: '30d',
+        bots: 'include',
+        identified: 'true',
+        path: '/about',
+        campaign: 'fall26',
+      });
+    } finally {
+      if (origPrerender === undefined) delete process.env['IS_RR_BUILD_REQUEST'];
+      else process.env['IS_RR_BUILD_REQUEST'] = origPrerender;
+    }
+  });
 });

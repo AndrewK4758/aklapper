@@ -15,7 +15,10 @@ export async function action({ request, context }: Route.ActionArgs): Promise<Re
   const logger = reqCtx?.logger ?? createFallbackLogger('admin-analytics-ingest');
 
   try {
-    const response = await handleAnalyticsIngestRequest(request);
+    const response = await handleAnalyticsIngestRequest(request, {
+      app: 'admin',
+      logger,
+    });
     const headers = new Headers(response.headers);
     headers.set('X-Correlation-Id', correlationId);
     return new Response(response.body, {

@@ -24,7 +24,8 @@ const mocks = vi.hoisted(() => ({
   updateQuotaPolicy: vi.fn<AsyncUnknownFn>(),
   resetRateLimitBucket: vi.fn<AsyncUnknownFn>(),
   overrideSandboxGateVerdict: vi.fn<AsyncUnknownFn>(),
-  handleAnalyticsIngestRequest: vi.fn<(request: Request) => Promise<Response>>(),
+  handleAnalyticsIngestRequest:
+    vi.fn<(request: Request, options?: Record<string, unknown>) => Promise<Response>>(),
 }));
 
 vi.mock('@aklapper/db/auth', () => ({
@@ -850,7 +851,24 @@ describe('Admin mutation actions & classified HTTP status semantics', () => {
     expect(dbCall.logger.error).toHaveBeenCalledTimes(1);
   });
 
-  it('classifies unexpected DB faults in admin api.analytics.ingest with X-Correlation-Id', async () => {
+  it('classifies unexpected DB faults in admin api.analytics.ingest with X-Correlation-Id and passes server-authoritative admin app', async () => {
+    mocks.handleAnalyticsIngestRequest.mockResolvedValueOnce(
+      Response.json({ accepted: 1, sessionId: 'sess_admin_1', ipHash: 'hash_1' }, { status: 202 }),
+    );
+    const okCall = makeActionArgs(
+      'http://localhost:4301/api/analytics/ingest',
+      '/api/analytics/ingest',
+      {},
+      'corr-ingest-202',
+    );
+    const okResponse = await analyticsIngestAction(okCall.args as never);
+    expect(okResponse.status).toBe(202);
+    expect(okResponse.headers.get('X-Correlation-Id')).toBe('corr-ingest-202');
+    expect(mocks.handleAnalyticsIngestRequest).toHaveBeenCalledWith(
+      okCall.args.request,
+      expect.objectContaining({ app: 'admin', logger: okCall.logger }),
+    );
+
     mocks.handleAnalyticsIngestRequest.mockRejectedValueOnce(new Error('connection terminated'));
     const { args, logger } = makeActionArgs(
       'http://localhost:4301/api/analytics/ingest',
