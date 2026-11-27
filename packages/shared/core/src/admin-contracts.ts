@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { InboxVisitorContextSchema } from './analytics-admin-schemas.ts';
 import { RoleSchema } from './auth.ts';
 import {
   AdminHomeContentSchema,
@@ -67,6 +68,7 @@ export const AdminInboxItemSchema = z.object({
   attachmentMimeType: z.string().nullable(),
   attachmentSizeBytes: z.number().int().positive().nullable(),
   attachmentSha256: z.string().nullable(),
+  visitorContext: InboxVisitorContextSchema.nullable().optional(),
   createdAt: z.iso.datetime(),
 });
 export type AdminInboxItem = z.infer<typeof AdminInboxItemSchema>;
@@ -77,6 +79,8 @@ export const AdminInboxLoaderDataSchema = z.object({
   page: z.number().int().positive(),
   pageSize: z.number().int().positive(),
   query: z.string(),
+  selectedId: z.string().nullable().optional(),
+  selectedItem: AdminInboxItemSchema.nullable().optional(),
 });
 export type AdminInboxLoaderData = z.infer<typeof AdminInboxLoaderDataSchema>;
 

@@ -1,6 +1,16 @@
 import { z } from 'zod';
 
+import {
+  AdminAnalyticsFilterSchema,
+  AdminAnalyticsWindowSchema,
+  AnalyticsAskTurnItemSchema,
+  AnalyticsDailyTrendPointSchema,
+  AnalyticsFunnelStepSchema,
+  AnalyticsRecentVisitorSchema,
+} from './analytics-admin-schemas.ts';
 import { AdminAnalyticsContentSchema } from './portal.ts';
+
+export * from './analytics-admin-schemas.ts';
 
 export const AnalyticsEventSchema = z.object({
   type: z.enum(['page_view', 'interaction', 'web_vital', 'error']),
@@ -15,12 +25,15 @@ export type AnalyticsEvent = z.infer<typeof AnalyticsEventSchema>;
 export const AnalyticsBatchSchema = z.object({
   sessionId: z.string().min(1),
   referrer: z.string().max(1024).optional(),
+  landingPath: z.string().max(512).optional(),
+  refParam: z.string().max(512).optional(),
+  utmSource: z.string().max(512).optional(),
+  utmMedium: z.string().max(512).optional(),
+  utmCampaign: z.string().max(512).optional(),
+  utmContent: z.string().max(512).optional(),
   events: z.array(AnalyticsEventSchema).min(1).max(50),
 });
 export type AnalyticsBatch = z.infer<typeof AnalyticsBatchSchema>;
-
-export const AdminAnalyticsWindowSchema = z.enum(['24h', '7d', '30d', 'all']);
-export type AdminAnalyticsWindow = z.infer<typeof AdminAnalyticsWindowSchema>;
 
 export const CwvMetricNameSchema = z.enum(['LCP', 'INP', 'CLS', 'TTFB']);
 export type CwvMetricName = z.infer<typeof CwvMetricNameSchema>;
@@ -38,6 +51,8 @@ export const AnalyticsBreakdownRowSchema = z.object({
   label: z.string().min(1),
   count: z.number().int().nonnegative(),
   secondaryLabel: z.string().optional(),
+  uniqueVisitors: z.number().int().nonnegative().optional(),
+  filterValue: z.string().optional(),
 });
 export type AnalyticsBreakdownRow = z.infer<typeof AnalyticsBreakdownRowSchema>;
 
@@ -61,8 +76,17 @@ export type AdminAiMetrics = z.infer<typeof AdminAiMetricsSchema>;
 export const AdminAnalyticsSummaryDataSchema = z.object({
   content: AdminAnalyticsContentSchema,
   window: AdminAnalyticsWindowSchema,
+  filters: AdminAnalyticsFilterSchema.optional(),
   totalSessions: z.number().int().nonnegative(),
   totalEvents: z.number().int().nonnegative(),
+  uniqueVisitors: z.number().int().nonnegative().optional(),
+  returningVisitors: z.number().int().nonnegative().optional(),
+  totalPageViews: z.number().int().nonnegative().optional(),
+  profileViews: z.number().int().nonnegative().optional(),
+  highIntentActions: z.number().int().nonnegative().optional(),
+  identifiedLeads: z.number().int().nonnegative().optional(),
+  botSessionsExcluded: z.number().int().nonnegative().optional(),
+  dailyTrend: z.array(AnalyticsDailyTrendPointSchema).optional(),
   summary: z.object({
     totalSessions: z.number().int().nonnegative(),
     totalEvents: z.number().int().nonnegative(),
@@ -77,6 +101,14 @@ export const AdminAnalyticsBreakdownsDataSchema = z.object({
   topReferrers: z.array(AnalyticsBreakdownRowSchema),
   geoBreakdown: z.array(AnalyticsBreakdownRowSchema),
   agensiConversions: z.array(AgensiConversionRowSchema),
+  orgBreakdown: z.array(AnalyticsBreakdownRowSchema).optional(),
+  campaignBreakdown: z.array(AnalyticsBreakdownRowSchema).optional(),
+  deviceBreakdown: z.array(AnalyticsBreakdownRowSchema).optional(),
+  osBreakdown: z.array(AnalyticsBreakdownRowSchema).optional(),
+  browserBreakdown: z.array(AnalyticsBreakdownRowSchema).optional(),
+  conversionFunnel: z.array(AnalyticsFunnelStepSchema).optional(),
+  recentVisitors: z.array(AnalyticsRecentVisitorSchema).optional(),
+  askTurnsFeed: z.array(AnalyticsAskTurnItemSchema).optional(),
 });
 export type AdminAnalyticsBreakdownsData = z.infer<typeof AdminAnalyticsBreakdownsDataSchema>;
 

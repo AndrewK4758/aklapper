@@ -1,110 +1,51 @@
-import { onCLS, onINP, onLCP, onTTFB } from 'web-vitals';
+import {
+  createAnalyticsClient,
+  normalizeAnalyticsPathname,
+  type AnalyticsClient,
+  type AnalyticsTrackOptions,
+} from './analytics-client.ts';
 
-import type { AnalyticsBatch, AnalyticsEvent } from './analytics-schemas.ts';
-
-export interface AnalyticsClientOptions {
-  endpoint: string;
-  respectPrivacySignals?: boolean;
-  maxBatchSize?: number;
-  transport?: (endpoint: string, payload: AnalyticsBatch) => void;
-}
-
-export interface AnalyticsClient {
-  readonly enabled: boolean;
-  readonly sessionId: string;
-  track: (event: Omit<AnalyticsEvent, 'timestamp'>) => void;
-  startWebVitals: () => void;
-  flush: () => void;
-}
-
-interface NavigatorWithGpc extends Navigator {
-  globalPrivacyControl?: boolean;
-}
-
-export function isPrivacyOptOut(): boolean {
-  if (typeof navigator === 'undefined') return false;
-  const nav = navigator as NavigatorWithGpc;
-  return nav.doNotTrack === '1' || nav.globalPrivacyControl === true;
-}
-
-function defaultTransport(endpoint: string, payload: AnalyticsBatch): void {
-  const body = JSON.stringify(payload);
-  if (typeof navigator !== 'undefined' && typeof navigator.sendBeacon === 'function') {
-    const blob = new Blob([body], { type: 'application/json' });
-    if (navigator.sendBeacon(endpoint, blob)) return;
-  }
-  if (typeof fetch === 'function') {
-    void fetch(endpoint, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body,
-      keepalive: true,
-    }).catch(() => undefined);
-  }
-}
-
-export function createAnalyticsClient(options: AnalyticsClientOptions): AnalyticsClient {
-  const respectPrivacy = options.respectPrivacySignals ?? true;
-  const enabled = !(respectPrivacy && isPrivacyOptOut());
-  const sessionId =
-    typeof crypto !== 'undefined' && 'randomUUID' in crypto
-      ? crypto.randomUUID()
-      : `sess-${Date.now()}`;
-  const maxBatchSize = options.maxBatchSize ?? 10;
-  const send = options.transport ?? defaultTransport;
-  const queue: AnalyticsEvent[] = [];
-
-  const flush = (): void => {
-    if (!enabled || queue.length === 0) return;
-    const events = queue.splice(0, queue.length);
-    const referrer =
-      typeof document !== 'undefined' && document.referrer ? document.referrer : undefined;
-    send(options.endpoint, { sessionId, referrer, events });
-  };
-
-  const track = (event: Omit<AnalyticsEvent, 'timestamp'>): void => {
-    if (!enabled) return;
-    queue.push({ ...event, timestamp: new Date().toISOString() });
-    if (queue.length >= maxBatchSize) flush();
-  };
-
-  const startWebVitals = (): void => {
-    if (!enabled || typeof window === 'undefined') return;
-    const report = (name: string, value: number) => {
-      track({
-        type: 'web_vital',
-        name,
-        path: window.location.pathname,
-        value: Math.round(value * 100) / 100,
-      });
-    };
-    onLCP(metric => report('LCP', metric.value));
-    onINP(metric => report('INP', metric.value));
-    onCLS(metric => report('CLS', metric.value));
-    onTTFB(metric => report('TTFB', metric.value));
-  };
-
-  return { enabled, sessionId, track, startWebVitals, flush };
-}
+export {
+  createAnalyticsClient,
+  isPrivacyOptOut,
+  type AnalyticsClient,
+  type AnalyticsClientOptions,
+  type AnalyticsTrackOptions,
+  type AnalyticsTransportOptions,
+} from './analytics-client.ts';
+export * from './error-reporter.ts';
 
 let activeAnalyticsClient: AnalyticsClient | null = null;
 let activeAnalyticsAppName = 'portal';
 let lastTrackedPathname: string | null = null;
 let historyTrackingCleanup: (() => void) | null = null;
+const sessionIdListeners = new Set<() => void>();
 
-function normalizeRoutePathname(pathname: string): string {
-  const trimmed = pathname.trim();
-  if (!trimmed) return '/';
-  return trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
+function notifySessionIdListeners(): void {
+  for (const listener of sessionIdListeners) {
+    listener();
+  }
 }
 
 export function getActiveAnalyticsClient(): AnalyticsClient | null {
   return activeAnalyticsClient;
 }
 
+export function getActiveAnalyticsSessionId(): string {
+  if (!activeAnalyticsClient || !activeAnalyticsClient.enabled) return '';
+  return activeAnalyticsClient.sessionId;
+}
+
+export function subscribeAnalyticsSessionId(listener: () => void): () => void {
+  sessionIdListeners.add(listener);
+  return () => {
+    sessionIdListeners.delete(listener);
+  };
+}
+
 export function trackRouteNavigation(pathname: string, appName = activeAnalyticsAppName): void {
   if (!activeAnalyticsClient || !activeAnalyticsClient.enabled) return;
-  const normalized = normalizeRoutePathname(pathname);
+  const normalized = normalizeAnalyticsPathname(pathname);
   if (lastTrackedPathname === normalized) return;
   lastTrackedPathname = normalized;
   activeAnalyticsClient.track({
@@ -112,6 +53,51 @@ export function trackRouteNavigation(pathname: string, appName = activeAnalytics
     name: `${appName}_page_view`,
     path: normalized,
     metadata: { app: appName, navigation: 'spa' },
+  });
+}
+
+export function trackPortalInteraction(
+  name: string,
+  path: string,
+  metadata?: Record<string, string | number | boolean>,
+  options?: AnalyticsTrackOptions,
+): void {
+  if (!activeAnalyticsClient || !activeAnalyticsClient.enabled) return;
+  activeAnalyticsClient.track(
+    {
+      type: 'interaction',
+      name,
+      path: normalizeAnalyticsPathname(path),
+      ...(metadata ? { metadata } : {}),
+    },
+    options,
+  );
+}
+
+export function trackPaneOpen(path: string, surface?: 'desktop' | 'mobile'): void {
+  trackPortalInteraction(
+    'pane_open',
+    path,
+    surface ? { app: activeAnalyticsAppName, surface } : { app: activeAnalyticsAppName },
+  );
+}
+
+export function trackProfileOutboundClick(
+  target: 'email' | 'github' | 'website',
+  path = '/about',
+): void {
+  trackPortalInteraction(
+    'about_outbound_click',
+    path,
+    { app: activeAnalyticsAppName, target },
+    { immediate: true },
+  );
+}
+
+export function trackTerminalCommand(commandName: string, path = '/'): void {
+  trackPortalInteraction('terminal_command', path, {
+    app: activeAnalyticsAppName,
+    command: commandName,
   });
 }
 
@@ -143,9 +129,11 @@ export function resetAnalyticsBootstrap(): void {
     historyTrackingCleanup();
     historyTrackingCleanup = null;
   }
+  activeAnalyticsClient?.dispose?.();
   activeAnalyticsClient = null;
   activeAnalyticsAppName = 'portal';
   lastTrackedPathname = null;
+  notifySessionIdListeners();
 }
 
 export function bootstrapDocumentAnalytics(
@@ -166,14 +154,21 @@ export function bootstrapDocumentAnalytics(
     historyTrackingCleanup();
     historyTrackingCleanup = null;
   }
+  activeAnalyticsClient?.dispose?.();
 
-  const client = createAnalyticsClient({ endpoint });
+  const client = createAnalyticsClient({
+    endpoint,
+    onSessionIdChange: () => {
+      notifySessionIdListeners();
+    },
+  });
   activeAnalyticsClient = client;
   activeAnalyticsAppName = appName;
+  notifySessionIdListeners();
 
   if (!client.enabled) return client;
 
-  const initialPath = normalizeRoutePathname(window.location.pathname || '/');
+  const initialPath = normalizeAnalyticsPathname(window.location.pathname || '/');
   lastTrackedPathname = initialPath;
 
   client.startWebVitals();
@@ -181,16 +176,16 @@ export function bootstrapDocumentAnalytics(
     type: 'page_view',
     name: `${appName}_page_view`,
     path: initialPath,
-    metadata: { app: appName },
+    metadata: { app: appName, navigation: 'initial' },
   });
 
   const cleanupHistory = installSpaHistoryTracking();
   const handlePageHide = (): void => {
-    client.flush();
+    client.flush({ unload: true });
   };
   const handleVisibilityChange = (): void => {
     if (doc.visibilityState === 'hidden') {
-      client.flush();
+      client.flush({ unload: true });
     }
   };
 
@@ -205,5 +200,3 @@ export function bootstrapDocumentAnalytics(
 
   return client;
 }
-
-export * from './error-reporter.ts';
