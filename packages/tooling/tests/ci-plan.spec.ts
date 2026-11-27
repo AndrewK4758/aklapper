@@ -291,5 +291,20 @@ describe('@aklapper/tooling CI/CD affected planner', () => {
     const worstCasePgConns = 0 + 2 * 3 + 2 * 2 + 2 * 3 + 2 * 2 + 2;
     expect(worstCasePgConns).toBe(22);
     expect(worstCasePgConns).toBeLessThanOrEqual(27);
+
+    // Verify pre-merge CI docker-build-check loads portal-api and runs 512Mi GeoLite2 RSS check.
+    const ciWorkflow = readFileSync(
+      resolve(import.meta.dirname, '../../../.github/workflows/ci.yml'),
+      'utf8',
+    );
+    const rssScript = readFileSync(
+      resolve(import.meta.dirname, '../../../infra/docker/verify-portal-api-rss.sh'),
+      'utf8',
+    );
+    expect(ciWorkflow).toContain("load: ${{ matrix.service == 'portal-api' }}");
+    expect(ciWorkflow).toContain('infra/docker/verify-portal-api-rss.sh');
+    expect(rssScript).toContain('--memory=512m');
+    expect(rssScript).toContain('--memory-swap=512m');
+    expect(workflow).toContain('all 5 Cloud Run services');
   });
 });

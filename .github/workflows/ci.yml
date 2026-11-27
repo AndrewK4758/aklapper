@@ -465,8 +465,15 @@ jobs:
           context: .
           file: ${{ matrix.dockerfile }}
           push: false
+          load: ${{ matrix.service == 'portal-api' }}
+          tags: aklapper-ci/${{ matrix.service }}:check
           cache-from: type=gha,scope=${{ matrix.service }}
           cache-to: type=gha,mode=max,scope=${{ matrix.service }}
+
+      - name: Verify portal-api 512Mi GeoLite2 RSS ceiling
+        if: matrix.service == 'portal-api'
+        shell: bash
+        run: bash infra/docker/verify-portal-api-rss.sh aklapper-ci/portal-api:check
 
   ci-status:
     name: CI status gate

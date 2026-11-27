@@ -1210,7 +1210,7 @@ jobs:
             echo "{\"event\":\"cd.post_deploy_smoke.verified\",\"seam\":\"DELTA_AUDIT_GAP\",\"service\":\"admin-iap-edge\",\"httpStatus\":${unauth_status}}"
           fi
 
-          # 2. Verify WIF-authenticated /health on all 4 Cloud Run services (/healthz is reserved by Cloud Run GFE).
+          # 2. Verify WIF-authenticated /health on all 5 Cloud Run services (/healthz is reserved by Cloud Run GFE).
           probe_service() {
             local svc="$1"
             local url="$2"
