@@ -36,64 +36,65 @@
     --sf-mobile-active-opacity: 0.88;
   }
 
-  /* Explicit portrait scope (root or container-scoped preview) */
-  [data-viewport='mobile-portrait'] {
-    --sf-touch-target-min: var(--sf-mobile-touch-min);
-    --sf-inset-panel: var(--sf-space-5);
-    --sf-inset-section: var(--sf-space-6);
-    --sf-window-min-w: var(--sf-space-0);
-    --sf-window-min-h: var(--sf-space-0);
-    --sf-p10k-seg-h: calc(var(--sf-space-unit) * 5.25);
-    --sf-p10k-arrow-w: calc(var(--sf-space-unit) * 2);
-    --sf-p10k-tail-w: calc(var(--sf-space-unit) * 5);
-    --sf-control-h-sm: var(--sf-mobile-touch-min);
-    --sf-control-h-md: var(--sf-mobile-touch-min);
-  }
-
-  /* Explicit landscape scope (root or container-scoped preview) */
+  /* Shared mobile base tokens across portrait and landscape explicit scopes */
+  [data-viewport='mobile-portrait'],
   [data-viewport='mobile-landscape'] {
     --sf-touch-target-min: var(--sf-mobile-touch-min);
-    --sf-inset-panel: var(--sf-space-4);
-    --sf-inset-section: var(--sf-space-5);
-    --sf-window-min-w: var(--sf-space-0);
-    --sf-window-min-h: var(--sf-space-0);
-    --sf-p10k-seg-h: calc(var(--sf-space-unit) * 5);
-    --sf-p10k-arrow-w: calc(var(--sf-space-unit) * 2);
-    --sf-p10k-tail-w: calc(var(--sf-space-unit) * 4);
-    --sf-mobile-sheet-max-h: 92dvh;
     --sf-control-h-sm: var(--sf-mobile-touch-min);
     --sf-control-h-md: var(--sf-mobile-touch-min);
+    --sf-window-min-w: var(--sf-space-0);
+    --sf-window-min-h: var(--sf-space-0);
+    --sf-p10k-arrow-w: calc(var(--sf-space-unit) * 2);
+  }
+
+  /* Explicit portrait scope overrides */
+  [data-viewport='mobile-portrait'] {
+    --sf-inset-panel: var(--sf-space-5);
+    --sf-inset-section: var(--sf-space-6);
+    --sf-p10k-seg-h: calc(var(--sf-space-unit) * 5.25);
+    --sf-p10k-tail-w: calc(var(--sf-space-unit) * 5);
+  }
+
+  /* Explicit landscape scope overrides */
+  [data-viewport='mobile-landscape'] {
+    --sf-inset-panel: var(--sf-space-4);
+    --sf-inset-section: var(--sf-space-5);
+    --sf-p10k-seg-h: calc(var(--sf-space-unit) * 5);
+    --sf-p10k-tail-w: calc(var(--sf-space-unit) * 4);
+    --sf-mobile-sheet-max-h: 92dvh;
   }
 
   /* Zero-FOUC @media fallbacks (never clobber explicit [data-viewport='desktop']) */
-  @media (max-width: 48rem) {
+  @media (max-width: 48rem), (max-height: 32rem) and (orientation: landscape) {
     :where(:root:not([data-viewport='desktop'])) {
       --sf-touch-target-min: var(--sf-mobile-touch-min);
-      --sf-inset-panel: var(--sf-space-5);
-      --sf-inset-section: var(--sf-space-6);
-      --sf-window-min-w: var(--sf-space-0);
-      --sf-window-min-h: var(--sf-space-0);
-      --sf-p10k-seg-h: calc(var(--sf-space-unit) * 5.25);
-      --sf-p10k-arrow-w: calc(var(--sf-space-unit) * 2);
-      --sf-p10k-tail-w: calc(var(--sf-space-unit) * 5);
       --sf-control-h-sm: var(--sf-mobile-touch-min);
       --sf-control-h-md: var(--sf-mobile-touch-min);
+    }
+
+    :where(:root:not([data-viewport='desktop'])) {
+      --sf-window-min-w: var(--sf-space-0);
+      --sf-window-min-h: var(--sf-space-0);
+      --sf-p10k-arrow-w: calc(var(--sf-space-unit) * 2);
+    }
+  }
+
+  @media (max-width: 48rem) {
+    :where(:root:not([data-viewport='desktop'])) {
+      --sf-inset-panel: var(--sf-space-5);
+      --sf-inset-section: var(--sf-space-6);
+      --sf-p10k-seg-h: calc(var(--sf-space-unit) * 5.25);
+      --sf-p10k-tail-w: calc(var(--sf-space-unit) * 5);
     }
   }
 
   @media (max-height: 32rem) and (orientation: landscape) {
     :where(:root:not([data-viewport='desktop'])) {
-      --sf-touch-target-min: var(--sf-mobile-touch-min);
       --sf-inset-panel: var(--sf-space-4);
       --sf-inset-section: var(--sf-space-5);
-      --sf-window-min-w: var(--sf-space-0);
-      --sf-window-min-h: var(--sf-space-0);
       --sf-p10k-seg-h: calc(var(--sf-space-unit) * 5);
-      --sf-p10k-arrow-w: calc(var(--sf-space-unit) * 2);
       --sf-p10k-tail-w: calc(var(--sf-space-unit) * 4);
       --sf-mobile-sheet-max-h: 92dvh;
-      --sf-control-h-sm: var(--sf-mobile-touch-min);
-      --sf-control-h-md: var(--sf-mobile-touch-min);
     }
   }
 

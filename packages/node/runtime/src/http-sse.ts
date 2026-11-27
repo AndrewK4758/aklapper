@@ -13,6 +13,7 @@ import {
   type StreamTerminationBranch,
 } from './http-hygiene.ts';
 import {
+  encodeProxyRequestBody,
   INTERNAL_AUTH_HEADER,
   joinUpstreamUrl,
   resolveTargetOidcAudience,
@@ -216,14 +217,7 @@ async function proxySseInternal(
 
   let encodedBody: BodyInit | undefined;
   if (method === 'POST' && body !== undefined) {
-    if (typeof body === 'string' || body instanceof Uint8Array || body instanceof ArrayBuffer) {
-      encodedBody = body as BodyInit;
-    } else {
-      encodedBody = JSON.stringify(body);
-      if (!requestHeaders.has('content-type')) {
-        requestHeaders.set('content-type', 'application/json');
-      }
-    }
+    encodedBody = encodeProxyRequestBody(body, requestHeaders);
   }
 
   const headerController = new AbortController();

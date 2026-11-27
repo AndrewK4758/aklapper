@@ -27,6 +27,7 @@ import {
 } from './askTurnRecovery';
 import { useAskStreaming } from './useAskStreaming';
 
+import pageStyles from '../shared/portalPagePrimitives.module.css';
 import styles from './PortalAskPage.module.css';
 
 export type { PortalAskActionResult };
@@ -300,7 +301,7 @@ export function PortalAskPage({
 
   return (
     <div
-      className={styles.workspace}
+      className={pageStyles.workspace}
       data-testid='ask-workspace'
       data-hydrated={isHydrated ? 'true' : 'false'}
       data-conversation-id={conversationId}
@@ -318,7 +319,7 @@ export function PortalAskPage({
           />
         }
       >
-        <p className={styles.intro}>{content.description}</p>
+        <p className={pageStyles.intro}>{content.description}</p>
         <p className={styles.notice}>{content.abstentionNotice}</p>
 
         <AskQuotaMeter quota={activeQuota} />

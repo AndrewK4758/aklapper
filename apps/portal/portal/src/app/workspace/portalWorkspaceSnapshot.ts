@@ -1,3 +1,4 @@
+import { emitStructuredSeamConsoleEvent } from '@aklapper/core';
 import {
   createInitialTabbedWorkspaceState,
   exitPaneTui,
@@ -212,12 +213,7 @@ export function extractStorageErrorName(error: unknown): string {
 }
 
 export function defaultEmitPortalWorkspaceEvent(event: PortalWorkspaceEvent): void {
-  if (typeof console === 'undefined') return;
-  const serialized = JSON.stringify(event);
-  if (event.seamType === 'UNSOUND_CONDITION') console.error(serialized);
-  else if (event.seamType === 'BOUNDARY_FAULT' || event.seamType === 'DELTA_AUDIT_GAP') {
-    console.warn(serialized);
-  } else console.debug(serialized);
+  emitStructuredSeamConsoleEvent(event);
 }
 
 export function removePortalStorageKeys(storage: Storage, includeGlobal: boolean): boolean {

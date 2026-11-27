@@ -6,6 +6,7 @@ import {
   AnalyticsBatchSchema,
   type DeviceType,
   type ReferrerCategory,
+  sanitizeControlChars,
 } from '@aklapper/core';
 import {
   buildDailyAnalyticsSalt,
@@ -87,16 +88,7 @@ function stripNul(value: string): string {
 }
 
 function sanitizeHeaderGeo(raw: string | null): string | null {
-  if (!raw) return null;
-  let cleaned = '';
-  for (let i = 0; i < raw.length; i += 1) {
-    const code = raw.charCodeAt(i);
-    if (code > 0x1f && code !== 0x7f) {
-      cleaned += raw[i];
-    }
-  }
-  const trimmed = cleaned.trim();
-  return trimmed ? trimmed.slice(0, HEADER_GEO_MAX_LEN) : null;
+  return sanitizeControlChars(raw, HEADER_GEO_MAX_LEN);
 }
 
 function sanitizeEventMetadata(

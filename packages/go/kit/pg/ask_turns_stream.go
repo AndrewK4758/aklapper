@@ -96,16 +96,11 @@ func (s *Store) ExtendTurnLeaseTx(ctx context.Context, attemptID string, extensi
 		return s.extendTurnLeaseMemory(now, attemptID, extension)
 	}
 
-	tx, err := s.pool.Begin(ctx)
+	tx, row, err := s.beginAndLockAskTurn(ctx, attemptID)
 	if err != nil {
 		return time.Time{}, err
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
-
-	row, err := lockAskTurnRow(ctx, tx, attemptID)
-	if err != nil {
-		return time.Time{}, err
-	}
 	if (row.Status != contracts.TurnStatusPending && row.Status != contracts.TurnStatusRunning) || !row.LeaseExpiresAt.After(now) {
 		return time.Time{}, ErrTurnLeaseExpired
 	}

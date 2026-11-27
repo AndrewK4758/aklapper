@@ -86,24 +86,6 @@
     letter-spacing: var(--sf-tracking-wide);
   }
 
-  .textarea {
-    width: 100%;
-    padding: var(--sf-space-4);
-    border-radius: var(--sf-radius-sm);
-    border: var(--sf-border-width) solid var(--sf-border);
-    background: var(--sf-bg-obsidian);
-    color: var(--sf-fg-bone);
-    font-family: var(--sf-font-mono), monospace;
-    font-size: var(--sf-text-sm);
-    line-height: var(--sf-leading-base);
-    resize: vertical;
-  }
-
-  .textarea:focus {
-    outline: var(--sf-border-width) solid var(--sf-gold);
-    border-color: var(--sf-gold);
-  }
-
   .composerActions {
     display: flex;
     align-items: var(--sf-align-center);

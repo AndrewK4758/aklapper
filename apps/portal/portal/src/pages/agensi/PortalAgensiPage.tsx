@@ -11,6 +11,7 @@ import {
 } from '@aklapper/ui';
 import { useState } from 'react';
 
+import pageStyles from '../shared/portalPagePrimitives.module.css';
 import styles from './PortalAgensiPage.module.css';
 
 export interface PortalAgensiPageProps {
@@ -54,7 +55,7 @@ export function PortalAgensiPage({ content, skills, catalogMeta, onClose }: Port
   };
 
   return (
-    <div className={styles.workspace}>
+    <div className={pageStyles.workspace}>
       <TuiWindow
         title={content.windowTitle}
         onClose={onClose}
@@ -66,7 +67,7 @@ export function PortalAgensiPage({ content, skills, catalogMeta, onClose }: Port
           />
         }
       >
-        <p className={styles.intro}>{content.description}</p>
+        <p className={pageStyles.intro}>{content.description}</p>
         {catalogMeta ? (
           <p className={styles.catalogMeta} data-testid='agensi-catalog-meta'>
             creator: @{catalogMeta.creatorHandle} · source: {CATALOG_MODE_LABELS[catalogMeta.mode]}

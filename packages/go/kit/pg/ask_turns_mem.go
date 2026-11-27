@@ -36,6 +36,42 @@ func (s *Store) ensureMemStateLocked(role, sessionID, day string) (QuotaPolicy, 
 	return policy, sb, gb
 }
 
+func isMemQuotaExceeded(policy QuotaPolicy, sb, gb *memBucket, turnsDelta, tokensDelta int) bool {
+	return sb.turnsUsed+turnsDelta > policy.MaxTurnsPerSession ||
+		tokensDelta > policy.MaxTokensPerRun ||
+		gb.tokensUsed+tokensDelta > policy.MaxDailyGlobalTokens
+}
+
+func expireMemTurnLocked(rec *TurnRecord, sb, gb *memBucket, now time.Time) {
+	sb.turnsUsed = max(0, sb.turnsUsed-1)
+	sb.tokensUsed = max(0, sb.tokensUsed-rec.TokensReserved)
+	gb.turnsUsed = max(0, gb.turnsUsed-1)
+	gb.tokensUsed = max(0, gb.tokensUsed-rec.TokensReserved)
+	rec.Status = contracts.TurnStatusExpired
+	rec.ErrorCode = contracts.ErrCodeStreamTimeout
+	if !now.IsZero() {
+		rec.UpdatedAt = now
+	}
+}
+
+func (s *Store) withLockedActiveMemTurn(
+	attemptID string,
+	mutate func(rec *TurnRecord, sb, gb *memBucket),
+) (contracts.QuotaStatus, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	rec, ok := s.turns[attemptID]
+	if !ok {
+		return contracts.QuotaStatus{}, ErrTurnNotFound
+	}
+	policy, sb, gb := s.ensureMemStateLocked(rec.Role, rec.SessionID, rec.CreatedAt.UTC().Format("2006-01-02"))
+	if rec.Status == contracts.TurnStatusPending || rec.Status == contracts.TurnStatusRunning {
+		mutate(rec, sb, gb)
+	}
+	return formatQuotaStatus(rec.Role, policy, sb.turnsUsed, sb.tokensUsed), nil
+}
+
 func (s *Store) reserveTurnMemory(
 	now time.Time,
 	in ReserveTurnInput,
@@ -54,12 +90,7 @@ func (s *Store) reserveTurnMemory(
 		}
 		if (existing.Status == contracts.TurnStatusPending || existing.Status == contracts.TurnStatusRunning) &&
 			!existing.LeaseExpiresAt.After(now) {
-			sb.turnsUsed = max(0, sb.turnsUsed-1)
-			sb.tokensUsed = max(0, sb.tokensUsed-existing.TokensReserved)
-			gb.turnsUsed = max(0, gb.turnsUsed-1)
-			gb.tokensUsed = max(0, gb.tokensUsed-existing.TokensReserved)
-			existing.Status = contracts.TurnStatusExpired
-			existing.ErrorCode = contracts.ErrCodeStreamTimeout
+			expireMemTurnLocked(existing, sb, gb, time.Time{})
 		}
 		copied := *existing
 		return TurnReservation{Turn: copied, Quota: formatQuotaStatus(role, policy, sb.turnsUsed, sb.tokensUsed), Reused: true}, true, nil
@@ -126,13 +157,7 @@ func (s *Store) reconcileTurnMemory(now time.Time, attemptID string, res contrac
 	}
 	policy, sb, gb := s.ensureMemStateLocked(rec.Role, rec.SessionID, rec.CreatedAt.UTC().Format("2006-01-02"))
 	if !rec.LeaseExpiresAt.After(now) {
-		sb.turnsUsed = max(0, sb.turnsUsed-1)
-		sb.tokensUsed = max(0, sb.tokensUsed-rec.TokensReserved)
-		gb.turnsUsed = max(0, gb.turnsUsed-1)
-		gb.tokensUsed = max(0, gb.tokensUsed-rec.TokensReserved)
-		rec.Status = contracts.TurnStatusExpired
-		rec.ErrorCode = contracts.ErrCodeStreamTimeout
-		rec.UpdatedAt = now
+		expireMemTurnLocked(rec, sb, gb, now)
 		return contracts.QuotaStatus{}, ErrTurnLeaseExpired
 	}
 
@@ -155,26 +180,16 @@ func (s *Store) reconcileTurnMemory(now time.Time, attemptID string, res contrac
 }
 
 func (s *Store) refundTurnMemory(now time.Time, attemptID, errorCode string) (contracts.QuotaStatus, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	rec, ok := s.turns[attemptID]
-	if !ok {
-		return contracts.QuotaStatus{}, ErrTurnNotFound
-	}
-	policy, sb, gb := s.ensureMemStateLocked(rec.Role, rec.SessionID, rec.CreatedAt.UTC().Format("2006-01-02"))
-	if rec.Status != contracts.TurnStatusPending && rec.Status != contracts.TurnStatusRunning {
-		return formatQuotaStatus(rec.Role, policy, sb.turnsUsed, sb.tokensUsed), nil
-	}
-	sb.turnsUsed = max(0, sb.turnsUsed-1)
-	sb.tokensUsed = max(0, sb.tokensUsed-rec.TokensReserved)
-	gb.turnsUsed = max(0, gb.turnsUsed-1)
-	gb.tokensUsed = max(0, gb.tokensUsed-rec.TokensReserved)
-	rec.Status = contracts.TurnStatusFailed
-	rec.ErrorCode = errorCode
-	rec.TokensUsed = 0
-	rec.UpdatedAt = now
-	return formatQuotaStatus(rec.Role, policy, sb.turnsUsed, sb.tokensUsed), nil
+	return s.withLockedActiveMemTurn(attemptID, func(rec *TurnRecord, sb, gb *memBucket) {
+		sb.turnsUsed = max(0, sb.turnsUsed-1)
+		sb.tokensUsed = max(0, sb.tokensUsed-rec.TokensReserved)
+		gb.turnsUsed = max(0, gb.turnsUsed-1)
+		gb.tokensUsed = max(0, gb.tokensUsed-rec.TokensReserved)
+		rec.Status = contracts.TurnStatusFailed
+		rec.ErrorCode = errorCode
+		rec.TokensUsed = 0
+		rec.UpdatedAt = now
+	})
 }
 
 func (s *Store) getTurnMemory(now time.Time, attemptID, sessionID string) (*TurnRecord, contracts.QuotaStatus, error) {
@@ -188,13 +203,7 @@ func (s *Store) getTurnMemory(now time.Time, attemptID, sessionID string) (*Turn
 	policy, sb, gb := s.ensureMemStateLocked(rec.Role, rec.SessionID, rec.CreatedAt.UTC().Format("2006-01-02"))
 	if (rec.Status == contracts.TurnStatusPending || rec.Status == contracts.TurnStatusRunning) &&
 		!rec.LeaseExpiresAt.After(now) {
-		sb.turnsUsed = max(0, sb.turnsUsed-1)
-		sb.tokensUsed = max(0, sb.tokensUsed-rec.TokensReserved)
-		gb.turnsUsed = max(0, gb.turnsUsed-1)
-		gb.tokensUsed = max(0, gb.tokensUsed-rec.TokensReserved)
-		rec.Status = contracts.TurnStatusExpired
-		rec.ErrorCode = contracts.ErrCodeStreamTimeout
-		rec.UpdatedAt = now
+		expireMemTurnLocked(rec, sb, gb, now)
 	}
 	copied := *rec
 	return &copied, formatQuotaStatus(rec.Role, policy, sb.turnsUsed, sb.tokensUsed), nil

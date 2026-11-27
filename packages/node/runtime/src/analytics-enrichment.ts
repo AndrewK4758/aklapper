@@ -1,4 +1,4 @@
-import type { DeviceType, ReferrerCategory } from '@aklapper/core';
+import { sanitizeControlChars, type DeviceType, type ReferrerCategory } from '@aklapper/core';
 import { isbot } from 'isbot';
 
 export {
@@ -228,17 +228,7 @@ export function normalizeReferrer(
 }
 
 export function sanitizeCampaignValue(raw: string | null | undefined): string | null {
-  if (!raw) return null;
-  let cleaned = '';
-  for (let i = 0; i < raw.length; i += 1) {
-    const code = raw.charCodeAt(i);
-    if (code > 0x1f && code !== 0x7f) {
-      cleaned += raw[i];
-    }
-  }
-  const trimmed = cleaned.trim();
-  if (!trimmed) return null;
-  return trimmed.slice(0, CAMPAIGN_VALUE_MAX_LEN);
+  return sanitizeControlChars(raw, CAMPAIGN_VALUE_MAX_LEN);
 }
 
 export function normalizeLandingPath(rawPath: string | null | undefined): string {

@@ -356,51 +356,55 @@ export async function runFallbackChordPipelineSse(
     );
     return;
   } catch (error) {
-    const correlationId = telemetry?.correlationId ?? run.runId;
-    const { diagnostic } = classifyServerError(error, {
+    await handleFallbackStreamFailure(db, run.runId, error, sink, telemetry);
+  }
+}
+
+async function handleFallbackStreamFailure(
+  db: AppDatabase,
+  runId: string,
+  error: unknown,
+  sink: SseStreamSink,
+  telemetry?: { readonly correlationId: string; readonly logger: SsrStructuredLogger },
+): Promise<void> {
+  const correlationId = telemetry?.correlationId ?? runId;
+  const { diagnostic } = classifyServerError(error, {
+    correlationId,
+    source: 'portal.cadence.stream',
+  });
+  if (telemetry) {
+    logDiagnosticError(telemetry.logger, diagnostic);
+  }
+  try {
+    await failSandboxRunRow(db, runId, SAFE_STREAM_FAILURE_SUMMARY);
+  } catch (failErr) {
+    const failDiag = classifyServerError(failErr, {
       correlationId,
       source: 'portal.cadence.stream',
-    });
-    if (telemetry) {
-      logDiagnosticError(telemetry.logger, diagnostic);
-    }
-    try {
-      await failSandboxRunRow(db, run.runId, SAFE_STREAM_FAILURE_SUMMARY);
-    } catch (failErr) {
-      const failDiag = classifyServerError(failErr, {
-        correlationId,
-        source: 'portal.cadence.stream',
-      }).diagnostic;
-      logCadenceStreamSeam(
-        'error',
-        'DELTA_AUDIT_GAP',
-        'cadence.run.terminal_commit_gap',
-        'critical',
-        {
-          runId: run.runId,
-          correlationId,
-          error: failDiag.causeMessage ?? failDiag.reasoning,
-        },
-      );
-    }
+    }).diagnostic;
     logCadenceStreamSeam(
       'error',
       'DELTA_AUDIT_GAP',
       'cadence.run.terminal_commit_gap',
       'critical',
       {
-        runId: run.runId,
+        runId,
         correlationId,
-        error: diagnostic.causeMessage ?? diagnostic.reasoning,
+        error: failDiag.causeMessage ?? failDiag.reasoning,
       },
     );
-    sink.enqueue('error', {
-      runId: run.runId,
-      error: SAFE_STREAM_FAILURE_SUMMARY,
-      code: 'ERR_CADENCE_STREAM',
-      runStatus: 'failed',
-    } satisfies CadenceStreamErrorEvent);
   }
+  logCadenceStreamSeam('error', 'DELTA_AUDIT_GAP', 'cadence.run.terminal_commit_gap', 'critical', {
+    runId,
+    correlationId,
+    error: diagnostic.causeMessage ?? diagnostic.reasoning,
+  });
+  sink.enqueue('error', {
+    runId,
+    error: SAFE_STREAM_FAILURE_SUMMARY,
+    code: 'ERR_CADENCE_STREAM',
+    runStatus: 'failed',
+  } satisfies CadenceStreamErrorEvent);
 }
 
 export async function runFallbackChordBuildPhaseSse(
@@ -529,49 +533,6 @@ export async function runFallbackChordBuildPhaseSse(
       quota,
     } satisfies CadenceStreamCompleteEvent);
   } catch (error) {
-    const correlationId = telemetry?.correlationId ?? run.runId;
-    const { diagnostic } = classifyServerError(error, {
-      correlationId,
-      source: 'portal.cadence.stream',
-    });
-    if (telemetry) {
-      logDiagnosticError(telemetry.logger, diagnostic);
-    }
-    try {
-      await failSandboxRunRow(db, run.runId, SAFE_STREAM_FAILURE_SUMMARY);
-    } catch (failErr) {
-      const failDiag = classifyServerError(failErr, {
-        correlationId,
-        source: 'portal.cadence.stream',
-      }).diagnostic;
-      logCadenceStreamSeam(
-        'error',
-        'DELTA_AUDIT_GAP',
-        'cadence.run.terminal_commit_gap',
-        'critical',
-        {
-          runId: run.runId,
-          correlationId,
-          error: failDiag.causeMessage ?? failDiag.reasoning,
-        },
-      );
-    }
-    logCadenceStreamSeam(
-      'error',
-      'DELTA_AUDIT_GAP',
-      'cadence.run.terminal_commit_gap',
-      'critical',
-      {
-        runId: run.runId,
-        correlationId,
-        error: diagnostic.causeMessage ?? diagnostic.reasoning,
-      },
-    );
-    sink.enqueue('error', {
-      runId: run.runId,
-      error: SAFE_STREAM_FAILURE_SUMMARY,
-      code: 'ERR_CADENCE_STREAM',
-      runStatus: 'failed',
-    } satisfies CadenceStreamErrorEvent);
+    await handleFallbackStreamFailure(db, run.runId, error, sink, telemetry);
   }
 }

@@ -1,0 +1,27 @@
+@layer page {
+  .card {
+    display: grid;
+    gap: var(--sf-space-5);
+    padding: var(--sf-space-6);
+    background: var(--sf-bg-panel);
+    border: var(--sf-border-width) solid var(--sf-border);
+    border-radius: var(--sf-radius-sm);
+    min-width: var(--sf-space-0);
+    overflow-x: auto;
+  }
+
+  .cardHeader {
+    display: flex;
+    align-items: var(--sf-align-center);
+    justify-content: var(--sf-justify-between);
+    flex-wrap: wrap;
+    gap: var(--sf-space-4);
+  }
+
+  .sectionTitle {
+    margin: var(--sf-space-0);
+    font-size: var(--sf-text-md);
+    color: var(--sf-gold);
+    font-weight: var(--sf-weight-semibold);
+  }
+}

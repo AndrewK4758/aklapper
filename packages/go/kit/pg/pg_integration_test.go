@@ -92,7 +92,7 @@ func TestPostgresLiveQuotaTurnsAndLoadCorpusDocs(t *testing.T) {
 	}
 
 	// Verify concurrent FOR UPDATE turn reservations serialize cleanly against real PG19
-	sessionID := "pg_live_race_" + newUUIDv4()
+	sessionID := "pg_live_race_" + contracts.NewUUIDv4()
 	todayKey := "global:" + time.Now().UTC().Format("2006-01-02")
 	t.Cleanup(func() {
 		_, _ = store.pool.Exec(context.Background(), `DELETE FROM ask_turns WHERE session_id = $1`, sessionID)
@@ -104,7 +104,7 @@ func TestPostgresLiveQuotaTurnsAndLoadCorpusDocs(t *testing.T) {
 	allowedCnt, rejectedCnt := 0, 0
 	attemptIDs := make([]string, 12)
 	for i := range 12 {
-		attemptIDs[i] = newUUIDv4()
+		attemptIDs[i] = contracts.NewUUIDv4()
 		wg.Add(1)
 		go func(idx int) {
 			defer wg.Done()
@@ -131,13 +131,13 @@ func TestPostgresLiveQuotaTurnsAndLoadCorpusDocs(t *testing.T) {
 	}
 
 	// Verify concurrent Turn 10/10 duplicate attemptId returns idempotent reuse (allowed) rather than false 429
-	dupSession := "pg_live_dup10_" + newUUIDv4()
+	dupSession := "pg_live_dup10_" + contracts.NewUUIDv4()
 	t.Cleanup(func() {
 		_, _ = store.pool.Exec(context.Background(), `DELETE FROM ask_turns WHERE session_id = $1`, dupSession)
 		_, _ = store.pool.Exec(context.Background(), `DELETE FROM rate_limit_buckets WHERE scope_key IN ($1, $2)`, "session:"+dupSession, todayKey)
 	})
 	for i := range 9 {
-		id := newUUIDv4()
+		id := contracts.NewUUIDv4()
 		if _, allowed, rErr := store.ReserveTurnTx(ctx, ReserveTurnInput{
 			AttemptID: id, SessionID: dupSession, Role: contracts.RoleGuest, Mode: "qa",
 			PromptHash: "dup10-pre-" + id, CorrelationID: "corr-dup10-pre-" + id,
@@ -145,7 +145,7 @@ func TestPostgresLiveQuotaTurnsAndLoadCorpusDocs(t *testing.T) {
 			t.Fatalf("pre-turn %d failed: allowed=%v err=%v", i+1, allowed, rErr)
 		}
 	}
-	dupAttempt10 := newUUIDv4()
+	dupAttempt10 := contracts.NewUUIDv4()
 	var dupWg sync.WaitGroup
 	var dupMu sync.Mutex
 	dupAllowed, dupReused := 0, 0
@@ -178,14 +178,14 @@ func TestPostgresLiveQuotaTurnsAndLoadCorpusDocs(t *testing.T) {
 		t.Fatalf("expected 2 allowed (1 fresh + 1 reused) for concurrent Turn 10/10 duplicate attemptId, got allowed=%d reused=%d", dupAllowed, dupReused)
 	}
 	if _, allowedDistinct, dErr := store.ReserveTurnTx(ctx, ReserveTurnInput{
-		AttemptID: newUUIDv4(), SessionID: dupSession, Role: contracts.RoleGuest, Mode: "qa",
+		AttemptID: contracts.NewUUIDv4(), SessionID: dupSession, Role: contracts.RoleGuest, Mode: "qa",
 		PromptHash: "dup10-turn11", CorrelationID: "corr-dup10-turn11",
 	}); dErr != nil || allowedDistinct {
 		t.Fatalf("expected distinct 11th turn rejected cleanly, got allowed=%v err=%v", allowedDistinct, dErr)
 	}
 
 	// Verify expired lease transition in live PG19 + ReconcileTurnTx rejection
-	leaseID := newUUIDv4()
+	leaseID := contracts.NewUUIDv4()
 	_, _, err = store.ReserveTurnTx(ctx, ReserveTurnInput{
 		AttemptID: leaseID, SessionID: "pg_lease_" + leaseID, Role: contracts.RoleGuest, Mode: "qa",
 		PromptHash: "lease-hash", CorrelationID: "corr-lease-pg",
@@ -211,7 +211,7 @@ func TestPostgresLiveQuotaTurnsAndLoadCorpusDocs(t *testing.T) {
 	}
 
 	// Verify ExtendTurnLeaseTx on live PG19 extends active lease and caps at 5m
-	extID := newUUIDv4()
+	extID := contracts.NewUUIDv4()
 	extRes, extOK, err := store.ReserveTurnTx(ctx, ReserveTurnInput{
 		AttemptID: extID, SessionID: "pg_ext_" + extID, Role: contracts.RoleGuest, Mode: "qa",
 		PromptHash: "ext-hash", CorrelationID: "corr-ext-pg",
@@ -233,7 +233,7 @@ func TestPostgresLiveQuotaTurnsAndLoadCorpusDocs(t *testing.T) {
 	t.Setenv("NODE_ENV", "development")
 	t.Setenv("AI_PROVIDER", "local")
 	t.Setenv("AI_DEV_UNLIMITED", "true")
-	devAttempt := newUUIDv4()
+	devAttempt := contracts.NewUUIDv4()
 	devRes, devAllowed, err := store.ReserveTurnTx(ctx, ReserveTurnInput{
 		AttemptID: devAttempt, SessionID: dupSession, Role: contracts.RoleGuest, Mode: "qa",
 		PromptHash: "dev-unlimited-turn11", CorrelationID: "corr-dev-unlimited",
@@ -252,8 +252,8 @@ func TestPostgresLiveQuotaTurnsAndLoadCorpusDocs(t *testing.T) {
 
 	// Verify career_dossiers multi-chunk loading, draft isolation, dual-dictionary lexical search,
 	// session-pinned advisory lock, concurrent monotonic turn_index, and out-of-tx terminal purge.
-	pubSlug := "pg-live-pub-" + newUUIDv4()[:8]
-	draftSlug := "pg-live-draft-" + newUUIDv4()[:8]
+	pubSlug := "pg-live-pub-" + contracts.NewUUIDv4()[:8]
+	draftSlug := "pg-live-draft-" + contracts.NewUUIDv4()[:8]
 	if _, err := store.pool.Exec(ctx, `
 		INSERT INTO career_dossiers
 		(slug, kind, title, domain_label, role_title, timeframe, skills, summary_body, sections_json, publish_status, sanitization_verified_at, sort_order)
@@ -315,11 +315,11 @@ func TestPostgresLiveQuotaTurnsAndLoadCorpusDocs(t *testing.T) {
 	_ = rel3(ctx)
 
 	// Concurrent multi-tab submits produce strictly monotonic turn_index + 90-day terminal retention vs 15m recovery TTL
-	convSession := "pg_conv_" + newUUIDv4()
-	convID := newUUIDv4()
-	recentExpiredID := newUUIDv4()
-	agedTerminalID := newUUIDv4()
-	pendingAgedID := newUUIDv4()
+	convSession := "pg_conv_" + contracts.NewUUIDv4()
+	convID := contracts.NewUUIDv4()
+	recentExpiredID := contracts.NewUUIDv4()
+	agedTerminalID := contracts.NewUUIDv4()
+	pendingAgedID := contracts.NewUUIDv4()
 	t.Cleanup(func() {
 		_, _ = store.pool.Exec(context.Background(), `DELETE FROM ask_turns WHERE session_id = $1 OR attempt_id IN ($2, $3, $4)`, convSession, recentExpiredID, agedTerminalID, pendingAgedID)
 		_, _ = store.pool.Exec(context.Background(), `DELETE FROM rate_limit_buckets WHERE scope_key IN ($1, $2)`, "session:"+convSession, todayKey)
@@ -340,7 +340,7 @@ func TestPostgresLiveQuotaTurnsAndLoadCorpusDocs(t *testing.T) {
 		convWg.Add(1)
 		go func(idx int) {
 			defer convWg.Done()
-			att := newUUIDv4()
+			att := contracts.NewUUIDv4()
 			res, allowed, rErr := store.ReserveTurnTx(ctx, ReserveTurnInput{
 				AttemptID: att, SessionID: convSession, Role: contracts.RoleGuest, Mode: "qa",
 				ConversationID: convID, PromptText: fmt.Sprintf("Turn prompt %d", idx),
@@ -383,7 +383,7 @@ func TestPostgresLiveQuotaTurnsAndLoadCorpusDocs(t *testing.T) {
 	}
 
 	// Verify partial abort reconciliation + 499 / 403 error mapping
-	abortID := newUUIDv4()
+	abortID := contracts.NewUUIDv4()
 	if _, allowed, err := store.ReserveTurnTx(ctx, ReserveTurnInput{
 		AttemptID: abortID, SessionID: convSession, Role: contracts.RoleGuest, Mode: "qa",
 		ConversationID: convID, PromptText: "Aborted turn", PromptHash: "abort-hash-" + abortID, CorrelationID: "corr-abort-499",
@@ -422,8 +422,8 @@ func TestPostgresLiveQuotaTurnsAndLoadCorpusDocs(t *testing.T) {
 	}
 
 	// Verify NUL bytes in raw PromptText are stripped cleanly so PG19 never rejects with SQLSTATE 22021
-	nulID := newUUIDv4()
-	nulSession := "sess-nul-" + newUUIDv4()
+	nulID := contracts.NewUUIDv4()
+	nulSession := "sess-nul-" + contracts.NewUUIDv4()
 	nulRes, nulAllowed, err := store.ReserveTurnTx(ctx, ReserveTurnInput{
 		AttemptID:     nulID,
 		SessionID:     nulSession,

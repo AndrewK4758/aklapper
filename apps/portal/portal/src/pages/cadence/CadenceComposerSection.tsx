@@ -2,6 +2,7 @@ import type { CadencePreset, PortalCadenceContent } from '@aklapper/core';
 import { Button, Select, Switch } from '@aklapper/ui';
 import type { FormEvent } from 'react';
 
+import pageStyles from '../shared/portalPagePrimitives.module.css';
 import styles from './PortalCadencePage.module.css';
 
 export const CUSTOM_PRESET_VALUE = '__custom__';
@@ -100,7 +101,7 @@ export function CadenceComposerSection({
           id='cadence-prompt-input'
           name='prompt'
           rows={3}
-          className={styles.textarea}
+          className={pageStyles.textarea}
           value={promptText}
           onChange={event => onPromptChange(event.currentTarget.value)}
           placeholder={content.promptPlaceholder}

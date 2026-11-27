@@ -86,15 +86,9 @@ func (s *JSONSchema) ToVertexSchema() (map[string]any, error) {
 	return s.toVertexMap(), nil
 }
 
-func (s *JSONSchema) toVertexMap() map[string]any {
-	out := map[string]any{
-		"type": strings.ToUpper(strings.TrimSpace(s.Type)),
-	}
+func (s *JSONSchema) populateCommonFields(out map[string]any, recurse func(*JSONSchema) map[string]any) {
 	if s.Description != "" {
 		out["description"] = s.Description
-	}
-	if s.Nullable {
-		out["nullable"] = true
 	}
 	if len(s.Enum) > 0 {
 		out["enum"] = s.Enum
@@ -106,8 +100,18 @@ func (s *JSONSchema) toVertexMap() map[string]any {
 		out["maximum"] = *s.Maximum
 	}
 	if s.Items != nil {
-		out["items"] = s.Items.toVertexMap()
+		out["items"] = recurse(s.Items)
 	}
+}
+
+func (s *JSONSchema) toVertexMap() map[string]any {
+	out := map[string]any{
+		"type": strings.ToUpper(strings.TrimSpace(s.Type)),
+	}
+	if s.Nullable {
+		out["nullable"] = true
+	}
+	s.populateCommonFields(out, (*JSONSchema).toVertexMap)
 	if len(s.Properties) > 0 {
 		props := make(map[string]any, len(s.Properties))
 		for k, v := range s.Properties {
@@ -148,21 +152,7 @@ func (s *JSONSchema) toOpenAIMap() map[string]any {
 	} else {
 		out["type"] = t
 	}
-	if s.Description != "" {
-		out["description"] = s.Description
-	}
-	if len(s.Enum) > 0 {
-		out["enum"] = s.Enum
-	}
-	if s.Minimum != nil {
-		out["minimum"] = *s.Minimum
-	}
-	if s.Maximum != nil {
-		out["maximum"] = *s.Maximum
-	}
-	if s.Items != nil {
-		out["items"] = s.Items.toOpenAIMap()
-	}
+	s.populateCommonFields(out, (*JSONSchema).toOpenAIMap)
 	if t == "object" {
 		props := make(map[string]any, len(s.Properties))
 		for k, v := range s.Properties {
