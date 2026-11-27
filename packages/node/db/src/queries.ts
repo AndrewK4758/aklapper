@@ -4,8 +4,6 @@ import {
   AdminHomeContentSchema,
   type AdminRootLoaderData,
   type AgensiSkill,
-  type AnalyticsBatch,
-  AnalyticsBatchSchema,
   type AuthSession,
   AuthSessionSchema,
   type CadenceGateVerdict,
@@ -478,11 +476,55 @@ export function extractPgConstraintViolation(error: unknown): ContactDbConstrain
   );
 }
 
+export interface InsertContactSubmissionLinkOptions {
+  analyticsSessionId?: string | null;
+  guestSessionId?: string | null;
+  onAnalyticsSessionFkFallback?: () => void;
+}
+
+function isAnalyticsSessionFkViolation(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  const err = error as PgErrorShape;
+  const pgErr = err.code ? err : err.cause;
+  return pgErr?.code === '23503';
+}
+
 export async function insertContactSubmission(
   db: AppDatabase,
   submission: ContactFormSubmission,
+  linkOptions: InsertContactSubmissionLinkOptions = {},
 ): Promise<ContactSubmissionSummary> {
   const parsed = ContactFormSubmissionSchema.parse(submission);
+  const analyticsSessionId = linkOptions.analyticsSessionId?.trim() || null;
+  const guestSessionId = linkOptions.guestSessionId?.trim() || null;
+
+  const insertWithSession = async (sessionId: string | null) =>
+    db
+      .insert(schema.contactSubmissions)
+      .values({
+        name: parsed.name,
+        phone: parsed.phone,
+        email: parsed.email,
+        message: parsed.message,
+        attachmentName: parsed.attachment?.filename ?? null,
+        attachmentMimeType: parsed.attachment?.mimeType ?? null,
+        attachmentSizeBytes: parsed.attachment?.sizeBytes ?? null,
+        attachmentSha256: parsed.attachment?.sha256 ?? null,
+        attachmentContentBase64: parsed.attachment?.contentBase64 ?? null,
+        analyticsSessionId: sessionId,
+        guestSessionId,
+      })
+      .returning({
+        id: schema.contactSubmissions.id,
+        name: schema.contactSubmissions.name,
+        email: schema.contactSubmissions.email,
+        phone: schema.contactSubmissions.phone,
+        attachmentName: schema.contactSubmissions.attachmentName,
+        attachmentSizeBytes: schema.contactSubmissions.attachmentSizeBytes,
+        attachmentSha256: schema.contactSubmissions.attachmentSha256,
+        createdAt: schema.contactSubmissions.createdAt,
+      });
+
   let inserted:
     | {
         id: string;
@@ -497,35 +539,26 @@ export async function insertContactSubmission(
     | undefined;
 
   try {
-    [inserted] = await db
-      .insert(schema.contactSubmissions)
-      .values({
-        name: parsed.name,
-        phone: parsed.phone,
-        email: parsed.email,
-        message: parsed.message,
-        attachmentName: parsed.attachment?.filename ?? null,
-        attachmentMimeType: parsed.attachment?.mimeType ?? null,
-        attachmentSizeBytes: parsed.attachment?.sizeBytes ?? null,
-        attachmentSha256: parsed.attachment?.sha256 ?? null,
-        attachmentContentBase64: parsed.attachment?.contentBase64 ?? null,
-      })
-      .returning({
-        id: schema.contactSubmissions.id,
-        name: schema.contactSubmissions.name,
-        email: schema.contactSubmissions.email,
-        phone: schema.contactSubmissions.phone,
-        attachmentName: schema.contactSubmissions.attachmentName,
-        attachmentSizeBytes: schema.contactSubmissions.attachmentSizeBytes,
-        attachmentSha256: schema.contactSubmissions.attachmentSha256,
-        createdAt: schema.contactSubmissions.createdAt,
-      });
+    [inserted] = await insertWithSession(analyticsSessionId);
   } catch (error) {
-    const mapped = extractPgConstraintViolation(error);
-    if (mapped) {
-      throw mapped;
+    if (analyticsSessionId && isAnalyticsSessionFkViolation(error)) {
+      try {
+        [inserted] = await insertWithSession(null);
+        linkOptions.onAnalyticsSessionFkFallback?.();
+      } catch (retryError) {
+        const mappedRetry = extractPgConstraintViolation(retryError);
+        if (mappedRetry) {
+          throw mappedRetry;
+        }
+        throw retryError;
+      }
+    } else {
+      const mapped = extractPgConstraintViolation(error);
+      if (mapped) {
+        throw mapped;
+      }
+      throw error;
     }
-    throw error;
   }
 
   if (!inserted) {
@@ -1032,56 +1065,11 @@ export async function disableUserTotpSecret(db: AppDatabase, userId: string): Pr
   return deleted.length > 0;
 }
 
-export interface IngestAnalyticsMeta {
-  ipHash: string;
-  country?: string | null;
-  region?: string | null;
-}
-
-export interface IngestAnalyticsResult {
-  accepted: number;
-  sessionId: string;
-  ipHash: string;
-}
-
-export async function ingestAnalyticsBatch(
-  db: AppDatabase,
-  batch: AnalyticsBatch,
-  meta: IngestAnalyticsMeta,
-): Promise<IngestAnalyticsResult> {
-  const parsed = AnalyticsBatchSchema.parse(batch);
-  const country = meta.country?.trim() || null;
-  const region = meta.region?.trim() || null;
-
-  await db
-    .insert(schema.analyticsSessions)
-    .values({
-      sessionId: parsed.sessionId,
-      ipHash: meta.ipHash,
-      referrer: parsed.referrer ?? null,
-      country,
-      region,
-    })
-    .onConflictDoNothing({ target: schema.analyticsSessions.sessionId });
-
-  await db.insert(schema.analyticsEvents).values(
-    parsed.events.map(event => ({
-      sessionId: parsed.sessionId,
-      type: event.type,
-      name: event.name,
-      path: event.path,
-      value: event.value ?? null,
-      metadataJson: (event.metadata ?? {}) as Record<string, unknown>,
-      createdAt: new Date(event.timestamp),
-    })),
-  );
-
-  return {
-    accepted: parsed.events.length,
-    sessionId: parsed.sessionId,
-    ipHash: meta.ipHash,
-  };
-}
+export {
+  type IngestAnalyticsMeta,
+  type IngestAnalyticsResult,
+  ingestAnalyticsBatch,
+} from './analytics-ingest.ts';
 
 export async function getQuotaStatusForSession(
   db: AppDatabase,

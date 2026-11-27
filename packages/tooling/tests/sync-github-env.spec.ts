@@ -72,6 +72,8 @@ describe('@aklapper/tooling GitHub Actions and GCP Secret Manager sync', () => {
         ADMIN_HANDLE: 'admin',
         ADMIN_PASSWORD: 'admin-password-val',
         DOSSIER_PRIVACY_DENYLIST: 'WyJTeW50aGV0aWNDbGllbnRYIl0=',
+        MAXMIND_ACCOUNT_ID: '123456',
+        MAXMIND_LICENSE_KEY: 'maxmind-license-secret-val',
         IAP_ACCESSOR_EMAIL: 'owner@example.com',
       });
 
@@ -85,8 +87,12 @@ describe('@aklapper/tooling GitHub Actions and GCP Secret Manager sync', () => {
         'AGENSI_API_KEY',
         'AI_PRIVACY_DENYLIST',
         'DOSSIER_PRIVACY_DENYLIST',
+        'MAXMIND_ACCOUNT_ID',
+        'MAXMIND_LICENSE_KEY',
       ]);
       expect(plan.skippedOptionalSecrets).toEqual([]);
+      expect(plan.gcpSecrets.map(s => s.envKey)).not.toContain('MAXMIND_ACCOUNT_ID');
+      expect(plan.gcpSecrets.map(s => s.envKey)).not.toContain('MAXMIND_LICENSE_KEY');
       expect(plan.gcpSecrets.map(s => s.envKey)).toEqual([
         'DATABASE_URL',
         'INTERNAL_AUTH_SECRET',
@@ -140,6 +146,8 @@ describe('@aklapper/tooling GitHub Actions and GCP Secret Manager sync', () => {
         'AGENSI_API_KEY',
         'AI_PRIVACY_DENYLIST',
         'DOSSIER_PRIVACY_DENYLIST',
+        'MAXMIND_ACCOUNT_ID',
+        'MAXMIND_LICENSE_KEY',
       ]);
       expect(minimalPlan.skippedOptionalVariables).toContain('VERTEX_THINKING_LEVEL');
       expect(minimalPlan.gcpSecrets.map(s => s.envKey)).toEqual([
@@ -379,5 +387,22 @@ describe('@aklapper/tooling GitHub Actions and GCP Secret Manager sync', () => {
     });
 
     expect(() => parseSyncCliArgs(['--env', 'staging'])).toThrow(/production/);
+  });
+
+  it('wires optional GeoLite2 pre-build staging with conditional v6 cache and secret-free portal Dockerfile COPY', () => {
+    const repoRoot = resolve(import.meta.dirname, '../../..');
+    const workflow = readFileSync(resolve(repoRoot, '.github/workflows/cd-gcp.yml'), 'utf8');
+    const dockerfile = readFileSync(resolve(repoRoot, 'apps/portal/portal/Dockerfile'), 'utf8');
+    const gitignore = readFileSync(resolve(repoRoot, '.gitignore'), 'utf8');
+
+    expect(gitignore).toContain('*.mmdb');
+    expect(dockerfile).toContain(
+      'COPY apps/portal/portal/data/geolite2 /prod/portal/data/geolite2',
+    );
+    expect(dockerfile).not.toContain('MAXMIND_');
+    expect(workflow).toContain('actions/cache/restore@v6');
+    expect(workflow).toContain('actions/cache/save@v6');
+    expect(workflow).toContain("steps.geolite2-stage.outputs.geolite2_ready == 'true'");
+    expect(workflow).toContain('MaxMind.com');
   });
 });

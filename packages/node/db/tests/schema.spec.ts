@@ -6,6 +6,8 @@ import { vi } from 'vitest';
 import {
   agensiSkills,
   agensiSyncState,
+  analyticsEvents,
+  analyticsSessions,
   type AppDatabase,
   askTurns,
   CADENCE_PRESET_SEEDS,
@@ -86,10 +88,100 @@ describe('@aklapper/db', () => {
     expect(
       journal.entries.some(e => e.idx === 9 && e.tag === '0009_retire_changes_in_progress_links'),
     ).toBe(true);
-    // Contraction migration 0010_* must stay partitioned out of the journal and drizzle folder until rollout completes
-    expect(journal.entries.some(e => e.tag.startsWith('0010_'))).toBe(false);
+    expect(
+      journal.entries.some(e => e.idx === 10 && e.tag === '0010_visitor_analytics_enrichment'),
+    ).toBe(true);
     const drizzleFiles = readdirSync(resolve(import.meta.dirname, '../drizzle'));
-    expect(drizzleFiles.some(file => file.startsWith('0010_'))).toBe(false);
+    expect(drizzleFiles).toContain('0010_visitor_analytics_enrichment.sql');
+    expect(drizzleFiles).toContain('0010_visitor_analytics_enrichment.down.sql');
+    const up0010Sql = readFileSync(
+      resolve(import.meta.dirname, '../drizzle/0010_visitor_analytics_enrichment.sql'),
+      'utf8',
+    );
+    const down0010Sql = readFileSync(
+      resolve(import.meta.dirname, '../drizzle/0010_visitor_analytics_enrichment.down.sql'),
+      'utf8',
+    );
+    // 0010 is strictly additive and must keep roadmap_milestones intact until follow-up contraction.
+    expect(up0010Sql).not.toMatch(/\broadmap_milestones\b/i);
+    expect(up0010Sql).not.toMatch(/\bDROP\s+(?:TABLE|COLUMN)\b/i);
+    expect(up0010Sql).not.toMatch(/\bCONCURRENTLY\b/i);
+    expect(down0010Sql).not.toMatch(/\broadmap_milestones\b/i);
+    const expected0010SessionColumns = [
+      'app',
+      'is_bot',
+      'visitor_hash',
+      'guest_session_id',
+      'city',
+      'timezone',
+      'asn',
+      'asn_org',
+      'referrer_host',
+      'referrer_category',
+      'landing_path',
+      'ref_param',
+      'utm_source',
+      'utm_medium',
+      'utm_campaign',
+      'utm_content',
+      'device_type',
+      'os_name',
+      'browser_name',
+      'last_seen_at',
+    ] as const;
+    for (const column of expected0010SessionColumns) {
+      expect(up0010Sql).toContain(`ADD COLUMN IF NOT EXISTS "${column}"`);
+      expect(down0010Sql).toContain(`DROP COLUMN IF EXISTS "${column}"`);
+    }
+    for (const column of ['analytics_session_id', 'guest_session_id'] as const) {
+      expect(up0010Sql).toContain(`ADD COLUMN IF NOT EXISTS "${column}"`);
+      expect(down0010Sql).toContain(`DROP COLUMN IF EXISTS "${column}"`);
+    }
+    expect(up0010Sql).toContain('ADD CONSTRAINT "contact_submissions_analytics_session_id_fk"');
+    expect(up0010Sql).toContain('ON DELETE SET NULL');
+    expect(down0010Sql).toContain(
+      'DROP CONSTRAINT IF EXISTS "contact_submissions_analytics_session_id_fk"',
+    );
+    const expected0010Indexes = [
+      'analytics_sessions_app_bot_started_idx',
+      'analytics_sessions_visitor_hash_started_idx',
+      'analytics_sessions_guest_session_idx',
+      'analytics_sessions_referrer_host_started_idx',
+      'analytics_sessions_geo_started_idx',
+      'analytics_events_session_created_idx',
+      'analytics_events_type_created_path_idx',
+      'contact_submissions_analytics_session_idx',
+      'contact_submissions_guest_session_idx',
+      'ask_turns_session_created_idx',
+      'ask_turns_created_at_idx',
+    ] as const;
+    for (const indexName of expected0010Indexes) {
+      expect(up0010Sql).toContain(`CREATE INDEX IF NOT EXISTS "${indexName}"`);
+      expect(down0010Sql).toContain(`DROP INDEX IF EXISTS "${indexName}"`);
+    }
+    expect(analyticsSessions.app.name).toBe('app');
+    expect(analyticsSessions.isBot.name).toBe('is_bot');
+    expect(analyticsSessions.visitorHash.name).toBe('visitor_hash');
+    expect(analyticsSessions.guestSessionId.name).toBe('guest_session_id');
+    expect(analyticsSessions.city.name).toBe('city');
+    expect(analyticsSessions.timezone.name).toBe('timezone');
+    expect(analyticsSessions.asn.name).toBe('asn');
+    expect(analyticsSessions.asnOrg.name).toBe('asn_org');
+    expect(analyticsSessions.referrerHost.name).toBe('referrer_host');
+    expect(analyticsSessions.referrerCategory.name).toBe('referrer_category');
+    expect(analyticsSessions.landingPath.name).toBe('landing_path');
+    expect(analyticsSessions.refParam.name).toBe('ref_param');
+    expect(analyticsSessions.utmSource.name).toBe('utm_source');
+    expect(analyticsSessions.utmMedium.name).toBe('utm_medium');
+    expect(analyticsSessions.utmCampaign.name).toBe('utm_campaign');
+    expect(analyticsSessions.utmContent.name).toBe('utm_content');
+    expect(analyticsSessions.deviceType.name).toBe('device_type');
+    expect(analyticsSessions.osName.name).toBe('os_name');
+    expect(analyticsSessions.browserName.name).toBe('browser_name');
+    expect(analyticsSessions.lastSeenAt.name).toBe('last_seen_at');
+    expect(analyticsEvents.sessionId.name).toBe('session_id');
+    expect(contactSubmissions.analyticsSessionId.name).toBe('analytics_session_id');
+    expect(contactSubmissions.guestSessionId.name).toBe('guest_session_id');
     expect(terminalDirectoryEntries.profileSlug.name).toBe('profile_slug');
     expect(terminalDirectoryEntries.description.name).toBe('description');
     expect(TERMINAL_DIRECTORY_ENTRY_SEEDS).toHaveLength(6);

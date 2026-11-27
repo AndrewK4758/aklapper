@@ -2,6 +2,7 @@ export * from './about.ts';
 export * from './admin-cms-contracts.ts';
 export * from './admin-contracts.ts';
 export * from './agensi.ts';
+export * from './analytics-admin-schemas.ts';
 export * from './analytics-schemas.ts';
 export * from './analytics.ts';
 export * from './ask.ts';

@@ -64,8 +64,9 @@ import {
   sanitizePortalAskSiteContent,
   sanitizePortalHomeSiteContent,
 } from '@aklapper/node-runtime/privacy';
-import { asc, count, desc, eq, gte, ilike, inArray, lte, or, sql } from 'drizzle-orm';
+import { and, asc, count, desc, eq, gte, ilike, inArray, lte, or, sql } from 'drizzle-orm';
 
+import { loadInboxVisitorContextMap } from './admin-inbox-visitor-context.ts';
 import { queryCreatorPublishedSkills, readAgensiSyncState } from './agensi-sync.ts';
 import { listCareerDossiers } from './career-dossiers.ts';
 import type { AppDatabase } from './client.ts';
@@ -128,11 +129,21 @@ export async function loadAdminOverviewData(
     db
       .select({ total: count() })
       .from(schema.analyticsSessions)
-      .where(gte(schema.analyticsSessions.startedAt, cutoff24h)),
-    db
-      .select({ total: count() })
-      .from(schema.analyticsEvents)
-      .where(gte(schema.analyticsEvents.createdAt, cutoff24h)),
+      .where(
+        and(
+          eq(schema.analyticsSessions.app, 'portal'),
+          eq(schema.analyticsSessions.isBot, false),
+          gte(schema.analyticsSessions.startedAt, cutoff24h),
+        ),
+      ),
+    db.execute(sql`
+      SELECT COUNT(*)::int AS total
+      FROM analytics_events e
+      INNER JOIN analytics_sessions s ON s.session_id = e.session_id
+      WHERE s.app = 'portal'
+        AND s.is_bot = false
+        AND e.created_at >= ${cutoff24h}
+    `),
     db.execute(sql`
       SELECT
         COUNT(*)::int AS total_runs,
@@ -174,6 +185,7 @@ export async function loadAdminOverviewData(
     }
   }
 
+  const events24hRow = (events24hRows.rows[0] ?? {}) as Record<string, unknown>;
   const sandboxRow = (sandboxSummaryResult.rows[0] ?? {}) as Record<string, unknown>;
   const dailyTokensRow = (dailyTokensResult.rows[0] ?? {}) as Record<string, unknown>;
   const guestPolicy = policyRows.find(row => row.role === 'guest');
@@ -202,7 +214,7 @@ export async function loadAdminOverviewData(
     metrics: {
       contactCount: contactCountRows[0]?.total ?? 0,
       sessions24h: sessions24hRows[0]?.total ?? 0,
-      events24h: events24hRows[0]?.total ?? 0,
+      events24h: toNumber(events24hRow['total']),
       dailyTokensUsed: toNumber(dailyTokensRow['daily_tokens']),
       dailyTokenCap,
       totalSandboxRuns: toNumber(sandboxRow['total_runs']),
@@ -220,6 +232,7 @@ export interface ListContactSubmissionsOptions {
   query?: string;
   page?: number;
   pageSize?: number;
+  selectedId?: string | null;
 }
 
 export async function listContactSubmissions(
@@ -230,6 +243,8 @@ export async function listContactSubmissions(
   const pageSize = Math.max(1, Math.min(100, Math.floor(options.pageSize ?? 20)));
   const page = Math.max(1, Math.floor(options.page ?? 1));
   const offset = (page - 1) * pageSize;
+  const rawSelectedId = options.selectedId?.trim() ?? '';
+  const validSelectedId = UUID_PATTERN.test(rawSelectedId) ? rawSelectedId : null;
 
   const pattern = query.length > 0 ? `%${query}%` : null;
   const searchFilter = pattern
@@ -241,49 +256,55 @@ export async function listContactSubmissions(
       )
     : undefined;
 
+  const selectColumns = {
+    id: schema.contactSubmissions.id,
+    name: schema.contactSubmissions.name,
+    email: schema.contactSubmissions.email,
+    phone: schema.contactSubmissions.phone,
+    message: schema.contactSubmissions.message,
+    attachmentName: schema.contactSubmissions.attachmentName,
+    attachmentMimeType: schema.contactSubmissions.attachmentMimeType,
+    attachmentSizeBytes: schema.contactSubmissions.attachmentSizeBytes,
+    attachmentSha256: schema.contactSubmissions.attachmentSha256,
+    createdAt: schema.contactSubmissions.createdAt,
+  };
+
   const [countRows, rows] = await Promise.all([
     searchFilter
       ? db.select({ total: count() }).from(schema.contactSubmissions).where(searchFilter)
       : db.select({ total: count() }).from(schema.contactSubmissions),
     searchFilter
       ? db
-          .select({
-            id: schema.contactSubmissions.id,
-            name: schema.contactSubmissions.name,
-            email: schema.contactSubmissions.email,
-            phone: schema.contactSubmissions.phone,
-            message: schema.contactSubmissions.message,
-            attachmentName: schema.contactSubmissions.attachmentName,
-            attachmentMimeType: schema.contactSubmissions.attachmentMimeType,
-            attachmentSizeBytes: schema.contactSubmissions.attachmentSizeBytes,
-            attachmentSha256: schema.contactSubmissions.attachmentSha256,
-            createdAt: schema.contactSubmissions.createdAt,
-          })
+          .select(selectColumns)
           .from(schema.contactSubmissions)
           .where(searchFilter)
           .orderBy(desc(schema.contactSubmissions.createdAt))
           .limit(pageSize)
           .offset(offset)
       : db
-          .select({
-            id: schema.contactSubmissions.id,
-            name: schema.contactSubmissions.name,
-            email: schema.contactSubmissions.email,
-            phone: schema.contactSubmissions.phone,
-            message: schema.contactSubmissions.message,
-            attachmentName: schema.contactSubmissions.attachmentName,
-            attachmentMimeType: schema.contactSubmissions.attachmentMimeType,
-            attachmentSizeBytes: schema.contactSubmissions.attachmentSizeBytes,
-            attachmentSha256: schema.contactSubmissions.attachmentSha256,
-            createdAt: schema.contactSubmissions.createdAt,
-          })
+          .select(selectColumns)
           .from(schema.contactSubmissions)
           .orderBy(desc(schema.contactSubmissions.createdAt))
           .limit(pageSize)
           .offset(offset),
   ]);
 
-  const items: AdminInboxItem[] = rows.map(row =>
+  let pinnedRow = validSelectedId ? (rows.find(row => row.id === validSelectedId) ?? null) : null;
+  if (validSelectedId && !pinnedRow && !searchFilter) {
+    const [fetchedSelected] = await db
+      .select(selectColumns)
+      .from(schema.contactSubmissions)
+      .where(eq(schema.contactSubmissions.id, validSelectedId))
+      .limit(1);
+    pinnedRow = fetchedSelected ?? null;
+  }
+
+  const contextIds = Array.from(
+    new Set([...rows.map(row => row.id), ...(pinnedRow ? [pinnedRow.id] : [])]),
+  );
+  const visitorContextMap = await loadInboxVisitorContextMap(db, contextIds);
+
+  const mapRow = (row: (typeof rows)[number]): AdminInboxItem =>
     AdminInboxItemSchema.parse({
       id: row.id,
       name: row.name,
@@ -294,9 +315,12 @@ export async function listContactSubmissions(
       attachmentMimeType: row.attachmentMimeType,
       attachmentSizeBytes: row.attachmentSizeBytes,
       attachmentSha256: row.attachmentSha256,
+      visitorContext: visitorContextMap.get(row.id) ?? null,
       createdAt: row.createdAt.toISOString(),
-    }),
-  );
+    });
+
+  const items: AdminInboxItem[] = rows.map(mapRow);
+  const selectedItem = pinnedRow ? mapRow(pinnedRow) : null;
 
   return AdminInboxLoaderDataSchema.parse({
     items,
@@ -304,6 +328,8 @@ export async function listContactSubmissions(
     page,
     pageSize,
     query,
+    selectedId: selectedItem?.id ?? null,
+    selectedItem,
   });
 }
 

@@ -7,6 +7,7 @@ import {
   logDiagnosticError,
 } from '@aklapper/node-runtime/ssr/stream';
 
+import { readPassiveGuestSession } from '../contact-analytics-link.server';
 import type { Route } from './+types/api.analytics.ingest';
 
 export async function action({ request, context }: Route.ActionArgs): Promise<Response> {
@@ -15,7 +16,11 @@ export async function action({ request, context }: Route.ActionArgs): Promise<Re
   const logger = reqCtx?.logger ?? createFallbackLogger('portal-analytics-ingest');
 
   try {
-    const response = await handleAnalyticsIngestRequest(request);
+    const response = await handleAnalyticsIngestRequest(request, {
+      app: 'portal',
+      guestSessionId: readPassiveGuestSession(request),
+      logger,
+    });
     const headers = new Headers(response.headers);
     headers.set('X-Correlation-Id', correlationId);
     return new Response(response.body, {

@@ -1,7 +1,19 @@
+export * from './admin-analytics-feeds.ts';
+export * from './admin-analytics-visitors.ts';
+export * from './admin-inbox-visitor-context.ts';
 export * from './admin-queries.ts';
 export * from './agensi-loader.ts';
 export * from './agensi-sync.ts';
 export * from './analytics-bff.ts';
+export * from './analytics-contact-link.ts';
+export {
+  acquireAnalyticsVisitorLock,
+  enrichAnalyticsRequestMetadata,
+  findActiveSameUtcDaySessionId,
+  upsertAnalyticsSessionRow,
+  type EnrichAnalyticsRequestOptions,
+} from './analytics-ingest.ts';
+export * from './analytics-ssr.ts';
 export * from './ask-turns.ts';
 export * from './auth-service.ts';
 export * from './cadence-showcase.ts';
@@ -18,6 +30,7 @@ export {
   clearSandboxRunsForSession,
   pauseSandboxRunForSpecApproval,
 } from './sandbox-lifecycle.ts';
+export * from './schema-analytics.ts';
 export * from './schema-dossiers.ts';
 export * from './schema-sandbox.ts';
 export * from './schema.ts';

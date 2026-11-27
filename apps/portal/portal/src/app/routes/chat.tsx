@@ -26,6 +26,7 @@ import { data, href } from 'react-router';
 import type { PortalAskActionResult } from '#pages/ask';
 
 import { reportPortalPublicError } from '../client-telemetry';
+import { triggerPortalGuestSessionBinding } from '../contact-analytics-link.server';
 import { ChatRouteView } from '../features/ChatFeatureView';
 import { createPrimaryRouteClientAction } from '../features/paneClientAction';
 import { resolveGuestSession } from '../guest-session.server';
@@ -69,6 +70,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
   const correlationId = getOrCreateCorrelationId(request, context);
   const aiAskUrl = process.env['AI_ASK_URL']?.trim();
   const reqCtx = getRequestContext(context);
+  triggerPortalGuestSessionBinding(request, sessionId, reqCtx?.logger, '/chat');
 
   return data(
     {
@@ -96,6 +98,7 @@ export async function action({ request, context }: Route.ActionArgs) {
   const reqCtx = getRequestContext(context);
   const correlationId = getOrCreateCorrelationId(request, context);
   const logger = reqCtx?.logger ?? createFallbackLogger('portal-chat');
+  triggerPortalGuestSessionBinding(request, sessionId, logger, '/chat');
   const headers: Record<string, string> = {
     'X-Correlation-Id': correlationId,
     ...(setCookieHeader ? { 'Set-Cookie': setCookieHeader } : {}),

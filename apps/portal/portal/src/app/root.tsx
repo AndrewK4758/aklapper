@@ -11,7 +11,12 @@ import {
   readSeoRuntimeConfig,
   type StreamResult,
 } from '@aklapper/core';
-import { loadPortalRootDataWithPrerender } from '@aklapper/db';
+import {
+  capturePortalSsrHit,
+  getSharedDb,
+  isReactRouterPrerender,
+  loadPortalRootDataWithPrerender,
+} from '@aklapper/db';
 import {
   deferStreamResult,
   getOrCreateCorrelationId,
@@ -47,6 +52,7 @@ import {
 
 import type { Route } from './+types/root';
 import { reportPortalPublicError } from './client-telemetry';
+import { readPassiveGuestSession } from './contact-analytics-link.server';
 import { PortalRootShell } from './PortalRootShell';
 import { useRuntimeStatusTelemetry } from './runtime-status';
 import { DEFAULT_PORTAL_SITE_URL, PORTAL_SITE_NAME } from './seo';
@@ -82,6 +88,14 @@ function safeDecodePathname(value: string): string | null {
 function resolveCanonicalPathname(rawPathname: string): string {
   const decoded = safeDecodePathname(rawPathname);
   return normalizePathname(decoded ?? rawPathname);
+}
+
+function isSingleFetchDataRequest(request: Request): boolean {
+  try {
+    return new URL(request.url).pathname.endsWith('.data');
+  } catch {
+    return false;
+  }
 }
 
 function resolveLoaderPathname(request: Request): string {
@@ -132,6 +146,25 @@ export function loader({ request, context }: Route.LoaderArgs): PortalRootStream
       isNotFound: true,
       rootPayload: null,
     };
+  }
+
+  if (
+    request.method.toUpperCase() === 'GET' &&
+    !isSingleFetchDataRequest(request) &&
+    !isReactRouterPrerender() &&
+    Boolean(process.env['DATABASE_URL']?.trim())
+  ) {
+    try {
+      void capturePortalSsrHit(getSharedDb(), request, {
+        pathname,
+        guestSessionId: readPassiveGuestSession(request),
+        correlationId,
+        logger: getRequestContext(context)?.logger,
+        timeoutMs: 1_500,
+      }).catch(() => undefined);
+    } catch {
+      // Fail-open: never stall or break SSR streaming
+    }
   }
 
   return {

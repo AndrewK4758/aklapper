@@ -1,10 +1,17 @@
+import type { AnalyticsBatch } from '@aklapper/core';
+import { bootstrapDocumentAnalytics, resetAnalyticsBootstrap } from '@aklapper/core/analytics';
 import { getPrerenderPortalAboutData } from '@aklapper/db';
-import { render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { PortalAboutPage } from './PortalAboutPage';
 
 describe('PortalAboutPage', () => {
+  afterEach(() => {
+    resetAnalyticsBootstrap();
+    document.head.innerHTML = '';
+    vi.restoreAllMocks();
+  });
   it('renders bundled greyscale terminal portrait, sanitized full resume sections, and Services Guide pane links', () => {
     const seeded = getPrerenderPortalAboutData();
 
@@ -138,5 +145,44 @@ describe('PortalAboutPage', () => {
     const headingIds = Array.from(container.querySelectorAll('h2[id]')).map(h => h.id);
     expect(headingIds.length).toBeGreaterThanOrEqual(8);
     expect(new Set(headingIds).size).toBe(headingIds.length);
+  });
+
+  it('tracks and immediately flushes about_outbound_click for email, github, and website profile links', () => {
+    const metaEndpoint = document.createElement('meta');
+    metaEndpoint.name = 'aklapper-analytics-endpoint';
+    metaEndpoint.content = '/api/analytics/ingest';
+    const metaApp = document.createElement('meta');
+    metaApp.name = 'aklapper-analytics-app';
+    metaApp.content = 'portal';
+    document.head.append(metaEndpoint, metaApp);
+
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue(new Response(null, { status: 204 }));
+
+    bootstrapDocumentAnalytics(document);
+    const seeded = getPrerenderPortalAboutData();
+
+    render(
+      <PortalAboutPage
+        content={seeded.content}
+        dossiers={seeded.dossiers}
+        brandContactEmail={seeded.brandContactEmail}
+        onClose={vi.fn<() => void>()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('link', { name: 'andrew@andrew-k.us' }));
+    fireEvent.click(screen.getByRole('link', { name: 'github.com/AndrewK4758' }));
+    fireEvent.click(screen.getByRole('link', { name: 'andrew-k.us' }));
+
+    expect(fetchSpy).toHaveBeenCalledTimes(3);
+    const outboundTargets = fetchSpy.mock.calls.flatMap(call => {
+      const payload = JSON.parse(String(call[1]?.body)) as AnalyticsBatch;
+      return payload.events
+        .filter(e => e.name === 'about_outbound_click')
+        .map(e => e.metadata?.['target']);
+    });
+    expect(outboundTargets).toEqual(['email', 'github', 'website']);
   });
 });

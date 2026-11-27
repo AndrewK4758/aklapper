@@ -258,4 +258,13 @@ func TestRedactTextForStorageSinglePassOverlapNoSelfRedactionHangulAndCGJ(t *tes
 	if _, nullErr := LoadConfigFromEnv(); nullErr == nil {
 		t.Fatal("expected base64 JSON null in DOSSIER_PRIVACY_DENYLIST to fail closed")
 	}
+
+	// 6. Embedded NUL bytes in pasted JD/Q&A text are stripped cleanly before PostgreSQL persistence
+	gotNul := RedactTextForStorage(cfgOverlap, "Staff\x00 Go \x00Engineer\x00 role", 1000)
+	if strings.ContainsRune(gotNul, 0) {
+		t.Fatalf("expected NUL bytes stripped from %q", gotNul)
+	}
+	if gotNul != "Staff Go Engineer role" {
+		t.Fatalf("unexpected NUL-stripped output %q", gotNul)
+	}
 }

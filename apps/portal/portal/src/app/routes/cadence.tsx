@@ -19,6 +19,7 @@ import {
   handleCadenceSpecApproveAction,
 } from '../cadence-action.server';
 import { reportPortalPublicError } from '../client-telemetry';
+import { triggerPortalGuestSessionBinding } from '../contact-analytics-link.server';
 import { CadenceRouteView } from '../features/CadenceFeatureView';
 import { createPrimaryRouteClientAction } from '../features/paneClientAction';
 import { resolveGuestSession } from '../guest-session.server';
@@ -28,6 +29,12 @@ import type { Route } from './+types/cadence';
 export function loader({ request, context }: Route.LoaderArgs) {
   const { sessionId, setCookieHeader } = resolveGuestSession(request);
   const correlationId = getOrCreateCorrelationId(request, context);
+  triggerPortalGuestSessionBinding(
+    request,
+    sessionId,
+    getRequestContext(context)?.logger,
+    '/cadence',
+  );
   return data(
     {
       correlationId,
@@ -95,6 +102,7 @@ export async function action({ request, context }: Route.ActionArgs) {
     'X-Correlation-Id': correlationId,
     ...(setCookieHeader ? { 'Set-Cookie': setCookieHeader } : {}),
   };
+  triggerPortalGuestSessionBinding(request, sessionId, logger, '/cadence');
 
   const actionCtx = {
     sessionId,

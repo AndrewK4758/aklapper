@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
+import { createDbPool } from '@aklapper/db';
 import {
   assertSsrHealthz,
   gotoStreamedPage,
@@ -482,6 +483,228 @@ test.describe('admin SSR end-to-end journeys', () => {
       });
     } finally {
       await cleanupIsolatedAuthState([], rateKeys);
+    }
+  });
+
+  test('cross-filters visitor analytics, deep-links Contact badge to /inbox Visitor Context strip, and removes PII on inbox delete', async ({
+    page,
+  }, testInfo) => {
+    test.skip(!HAS_DATABASE_URL, 'Requires DATABASE_URL for analytics + inbox verification');
+
+    const getErrors = trackPageErrors(page);
+    const projectName = testInfo.project.name;
+    const suffix = `${projectName}-${Date.now()}-${randomUUID().slice(0, 6)}`.toLowerCase();
+    const handle = `e2e-an-${suffix}`;
+    const password = `E2ePass-${randomUUID()}`;
+    const testIp = buildIsolatedTestIp(projectName, 8);
+    const rateKeys = [
+      `auth:login:ip:${sha256Hex(testIp)}`,
+      `auth:login:handle:${sha256Hex(handle)}`,
+    ];
+
+    const humanSessionId = `sess_e2e_human_${suffix}`;
+    const botSessionId = `sess_e2e_bot_${suffix}`;
+    const adminSessionId = `sess_e2e_admin_${suffix}`;
+    const guestSessionId = `guest_e2e_${suffix}`;
+    const askAttemptId = randomUUID();
+    const contactName = `Ada E2E ${suffix}`;
+    const contactEmail = `ada-${suffix}@example.com`;
+    const orgName = `E2E Org ${suffix}`;
+    const refSource = `linkedin-${suffix}.example`;
+    const campaignTag = `camp_${suffix.slice(0, 20)}`;
+    const promptExcerpt = `Evaluate distributed Go and GCP experience ${suffix}`;
+    let submissionId = '';
+
+    await seedIsolatedAdmin(handle, password);
+    const pool = createDbPool();
+    try {
+      const nowIso = new Date().toISOString();
+      await pool.query(
+        `INSERT INTO analytics_sessions (
+           session_id, app, is_bot, ip_hash, visitor_hash, guest_session_id,
+           referrer, referrer_host, referrer_category, landing_path,
+           ref_param, utm_source, utm_campaign,
+           country, region, city, timezone, asn, asn_org,
+           device_type, os_name, browser_name, started_at, last_seen_at
+         ) VALUES
+           ($1, 'portal', false, $2, $3, $4,
+            $5, $6, 'social', '/about',
+            $7, 'linkedin', $7,
+            'US', 'GA', 'Atlanta', 'America/New_York', 64512, $8,
+            'desktop', 'macOS', 'Chrome', $9::timestamptz, $9::timestamptz),
+           ($10, 'portal', true, $11, $12, NULL,
+            NULL, $6, 'social', '/about',
+            NULL, NULL, NULL,
+            'US', 'CA', 'Mountain View', 'America/Los_Angeles', 15169, 'Google LLC',
+            'bot', 'Linux', 'Googlebot', $9::timestamptz, $9::timestamptz),
+           ($13, 'admin', false, $14, $15, NULL,
+            NULL, $6, 'direct', '/analytics',
+            NULL, NULL, NULL,
+            'US', 'GA', 'Atlanta', 'America/New_York', 64512, $8,
+            'desktop', 'macOS', 'Chrome', $9::timestamptz, $9::timestamptz)`,
+        [
+          humanSessionId,
+          sha256Hex(`ip:${suffix}`).slice(0, 32),
+          sha256Hex(`vis:${suffix}`).slice(0, 32),
+          guestSessionId,
+          `https://${refSource}/feed/1`,
+          refSource,
+          campaignTag,
+          orgName,
+          nowIso,
+          botSessionId,
+          sha256Hex(`botip:${suffix}`).slice(0, 32),
+          sha256Hex(`botvis:${suffix}`).slice(0, 32),
+          adminSessionId,
+          sha256Hex(`admip:${suffix}`).slice(0, 32),
+          sha256Hex(`admvis:${suffix}`).slice(0, 32),
+        ],
+      );
+
+      // 1 page_view + 4 web_vitals + 1 pane_open + 1 about_outbound_click to prove Top Paths ignores CWV
+      await pool.query(
+        `INSERT INTO analytics_events (session_id, type, name, path, value, metadata_json, created_at)
+         VALUES
+           ($1, 'page_view', 'portal_page_view', '/about', NULL, '{"app":"portal","navigation":"ssr"}'::jsonb, $2::timestamptz),
+           ($1, 'web_vital', 'LCP', '/about', 1100, '{}'::jsonb, $2::timestamptz),
+           ($1, 'web_vital', 'INP', '/about', 45, '{}'::jsonb, $2::timestamptz),
+           ($1, 'web_vital', 'CLS', '/about', 0.01, '{}'::jsonb, $2::timestamptz),
+           ($1, 'web_vital', 'TTFB', '/about', 90, '{}'::jsonb, $2::timestamptz),
+           ($1, 'interaction', 'pane_open', '/about', NULL, '{"surface":"desktop"}'::jsonb, $2::timestamptz),
+           ($1, 'interaction', 'about_outbound_click', '/about', NULL, '{"target":"github"}'::jsonb, $2::timestamptz)`,
+        [humanSessionId, nowIso],
+      );
+
+      await pool.query(
+        `INSERT INTO ask_turns (
+           attempt_id, session_id, role, mode, prompt_hash, status,
+           tokens_reserved, tokens_used, correlation_id, prompt_text,
+           created_at, updated_at, lease_expires_at, expires_at
+         ) VALUES (
+           $1, $2, 'guest', 'jd_match', $3, 'completed',
+           420, 420, $4, $5,
+           $6::timestamptz, $6::timestamptz, $6::timestamptz + interval '1 minute', $6::timestamptz + interval '15 minutes'
+         )`,
+        [
+          askAttemptId,
+          guestSessionId,
+          sha256Hex(promptExcerpt),
+          `corr-ask-${suffix}`,
+          promptExcerpt,
+          nowIso,
+        ],
+      );
+
+      const inserted = await pool.query<{ id: string }>(
+        `INSERT INTO contact_submissions (
+           name, email, message, analytics_session_id, guest_session_id, created_at
+         ) VALUES ($1, $2, $3, $4, $5, $6::timestamptz)
+         RETURNING id::text AS id`,
+        [
+          contactName,
+          contactEmail,
+          'Interested in discussing distributed Go and TypeScript systems.',
+          humanSessionId,
+          guestSessionId,
+          nowIso,
+        ],
+      );
+      submissionId = inserted.rows[0]!.id;
+    } finally {
+      await pool.end();
+    }
+
+    await page.setExtraHTTPHeaders({ 'x-forwarded-for': testIp });
+
+    try {
+      const analyticsUrl = `/analytics?window=7d&country=US&source=${encodeURIComponent(refSource)}&identified=true`;
+      await gotoStreamedPage(page, analyticsUrl, { waitUntil: 'networkidle' });
+      await expect(page).toHaveURL(/\/login\?next=/);
+
+      await page.getByLabel('Admin Handle', { exact: true }).fill(handle);
+      await page.getByLabel('Password', { exact: true }).fill(password);
+      await page.getByRole('button', { name: 'Sign in with Password' }).click();
+
+      const continueBtn = page.getByRole('button', { name: 'Continue to Console' });
+      await expect(continueBtn).toBeVisible();
+      await continueBtn.click();
+
+      await expect(page).toHaveURL(
+        new RegExp(`/analytics\\?.*source=${refSource.replaceAll('.', '\\.')}`),
+      );
+      await waitForStreamedReveal(page);
+
+      // Top Paths reports 1 view for /about (not 5 inflated by 4 CWV samples)
+      const topPathsSection = page.locator('section', { hasText: 'Top Paths' }).first();
+      await expect(topPathsSection).toBeVisible();
+      const aboutRow = topPathsSection.locator('tbody tr', { hasText: '/about' }).first();
+      await expect(aboutRow.locator('td').nth(1)).toHaveText('1');
+      await expect(aboutRow.locator('td').nth(2)).toHaveText('1');
+
+      // Recent Visitors shows location, ASN org, expandable trail, and Contact Name badge
+      const recentVisitors = page.getByTestId('analytics-recent-visitors');
+      await expect(recentVisitors).toContainText('Atlanta, GA, US');
+      await expect(recentVisitors).toContainText(orgName);
+      await recentVisitors.locator('summary').first().click();
+      await expect(recentVisitors).toContainText('about_outbound_click');
+
+      // Visitor Q&A / JD Match feed renders durable redacted excerpt
+      const askFeed = page.getByTestId('analytics-ask-feed');
+      await expect(askFeed).toContainText('JD Match');
+      await expect(askFeed).toContainText(promptExcerpt);
+
+      // Click Contact Name badge -> deep-link /inbox?selected=<uuid> with compact Visitor Context strip
+      const contactBadge = page.getByTestId(`visitor-contact-link-${submissionId}`);
+      await expect(contactBadge).toBeVisible();
+      await contactBadge.click();
+
+      await expect(page).toHaveURL(new RegExp(`/inbox\\?selected=${submissionId}$`));
+      await waitForStreamedReveal(page);
+      const detail = page.getByRole('article', { name: 'Selected submission detail' });
+      await expect(detail).toContainText(contactName);
+
+      const visitorContext = page.getByTestId('inbox-visitor-context');
+      await expect(visitorContext).toContainText('Atlanta, GA, US');
+      await expect(visitorContext).toContainText(orgName);
+      await expect(visitorContext).toContainText(refSource);
+      await expect(visitorContext).toContainText(campaignTag);
+      await expect(visitorContext).toContainText('/about');
+      await expect(visitorContext).toContainText(promptExcerpt);
+
+      // Delete the submission in /inbox and verify PII disappears immediately from /analytics while anonymous session persists
+      await page.getByRole('button', { name: 'Delete Submission' }).click();
+      await page.getByRole('button', { name: 'Confirm Delete' }).click();
+      await expect(page.getByText(/Contact submission deleted from PostgreSQL 19/i)).toBeVisible();
+
+      await gotoStreamedPage(
+        page,
+        `/analytics?window=7d&country=US&source=${encodeURIComponent(refSource)}`,
+        { waitUntil: 'networkidle' },
+      );
+      await waitForStreamedReveal(page);
+      const bodyAfterDelete = await page.locator('body').innerText();
+      expect(bodyAfterDelete).not.toContain(contactName);
+      expect(bodyAfterDelete).not.toContain(contactEmail);
+      await expect(page.getByTestId('analytics-recent-visitors')).toContainText(orgName);
+
+      expect(getErrors()).toEqual([]);
+    } finally {
+      const cleanupPool = createDbPool();
+      try {
+        if (submissionId) {
+          await cleanupPool.query('DELETE FROM contact_submissions WHERE id = $1::uuid', [
+            submissionId,
+          ]);
+        }
+        await cleanupPool.query('DELETE FROM ask_turns WHERE attempt_id = $1', [askAttemptId]);
+        await cleanupPool.query(
+          'DELETE FROM analytics_sessions WHERE session_id = ANY($1::text[])',
+          [[humanSessionId, botSessionId, adminSessionId]],
+        );
+      } finally {
+        await cleanupPool.end();
+      }
+      await cleanupIsolatedAuthState([handle], rateKeys);
     }
   });
 });

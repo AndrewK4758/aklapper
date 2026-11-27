@@ -160,7 +160,7 @@ func TestStreamingMultiTurnRecallCrossSessionIsolationAndPromptRedaction(t *test
 		t.Fatalf("cross-session spoof should see 0 history and run 0 additional rewrites, got %d", provider.rewriteCalls.Load())
 	}
 
-	// Unary jd_match stores empty/NULL prompt_text
+	// Unary jd_match persists a privacy-redacted prompt_text excerpt bounded to <= 1000 runes
 	attJD := "11111111-1111-4111-8111-111111111104"
 	bodyJD, _ := json.Marshal(map[string]any{
 		"mode":           "jd_match",
@@ -175,8 +175,8 @@ func TestStreamingMultiTurnRecallCrossSessionIsolationAndPromptRedaction(t *test
 	if err != nil {
 		t.Fatalf("GetTurnByAttemptID jd_match: %v", err)
 	}
-	if storedJD.PromptText != "" {
-		t.Fatalf("expected empty/NULL prompt_text for jd_match, got %q", storedJD.PromptText)
+	if !strings.Contains(storedJD.PromptText, "Staff Platform Engineer") {
+		t.Fatalf("expected redacted non-empty prompt_text excerpt for jd_match, got %q", storedJD.PromptText)
 	}
 	_ = contracts.TurnStatusCompleted
 }

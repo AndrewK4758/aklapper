@@ -12,8 +12,15 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { createRoutesStub, RouterContextProvider } from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-const { loadPortalRootDataWithPrerenderMock, reportPortalPublicErrorMock } = vi.hoisted(() => ({
+const {
+  loadPortalRootDataWithPrerenderMock,
+  capturePortalSsrHitMock,
+  getSharedDbMock,
+  reportPortalPublicErrorMock,
+} = vi.hoisted(() => ({
   loadPortalRootDataWithPrerenderMock: vi.fn<() => Promise<PortalRootLoaderData>>(),
+  capturePortalSsrHitMock: vi.fn<(...args: unknown[]) => Promise<unknown>>(async () => null),
+  getSharedDbMock: vi.fn<() => Record<string, never>>(() => ({})),
   reportPortalPublicErrorMock: vi.fn<(error: unknown, context?: unknown) => void>(),
 }));
 
@@ -22,6 +29,8 @@ vi.mock('@aklapper/db', async importOriginal => {
   return {
     ...actual,
     loadPortalRootDataWithPrerender: loadPortalRootDataWithPrerenderMock,
+    capturePortalSsrHit: capturePortalSsrHitMock,
+    getSharedDb: getSharedDbMock,
   };
 });
 
@@ -748,5 +757,75 @@ describe('PortalRoot', () => {
     expect(await screen.findByText('Welcome Launcher')).toBeTruthy();
     fireEvent.click(screen.getByRole('link', { name: 'Skills' }));
     expect(await screen.findByText('Agensi Route Content')).toBeTruthy();
+  });
+
+  it('launches non-blocking SSR hit capture on navigable GET and skips 404, Single Fetch .data, non-GET, prerender, and missing DATABASE_URL', async () => {
+    const origDbUrl = process.env['DATABASE_URL'];
+    const origPrerender = process.env['IS_RR_BUILD_REQUEST'];
+    const origAuthSecret = process.env['INTERNAL_AUTH_SECRET'];
+
+    try {
+      process.env['DATABASE_URL'] = 'postgres://localhost:5432/test';
+      delete process.env['IS_RR_BUILD_REQUEST'];
+      delete process.env['INTERNAL_AUTH_SECRET'];
+
+      loadPortalRootDataWithPrerenderMock.mockResolvedValue({
+        chrome: CHROME_FIXTURE,
+        terminal: TERMINAL_FIXTURE,
+      });
+
+      // Never-resolving capture promise must NOT block synchronous loader return
+      capturePortalSsrHitMock.mockImplementationOnce(() => new Promise(() => undefined));
+
+      const { args: navigableArgs } = makeRootLoaderArgs(
+        'https://andrew-k.us/about?ref=recruiter',
+        { 'user-agent': 'Mozilla/5.0' },
+        'corr-ssr-hit',
+      );
+      const result = loader(navigableArgs);
+      expect(result.isNotFound).toBe(false);
+      expect(result.rootPayload).not.toBeNull();
+      expect(capturePortalSsrHitMock).toHaveBeenCalledTimes(1);
+      expect(capturePortalSsrHitMock).toHaveBeenCalledWith(
+        expect.anything(),
+        navigableArgs.request,
+        expect.objectContaining({
+          pathname: '/about',
+          guestSessionId: null,
+          correlationId: 'corr-ssr-hit',
+          timeoutMs: 1_500,
+        }),
+      );
+
+      // Zero SSR capture on 404, Single Fetch .data, non-GET, prerender, or absent DATABASE_URL
+      capturePortalSsrHitMock.mockClear();
+      const { args: notFoundArgs } = makeRootLoaderArgs('https://andrew-k.us/does-not-exist');
+      expect(loader(notFoundArgs).isNotFound).toBe(true);
+      const { args: dataArgs } = makeRootLoaderArgs('https://andrew-k.us/about.data');
+      loader(dataArgs);
+      const { args: rootDataArgs } = makeRootLoaderArgs('https://andrew-k.us/_.data');
+      loader(rootDataArgs);
+      const postArgs = {
+        ...makeRootLoaderArgs('https://andrew-k.us/about').args,
+        request: new Request('https://andrew-k.us/about', { method: 'POST' }),
+      };
+      loader(postArgs);
+
+      process.env['IS_RR_BUILD_REQUEST'] = 'yes';
+      loader(makeRootLoaderArgs('https://andrew-k.us/').args);
+      delete process.env['IS_RR_BUILD_REQUEST'];
+
+      delete process.env['DATABASE_URL'];
+      loader(makeRootLoaderArgs('https://andrew-k.us/').args);
+
+      expect(capturePortalSsrHitMock).not.toHaveBeenCalled();
+    } finally {
+      if (origDbUrl === undefined) delete process.env['DATABASE_URL'];
+      else process.env['DATABASE_URL'] = origDbUrl;
+      if (origPrerender === undefined) delete process.env['IS_RR_BUILD_REQUEST'];
+      else process.env['IS_RR_BUILD_REQUEST'] = origPrerender;
+      if (origAuthSecret === undefined) delete process.env['INTERNAL_AUTH_SECRET'];
+      else process.env['INTERNAL_AUTH_SECRET'] = origAuthSecret;
+    }
   });
 });

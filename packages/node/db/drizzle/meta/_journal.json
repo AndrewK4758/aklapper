@@ -71,6 +71,13 @@
       "when": 1795610000000,
       "tag": "0009_retire_changes_in_progress_links",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1795620000000,
+      "tag": "0010_visitor_analytics_enrichment",
+      "breakpoints": true
     }
   ]
 }

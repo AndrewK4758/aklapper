@@ -42,13 +42,13 @@ var storageAllowedTechPrefixes = map[string]struct{}{
 	"TIER": {}, "TLS": {}, "TS": {}, "UDP": {}, "US": {}, "UTF": {}, "UUID": {}, "WCAG": {}, "XML": {},
 }
 
-// StripInvisibleAndNormalize applies NFKC normalization and strips invisible Unicode format (Cf) runes.
+// StripInvisibleAndNormalize applies NFKC normalization and strips NUL and invisible Unicode format (Cf) runes.
 func StripInvisibleAndNormalize(raw string) string {
 	nfkc := norm.NFKC.String(raw)
 	var b strings.Builder
 	b.Grow(len(nfkc))
 	for _, r := range nfkc {
-		if unicode.Is(unicode.Cf, r) {
+		if r == 0 || unicode.Is(unicode.Cf, r) {
 			continue
 		}
 		b.WriteRune(r)
@@ -56,7 +56,7 @@ func StripInvisibleAndNormalize(raw string) string {
 	return b.String()
 }
 
-// FoldDiacriticsAndInvisible decomposes via NFKD, strips invisible format (Cf) and
+// FoldDiacriticsAndInvisible decomposes via NFKD, strips NUL, invisible format (Cf), and
 // non-spacing combining mark (Mn) runes, and recomposes canonical NFKC (preserving
 // Hangul syllables and Indic clusters) for whole-document and storage confidentiality gates.
 func FoldDiacriticsAndInvisible(raw string) string {
@@ -64,7 +64,7 @@ func FoldDiacriticsAndInvisible(raw string) string {
 	var b strings.Builder
 	b.Grow(len(nfkd))
 	for _, r := range nfkd {
-		if unicode.Is(unicode.Cf, r) || unicode.Is(unicode.Mn, r) {
+		if r == 0 || unicode.Is(unicode.Cf, r) || unicode.Is(unicode.Mn, r) {
 			continue
 		}
 		b.WriteRune(r)

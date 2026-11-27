@@ -274,6 +274,119 @@ jobs:
           username: oauth2accesstoken
           password: ${{ steps.auth.outputs.access_token }}
 
+      - name: Resolve GeoLite2 weekly cache key (portal)
+        id: geolite2-meta
+        if: matrix.service == 'portal'
+        shell: bash
+        env:
+          MAXMIND_ACCOUNT_ID: ${{ secrets.MAXMIND_ACCOUNT_ID }}
+          MAXMIND_LICENSE_KEY: ${{ secrets.MAXMIND_LICENSE_KEY }}
+        run: |
+          if [ -n "$MAXMIND_ACCOUNT_ID" ] && [ -n "$MAXMIND_LICENSE_KEY" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+            echo "epoch=$(date -u +%G-W%V)" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "epoch=disabled" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Restore cached GeoLite2 MMDB binaries (portal)
+        id: geolite2-cache
+        if: matrix.service == 'portal' && steps.geolite2-meta.outputs.enabled == 'true'
+        uses: actions/cache/restore@v6
+        with:
+          path: apps/portal/portal/data/geolite2
+          key: geolite2-mmdb-${{ steps.geolite2-meta.outputs.epoch }}
+
+      - name: Download and verify GeoLite2 MMDB binaries (portal)
+        id: geolite2-stage
+        if: >-
+          matrix.service == 'portal' &&
+          steps.geolite2-meta.outputs.enabled == 'true' &&
+          steps.geolite2-cache.outputs.cache-hit != 'true'
+        shell: bash
+        env:
+          MAXMIND_ACCOUNT_ID: ${{ secrets.MAXMIND_ACCOUNT_ID }}
+          MAXMIND_LICENSE_KEY: ${{ secrets.MAXMIND_LICENSE_KEY }}
+        run: |
+          node --input-type=module -e '
+            import { execFileSync } from "node:child_process";
+            import { appendFileSync, copyFileSync, lstatSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+            import { tmpdir } from "node:os";
+            import { join } from "node:path";
+
+            const targetDir = "apps/portal/portal/data/geolite2";
+            const editions = ["GeoLite2-City", "GeoLite2-ASN"];
+            const magic = Buffer.concat([Buffer.from([0xab, 0xcd, 0xef]), Buffer.from("MaxMind.com", "ascii")]);
+            const auth = Buffer.from(`${process.env.MAXMIND_ACCOUNT_ID}:${process.env.MAXMIND_LICENSE_KEY}`).toString("base64");
+            const outFile = process.env.GITHUB_OUTPUT;
+
+            function cleanPartials() {
+              for (const entry of readdirSync(targetDir)) {
+                if (entry.endsWith(".mmdb")) rmSync(join(targetDir, entry), { force: true });
+              }
+            }
+
+            function findFile(dir, filename) {
+              for (const entry of readdirSync(dir)) {
+                const full = join(dir, entry);
+                const st = lstatSync(full);
+                if (st.isSymbolicLink()) continue;
+                if (st.isDirectory()) {
+                  const found = findFile(full, filename);
+                  if (found) return found;
+                } else if (st.isFile() && entry === filename) {
+                  return full;
+                }
+              }
+              return null;
+            }
+
+            const workDir = mkdtempSync(join(tmpdir(), "geolite2-stage-"));
+            try {
+              for (const edition of editions) {
+                const url = `https://download.maxmind.com/geoip/databases/${edition}/download?suffix=tar.gz`;
+                const res = await fetch(url, {
+                  headers: { Authorization: `Basic ${auth}` },
+                  redirect: "follow",
+                  signal: AbortSignal.timeout(30_000),
+                });
+                if (!res.ok) {
+                  throw new Error(`${edition} download failed with HTTP ${res.status}`);
+                }
+                const archivePath = join(workDir, `${edition}.tar.gz`);
+                const extractDir = join(workDir, edition);
+                writeFileSync(archivePath, Buffer.from(await res.arrayBuffer()));
+                execFileSync("mkdir", ["-p", extractDir]);
+                execFileSync("tar", ["-xzf", archivePath, "-C", extractDir]);
+                const mmdbPath = findFile(extractDir, `${edition}.mmdb`);
+                if (!mmdbPath) {
+                  throw new Error(`${edition}.mmdb missing in extracted archive`);
+                }
+                const bytes = readFileSync(mmdbPath);
+                if (!bytes.includes(magic)) {
+                  throw new Error(`${edition}.mmdb failed MaxMind metadata marker verification`);
+                }
+                copyFileSync(mmdbPath, join(targetDir, `${edition}.mmdb`));
+              }
+              if (outFile) appendFileSync(outFile, "geolite2_ready=true\n");
+            } catch (err) {
+              cleanPartials();
+              const msg = err instanceof Error ? err.message : String(err);
+              console.log(`::warning::GeoLite2 pre-build staging degraded softly (${msg}); building portal without bundled MMDB files and skipping cache save.`);
+              if (outFile) appendFileSync(outFile, "geolite2_ready=false\n");
+            } finally {
+              rmSync(workDir, { recursive: true, force: true });
+            }
+          '
+
+      - name: Save verified GeoLite2 MMDB cache (portal)
+        if: matrix.service == 'portal' && steps.geolite2-stage.outputs.geolite2_ready == 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: apps/portal/portal/data/geolite2
+          key: geolite2-mmdb-${{ steps.geolite2-meta.outputs.epoch }}
+
       - name: Build and push image
         uses: docker/build-push-action@v7
         with:

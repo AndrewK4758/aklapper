@@ -17,14 +17,20 @@ import {
   getSharedDb,
   insertContactSubmission,
   loadPortalContactData,
+  recordContactSubmittedAnalyticsEvent,
 } from '@aklapper/db';
-import { extractRightmostForwardedIp } from '@aklapper/node-runtime/http';
+import { resolveAnalyticsClientIp } from '@aklapper/node-runtime/analytics';
 import {
   createFallbackLogger,
   getOrCreateCorrelationId,
   logDiagnosticError,
   type SsrStructuredLogger,
 } from '@aklapper/node-runtime/ssr/stream';
+
+import {
+  emitContactAnalyticsCommitAudit,
+  resolvePortalContactAnalyticsLink,
+} from './contact-analytics-link.server';
 
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX_REQUESTS = 20;
@@ -36,15 +42,9 @@ export function resetContactRateLimiterForTest(): void {
 export function resolveClientKey(request: Request): string {
   const headers = request.headers;
   if (!headers || typeof headers.get !== 'function') {
-    return 'local-client';
+    return '127.0.0.1';
   }
-  const forwardedIp = extractRightmostForwardedIp(headers.get('x-forwarded-for'));
-  if (forwardedIp) {
-    return forwardedIp;
-  }
-  const realIp = headers.get('x-real-ip')?.trim();
-  if (realIp) return realIp;
-  return 'local-client';
+  return resolveAnalyticsClientIp(request);
 }
 
 function buildContactRateLimitScopeKey(clientKey: string): string {
@@ -319,8 +319,21 @@ export async function processContactSubmission(
     };
   }
 
+  const analyticsLink = await resolvePortalContactAnalyticsLink(db, request, formData, {
+    correlationId,
+    logger,
+  });
+
+  let fkFallbackUsed = false;
+
   try {
-    const submission = await insertContactSubmission(db, parsed.data);
+    const submission = await insertContactSubmission(db, parsed.data, {
+      analyticsSessionId: analyticsLink.analyticsSessionId,
+      guestSessionId: analyticsLink.guestSessionId,
+      onAnalyticsSessionFkFallback: () => {
+        fkFallbackUsed = true;
+      },
+    });
     if (!submission?.id) {
       emitOutcomeAuditGap(correlationId, 'insertContactSubmission resolved without submission.id');
       return buildClassifiedContactFailure(
@@ -330,6 +343,25 @@ export async function processContactSubmission(
         logger,
       );
     }
+
+    const effectiveAnalyticsSessionId = fkFallbackUsed ? null : analyticsLink.analyticsSessionId;
+    const effectiveLinkMethod = fkFallbackUsed ? 'fail_open_null' : analyticsLink.linkMethod;
+
+    if (effectiveAnalyticsSessionId) {
+      await recordContactSubmittedAnalyticsEvent(
+        db,
+        effectiveAnalyticsSessionId,
+        undefined,
+        logger,
+      );
+    }
+    emitContactAnalyticsCommitAudit(logger, {
+      submissionId: submission.id,
+      linkMethod: effectiveLinkMethod,
+      linkedSessionPresent: effectiveAnalyticsSessionId !== null,
+      guestSessionLinked: analyticsLink.guestSessionId !== null,
+      correlationId,
+    });
 
     return {
       status: 201,

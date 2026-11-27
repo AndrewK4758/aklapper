@@ -7,29 +7,26 @@ import {
   AdminAnalyticsLoaderDataSchema,
   AdminAnalyticsSummaryDataSchema,
   type AdminAnalyticsSummaryData,
-  type AdminAnalyticsWindow,
-  AdminAnalyticsWindowSchema,
   type AgensiConversionRow,
   type AnalyticsBreakdownRow,
   type CwvMetricName,
   type CwvPercentileRow,
 } from '@aklapper/core';
-import { count, gte, sql } from 'drizzle-orm';
+import { sql } from 'drizzle-orm';
 
+import {
+  type AdminAnalyticsFilterInput,
+  buildAnalyticsSessionWhere,
+  loadAdminAnalyticsDailyTrend,
+  loadAdminAnalyticsExtendedBreakdowns,
+  normalizeAdminAnalyticsFilter,
+  resolveAnalyticsWindowCutoff,
+  toAnalyticsNumber,
+} from './admin-analytics-visitors.ts';
 import type { AppDatabase } from './client.ts';
 import { getSiteContent, SITE_CONTENT_KEYS } from './queries.ts';
-import * as schema from './schema.ts';
 
 const CWV_METRICS: readonly CwvMetricName[] = ['LCP', 'INP', 'CLS', 'TTFB'];
-
-function toNumber(value: unknown): number {
-  if (typeof value === 'number' && Number.isFinite(value)) return value;
-  if (typeof value === 'string' && value.trim().length > 0) {
-    const parsed = Number(value);
-    if (Number.isFinite(parsed)) return parsed;
-  }
-  return 0;
-}
 
 function toNullableNumber(value: unknown): number | null {
   if (value === null || value === undefined) return null;
@@ -41,66 +38,91 @@ function toNullableNumber(value: unknown): number | null {
   return null;
 }
 
-function resolveAnalyticsWindowCutoff(window: AdminAnalyticsWindow): Date | null {
-  const now = Date.now();
-  switch (window) {
-    case '24h':
-      return new Date(now - 24 * 60 * 60 * 1000);
-    case '7d':
-      return new Date(now - 7 * 24 * 60 * 60 * 1000);
-    case '30d':
-      return new Date(now - 30 * 24 * 60 * 60 * 1000);
-    case 'all':
-      return null;
-  }
-}
-
 export async function loadAdminAnalyticsSummary(
   db: AppDatabase,
-  windowInput: AdminAnalyticsWindow = '7d',
+  filterInput: AdminAnalyticsFilterInput = '7d',
 ): Promise<AdminAnalyticsSummaryData> {
-  const window = AdminAnalyticsWindowSchema.parse(windowInput);
-  const cutoff = resolveAnalyticsWindowCutoff(window);
+  const filters = normalizeAdminAnalyticsFilter(filterInput);
+  const cutoff = resolveAnalyticsWindowCutoff(filters.window);
+  const sessionWhere = buildAnalyticsSessionWhere(filters, cutoff, 's');
 
-  const eventAndCutoff = cutoff ? sql`AND created_at >= ${cutoff}` : sql``;
+  const botCutoffWhere = cutoff
+    ? sql`app = 'portal' AND is_bot = true AND started_at >= ${cutoff}`
+    : sql`app = 'portal' AND is_bot = true`;
   const sandboxWhere = cutoff
     ? sql`WHERE is_golden = false AND created_at >= ${cutoff}`
     : sql`WHERE is_golden = false`;
 
   const [
     content,
-    sessionCountRows,
-    eventCountRows,
+    sessionKpiResult,
+    botCountResult,
+    eventKpiResult,
+    dailyTrend,
     cwvResult,
     sandboxMetricsResult,
     abstentionResult,
   ] = await Promise.all([
     getSiteContent(db, SITE_CONTENT_KEYS.adminAnalytics, AdminAnalyticsContentSchema),
-    cutoff
-      ? db
-          .select({ total: count() })
-          .from(schema.analyticsSessions)
-          .where(gte(schema.analyticsSessions.startedAt, cutoff))
-      : db.select({ total: count() }).from(schema.analyticsSessions),
-    cutoff
-      ? db
-          .select({ total: count() })
-          .from(schema.analyticsEvents)
-          .where(gte(schema.analyticsEvents.createdAt, cutoff))
-      : db.select({ total: count() }).from(schema.analyticsEvents),
+    db.execute(sql`
+      WITH filtered AS (
+        SELECT
+          s.session_id,
+          COALESCE(s.visitor_hash, s.ip_hash, s.session_id) AS visitor_key
+        FROM analytics_sessions s
+        WHERE ${sessionWhere}
+      ),
+      visitor_counts AS (
+        SELECT visitor_key, COUNT(*)::int AS sess_count
+        FROM filtered
+        GROUP BY visitor_key
+      )
+      SELECT
+        (SELECT COUNT(*)::int FROM filtered) AS total_sessions,
+        (SELECT COUNT(*)::int FROM visitor_counts) AS unique_visitors,
+        (SELECT COUNT(*)::int FROM visitor_counts WHERE sess_count > 1) AS returning_visitors,
+        (
+          SELECT COUNT(DISTINCT cs.id)::int
+          FROM contact_submissions cs
+          INNER JOIN filtered f ON f.session_id = cs.analytics_session_id
+        ) AS identified_leads
+    `),
+    db.execute(sql`
+      SELECT COUNT(*)::int AS bot_sessions
+      FROM analytics_sessions
+      WHERE ${botCutoffWhere}
+    `),
     db.execute(sql`
       SELECT
-        name AS metric,
+        COUNT(*)::int AS total_events,
+        COUNT(*) FILTER (WHERE e.type = 'page_view')::int AS total_page_views,
+        COUNT(*) FILTER (
+          WHERE (e.type = 'page_view' AND e.path = '/about')
+             OR (e.name = 'pane_open' AND e.path = '/about')
+        )::int AS profile_views,
+        COUNT(*) FILTER (
+          WHERE e.name IN ('about_outbound_click', 'agensi_outbound_click', 'contact_submitted')
+             OR (e.type = 'page_view' AND e.path IN ('/contact', '/chat'))
+        )::int AS high_intent_actions
+      FROM analytics_events e
+      INNER JOIN analytics_sessions s ON s.session_id = e.session_id
+      WHERE ${sessionWhere}
+    `),
+    loadAdminAnalyticsDailyTrend(db, sessionWhere),
+    db.execute(sql`
+      SELECT
+        e.name AS metric,
         COUNT(*)::int AS sample_count,
-        percentile_cont(0.5) WITHIN GROUP (ORDER BY value) AS p50,
-        percentile_cont(0.75) WITHIN GROUP (ORDER BY value) AS p75,
-        percentile_cont(0.95) WITHIN GROUP (ORDER BY value) AS p95
-      FROM analytics_events
-      WHERE type = 'web_vital'
-        AND name IN ('LCP', 'INP', 'CLS', 'TTFB')
-        AND value IS NOT NULL
-        ${eventAndCutoff}
-      GROUP BY name
+        percentile_cont(0.5) WITHIN GROUP (ORDER BY e.value) AS p50,
+        percentile_cont(0.75) WITHIN GROUP (ORDER BY e.value) AS p75,
+        percentile_cont(0.95) WITHIN GROUP (ORDER BY e.value) AS p95
+      FROM analytics_events e
+      INNER JOIN analytics_sessions s ON s.session_id = e.session_id
+      WHERE e.type = 'web_vital'
+        AND e.name IN ('LCP', 'INP', 'CLS', 'TTFB')
+        AND e.value IS NOT NULL
+        AND ${sessionWhere}
+      GROUP BY e.name
     `),
     db.execute(sql`
       SELECT
@@ -115,16 +137,17 @@ export async function loadAdminAnalyticsSummary(
     `),
     db.execute(sql`
       SELECT COUNT(*)::int AS abstentions
-      FROM analytics_events
+      FROM analytics_events e
+      INNER JOIN analytics_sessions s ON s.session_id = e.session_id
       WHERE (
-        name IN ('ask_abstained', 'ai_abstention')
+        e.name IN ('ask_abstained', 'ai_abstention')
         OR (
-          metadata_json->>'grounded' = 'false'
-          AND COALESCE(metadata_json->>'groundingTier', '') <> 'general'
-          AND COALESCE(metadata_json->>'abstained', 'true') <> 'false'
+          e.metadata_json->>'grounded' = 'false'
+          AND COALESCE(e.metadata_json->>'groundingTier', '') <> 'general'
+          AND COALESCE(e.metadata_json->>'abstained', 'true') <> 'false'
         )
       )
-        ${eventAndCutoff}
+        AND ${sessionWhere}
     `),
   ]);
 
@@ -135,7 +158,7 @@ export async function loadAdminAnalyticsSummary(
     if (metric === 'LCP' || metric === 'INP' || metric === 'CLS' || metric === 'TTFB') {
       cwvByMetric.set(metric, {
         metric,
-        sampleCount: toNumber(row['sample_count']),
+        sampleCount: toAnalyticsNumber(row['sample_count']),
         p50: toNullableNumber(row['p50']),
         p75: toNullableNumber(row['p75']),
         p95: toNullableNumber(row['p95']),
@@ -154,26 +177,39 @@ export async function loadAdminAnalyticsSummary(
       },
   );
 
+  const sessionKpiRow = (sessionKpiResult.rows[0] ?? {}) as Record<string, unknown>;
+  const botRow = (botCountResult.rows[0] ?? {}) as Record<string, unknown>;
+  const eventKpiRow = (eventKpiResult.rows[0] ?? {}) as Record<string, unknown>;
   const sandboxRow = (sandboxMetricsResult.rows[0] ?? {}) as Record<string, unknown>;
   const abstentionRow = (abstentionResult.rows[0] ?? {}) as Record<string, unknown>;
+
   const aiMetrics: AdminAiMetrics = {
-    totalRuns: toNumber(sandboxRow['total_runs']),
-    totalTokensIn: toNumber(sandboxRow['total_tokens_in']),
-    totalTokensOut: toNumber(sandboxRow['total_tokens_out']),
-    approvedGates: toNumber(sandboxRow['approved_gates']),
-    rejectedGates: toNumber(sandboxRow['rejected_gates']),
-    pendingGates: toNumber(sandboxRow['pending_gates']),
-    abstentionEvents: toNumber(abstentionRow['abstentions']),
+    totalRuns: toAnalyticsNumber(sandboxRow['total_runs']),
+    totalTokensIn: toAnalyticsNumber(sandboxRow['total_tokens_in']),
+    totalTokensOut: toAnalyticsNumber(sandboxRow['total_tokens_out']),
+    approvedGates: toAnalyticsNumber(sandboxRow['approved_gates']),
+    rejectedGates: toAnalyticsNumber(sandboxRow['rejected_gates']),
+    pendingGates: toAnalyticsNumber(sandboxRow['pending_gates']),
+    abstentionEvents: toAnalyticsNumber(abstentionRow['abstentions']),
   };
 
-  const totalSessions = sessionCountRows[0]?.total ?? 0;
-  const totalEvents = eventCountRows[0]?.total ?? 0;
+  const totalSessions = toAnalyticsNumber(sessionKpiRow['total_sessions']);
+  const totalEvents = toAnalyticsNumber(eventKpiRow['total_events']);
 
   return AdminAnalyticsSummaryDataSchema.parse({
     content,
-    window,
+    window: filters.window,
+    filters,
     totalSessions,
     totalEvents,
+    uniqueVisitors: toAnalyticsNumber(sessionKpiRow['unique_visitors']),
+    returningVisitors: toAnalyticsNumber(sessionKpiRow['returning_visitors']),
+    totalPageViews: toAnalyticsNumber(eventKpiRow['total_page_views']),
+    profileViews: toAnalyticsNumber(eventKpiRow['profile_views']),
+    highIntentActions: toAnalyticsNumber(eventKpiRow['high_intent_actions']),
+    identifiedLeads: toAnalyticsNumber(sessionKpiRow['identified_leads']),
+    botSessionsExcluded: toAnalyticsNumber(botRow['bot_sessions']),
+    dailyTrend,
     summary: { totalSessions, totalEvents },
     cwv,
     aiMetrics,
@@ -182,84 +218,101 @@ export async function loadAdminAnalyticsSummary(
 
 export async function loadAdminAnalyticsBreakdowns(
   db: AppDatabase,
-  windowInput: AdminAnalyticsWindow = '7d',
+  filterInput: AdminAnalyticsFilterInput = '7d',
 ): Promise<AdminAnalyticsBreakdownsData> {
-  const window = AdminAnalyticsWindowSchema.parse(windowInput);
-  const cutoff = resolveAnalyticsWindowCutoff(window);
+  const filters = normalizeAdminAnalyticsFilter(filterInput);
+  const cutoff = resolveAnalyticsWindowCutoff(filters.window);
+  const sessionWhere = buildAnalyticsSessionWhere(filters, cutoff, 's');
 
-  const sessionWhere = cutoff ? sql`WHERE started_at >= ${cutoff}` : sql``;
-  const eventWhere = cutoff ? sql`WHERE created_at >= ${cutoff}` : sql``;
-  const eventAndCutoff = cutoff ? sql`AND created_at >= ${cutoff}` : sql``;
-
-  const [topPathsResult, topReferrersResult, geoResult, agensiResult] = await Promise.all([
-    db.execute(sql`
-      SELECT
-        path AS label,
-        COUNT(*)::int AS total
-      FROM analytics_events
-      ${eventWhere}
-      GROUP BY path
-      ORDER BY total DESC, path ASC
-      LIMIT 10
-    `),
-    db.execute(sql`
-      SELECT
-        COALESCE(NULLIF(BTRIM(referrer), ''), 'direct') AS label,
-        COUNT(*)::int AS total
-      FROM analytics_sessions
-      ${sessionWhere}
-      GROUP BY COALESCE(NULLIF(BTRIM(referrer), ''), 'direct')
-      ORDER BY total DESC, label ASC
-      LIMIT 10
-    `),
-    db.execute(sql`
-      SELECT
-        COALESCE(NULLIF(BTRIM(country), ''), 'Unknown') AS country_label,
-        COALESCE(NULLIF(BTRIM(region), ''), '—') AS region_label,
-        COUNT(*)::int AS total
-      FROM analytics_sessions
-      ${sessionWhere}
-      GROUP BY
-        COALESCE(NULLIF(BTRIM(country), ''), 'Unknown'),
-        COALESCE(NULLIF(BTRIM(region), ''), '—')
-      ORDER BY total DESC, country_label ASC
-      LIMIT 10
-    `),
-    db.execute(sql`
-      SELECT
-        COALESCE(NULLIF(BTRIM(metadata_json->>'slug'), ''), path) AS slug,
-        COUNT(*)::int AS clicks
-      FROM analytics_events
-      WHERE name = 'agensi_outbound_click'
-        ${eventAndCutoff}
-      GROUP BY COALESCE(NULLIF(BTRIM(metadata_json->>'slug'), ''), path)
-      ORDER BY clicks DESC, slug ASC
-      LIMIT 15
-    `),
-  ]);
+  const [topPathsResult, topReferrersResult, geoResult, agensiResult, extended] = await Promise.all(
+    [
+      db.execute(sql`
+        SELECT
+          e.path AS label,
+          COUNT(*)::int AS total,
+          COUNT(DISTINCT COALESCE(s.visitor_hash, s.ip_hash, s.session_id))::int AS unique_visitors
+        FROM analytics_events e
+        INNER JOIN analytics_sessions s ON s.session_id = e.session_id
+        WHERE e.type = 'page_view'
+          AND ${sessionWhere}
+        GROUP BY e.path
+        ORDER BY total DESC, e.path ASC
+        LIMIT 10
+      `),
+      db.execute(sql`
+        SELECT
+          COALESCE(NULLIF(BTRIM(s.referrer_host), ''), 'direct') AS label,
+          COALESCE(NULLIF(BTRIM(s.referrer_category), ''), 'direct') AS category,
+          COUNT(*)::int AS total
+        FROM analytics_sessions s
+        WHERE ${sessionWhere}
+        GROUP BY 1, 2
+        ORDER BY total DESC, label ASC
+        LIMIT 10
+      `),
+      db.execute(sql`
+        SELECT
+          COALESCE(NULLIF(BTRIM(s.country), ''), 'Unknown') AS country_label,
+          COALESCE(NULLIF(BTRIM(s.region), ''), '—') AS region_label,
+          NULLIF(BTRIM(s.city), '') AS city_label,
+          COUNT(*)::int AS total
+        FROM analytics_sessions s
+        WHERE ${sessionWhere}
+        GROUP BY 1, 2, 3
+        ORDER BY total DESC, country_label ASC
+        LIMIT 10
+      `),
+      db.execute(sql`
+        SELECT
+          COALESCE(NULLIF(BTRIM(e.metadata_json->>'slug'), ''), e.path) AS slug,
+          COUNT(*)::int AS clicks
+        FROM analytics_events e
+        INNER JOIN analytics_sessions s ON s.session_id = e.session_id
+        WHERE e.name = 'agensi_outbound_click'
+          AND ${sessionWhere}
+        GROUP BY 1
+        ORDER BY clicks DESC, slug ASC
+        LIMIT 15
+      `),
+      loadAdminAnalyticsExtendedBreakdowns(db, filters, cutoff),
+    ],
+  );
 
   const topPaths: AnalyticsBreakdownRow[] = topPathsResult.rows.map(raw => {
     const row = raw as Record<string, unknown>;
+    const label = String(row['label'] ?? '/');
+    const uniqueVisitors = toAnalyticsNumber(row['unique_visitors']);
     return {
-      label: String(row['label'] ?? '/'),
-      count: toNumber(row['total']),
+      label,
+      count: toAnalyticsNumber(row['total']),
+      uniqueVisitors,
+      secondaryLabel: `${uniqueVisitors} unique`,
+      filterValue: label,
     };
   });
 
   const topReferrers: AnalyticsBreakdownRow[] = topReferrersResult.rows.map(raw => {
     const row = raw as Record<string, unknown>;
+    const label = String(row['label'] ?? 'direct');
+    const category = String(row['category'] ?? 'direct');
     return {
-      label: String(row['label'] ?? 'direct'),
-      count: toNumber(row['total']),
+      label,
+      count: toAnalyticsNumber(row['total']),
+      secondaryLabel: category,
+      filterValue: label,
     };
   });
 
   const geoBreakdown: AnalyticsBreakdownRow[] = geoResult.rows.map(raw => {
     const row = raw as Record<string, unknown>;
+    const countryLabel = String(row['country_label'] ?? 'Unknown');
+    const regionLabel = String(row['region_label'] ?? '—');
+    const cityLabel = typeof row['city_label'] === 'string' ? row['city_label'].trim() : '';
     return {
-      label: String(row['country_label'] ?? 'Unknown'),
-      secondaryLabel: String(row['region_label'] ?? '—'),
-      count: toNumber(row['total']),
+      label: countryLabel,
+      secondaryLabel: cityLabel ? `${cityLabel}, ${regionLabel}` : regionLabel,
+      count: toAnalyticsNumber(row['total']),
+      filterValue: countryLabel,
     };
   });
 
@@ -267,7 +320,7 @@ export async function loadAdminAnalyticsBreakdowns(
     const row = raw as Record<string, unknown>;
     return {
       slug: String(row['slug'] ?? 'unknown'),
-      clicks: toNumber(row['clicks']),
+      clicks: toAnalyticsNumber(row['clicks']),
     };
   });
 
@@ -276,16 +329,17 @@ export async function loadAdminAnalyticsBreakdowns(
     topReferrers,
     geoBreakdown,
     agensiConversions,
+    ...extended,
   });
 }
 
 export async function loadAdminAnalyticsData(
   db: AppDatabase,
-  windowInput: AdminAnalyticsWindow = '7d',
+  filterInput: AdminAnalyticsFilterInput = '7d',
 ): Promise<AdminAnalyticsLoaderData> {
   const [summary, breakdowns] = await Promise.all([
-    loadAdminAnalyticsSummary(db, windowInput),
-    loadAdminAnalyticsBreakdowns(db, windowInput),
+    loadAdminAnalyticsSummary(db, filterInput),
+    loadAdminAnalyticsBreakdowns(db, filterInput),
   ]);
 
   return AdminAnalyticsLoaderDataSchema.parse({

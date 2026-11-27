@@ -1,5 +1,13 @@
+import { createDbPool } from '@aklapper/db';
 import { assertSsrHealthz, gotoStreamedPage, trackPageErrors } from '@aklapper/tooling/playwright';
 import { expect, test } from '@playwright/test';
+
+const PORTAL_PROJECT_IP_OCTET: Readonly<Record<string, number>> = {
+  chromium: 61,
+  firefox: 62,
+  webkit: 63,
+  'mobile-chrome': 64,
+};
 
 test.describe('portal SSR end-to-end journeys', () => {
   test('serves healthy Fastify SSR /healthz endpoint @smoke', async ({ request }) => {
@@ -1183,5 +1191,168 @@ test.describe('portal SSR end-to-end journeys', () => {
     }
 
     expect(getErrors()).toEqual([]);
+  });
+
+  test('tracks cookieless landing attribution, /about outbound click, and /contact session linking with zero tracking cookies or storage', async ({
+    page,
+  }, testInfo) => {
+    const getErrors = trackPageErrors(page);
+    const projectName = testInfo.project.name;
+    const clientIp = `198.51.100.${PORTAL_PROJECT_IP_OCTET[projectName] ?? 69}`;
+    const contactEmail = `e2e-analytics-${projectName}-${Date.now()}@example.com`;
+    const contactName = `E2E Visitor ${projectName}`;
+
+    await page.setExtraHTTPHeaders({ 'x-forwarded-for': clientIp });
+
+    let reconciledSessionId = '';
+    let submittedReceiptId = '';
+
+    try {
+      const ingestPromise = page.waitForResponse(
+        response =>
+          response.url().includes('/api/analytics/ingest') &&
+          response.request().method() === 'POST' &&
+          response.status() === 202,
+      );
+
+      const landingResponse = await page.goto(
+        '/about?ref=e2e_recruiter&utm_source=linkedin&utm_campaign=fall26&secret=dropme',
+        { waitUntil: 'domcontentloaded' },
+      );
+      expect(landingResponse?.status()).toBe(200);
+      expect(landingResponse?.headers()['set-cookie']).toBeUndefined();
+      await expect(
+        page.getByRole('heading', { name: 'Andrew Klapper', exact: true }),
+      ).toBeVisible();
+
+      // Zero cookies or analytics storage keys on passive landing
+      expect(await page.context().cookies()).toEqual([]);
+      const storageKeys = await page.evaluate(() => ({
+        local: Object.keys(window.localStorage),
+        session: Object.keys(window.sessionStorage),
+      }));
+      expect(storageKeys.local.some(k => /analytics|visitor|session_id/i.test(k))).toBe(false);
+      expect(storageKeys.session.some(k => /analytics|visitor|session_id/i.test(k))).toBe(false);
+
+      // Wait for prompt initial page_view flush and canonical server sessionId reconciliation
+      const firstIngestRes = await ingestPromise;
+      const firstIngestJson = (await firstIngestRes.json()) as {
+        accepted: number;
+        sessionId: string;
+        ipHash: string;
+      };
+      expect(firstIngestJson.accepted).toBeGreaterThanOrEqual(1);
+      expect(firstIngestJson.sessionId.length).toBeGreaterThan(0);
+      reconciledSessionId = firstIngestJson.sessionId;
+
+      // Click GitHub outbound link on /about without leaving the test server
+      const outboundIngestPromise = page.waitForResponse(
+        response =>
+          response.url().includes('/api/analytics/ingest') &&
+          response.request().method() === 'POST' &&
+          response.status() === 202 &&
+          (response.request().postData() ?? '').includes('about_outbound_click'),
+      );
+      const githubLink = page.getByRole('link', { name: 'github.com/AndrewK4758' }).first();
+      await githubLink.evaluate(el => {
+        el.addEventListener('click', event => event.preventDefault(), { once: true });
+      });
+      await githubLink.click();
+      const outboundRes = await outboundIngestPromise;
+      const outboundPostData = outboundRes.request().postData() ?? '';
+      expect(outboundPostData).toContain('about_outbound_click');
+      expect(outboundPostData).toContain('e2e_recruiter');
+      expect(outboundPostData).not.toContain('dropme');
+
+      // Open Contact (primary route on desktop, stacked pane on mobile) and verify reconciled analyticsSessionId
+      await page.getByTestId('about-contact-cta').click();
+      if (projectName !== 'mobile-chrome') {
+        await expect(page).toHaveURL(/\/contact$/);
+      }
+      const hiddenSessionInput = page.locator('input[name="analyticsSessionId"]').first();
+      await expect(hiddenSessionInput).toHaveValue(reconciledSessionId);
+
+      await page.getByLabel(/^Name\b/i).fill(contactName);
+      await page.getByLabel(/^Email\b/i).fill(contactEmail);
+      await page
+        .getByLabel(/^Message\b/i)
+        .fill('Verifying cookieless analytics attribution linked cleanly to contact submission.');
+      await page.getByRole('button', { name: /Transmit Message/i }).click();
+
+      const receipt = page.getByTestId('contact-receipt');
+      await expect(receipt).toBeVisible();
+      const receiptText = await receipt.innerText();
+      const uuidMatch = receiptText.match(
+        /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i,
+      );
+      expect(uuidMatch).not.toBeNull();
+      submittedReceiptId = uuidMatch![0];
+
+      // Verify PostgreSQL linkage, attribution, and zero raw IP / non-allowlisted query leak
+      if (process.env['DATABASE_URL']?.trim()) {
+        const pool = createDbPool();
+        try {
+          const contactRow = await pool.query<{ analytics_session_id: string | null }>(
+            'SELECT analytics_session_id FROM contact_submissions WHERE id = $1::uuid',
+            [submittedReceiptId],
+          );
+          expect(contactRow.rows[0]?.analytics_session_id).toBe(reconciledSessionId);
+
+          const sessionRow = await pool.query<{
+            app: string;
+            is_bot: boolean;
+            ref_param: string | null;
+            utm_source: string | null;
+            utm_campaign: string | null;
+            landing_path: string | null;
+          }>(
+            `SELECT app, is_bot, ref_param, utm_source, utm_campaign, landing_path
+             FROM analytics_sessions
+             WHERE session_id = $1`,
+            [reconciledSessionId],
+          );
+          expect(sessionRow.rows[0]).toEqual({
+            app: 'portal',
+            is_bot: false,
+            ref_param: 'e2e_recruiter',
+            utm_source: 'linkedin',
+            utm_campaign: 'fall26',
+            landing_path: '/about',
+          });
+          expect(JSON.stringify(sessionRow.rows[0])).not.toContain(clientIp);
+          expect(JSON.stringify(sessionRow.rows[0])).not.toContain('dropme');
+
+          const eventNames = await pool.query<{ name: string }>(
+            'SELECT name FROM analytics_events WHERE session_id = $1',
+            [reconciledSessionId],
+          );
+          const names = eventNames.rows.map(r => r.name);
+          expect(names).toContain('about_outbound_click');
+          expect(names).toContain('contact_submitted');
+        } finally {
+          await pool.end();
+        }
+      }
+
+      expect(getErrors()).toEqual([]);
+    } finally {
+      if (process.env['DATABASE_URL']?.trim()) {
+        const pool = createDbPool();
+        try {
+          if (submittedReceiptId) {
+            await pool.query('DELETE FROM contact_submissions WHERE id = $1::uuid', [
+              submittedReceiptId,
+            ]);
+          }
+          if (reconciledSessionId) {
+            await pool.query('DELETE FROM analytics_sessions WHERE session_id = $1', [
+              reconciledSessionId,
+            ]);
+          }
+        } finally {
+          await pool.end();
+        }
+      }
+    }
   });
 });

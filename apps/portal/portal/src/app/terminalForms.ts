@@ -1,15 +1,27 @@
 import type { ContactActionResult, FormDefinition } from '@aklapper/core';
+import { getActiveAnalyticsSessionId } from '@aklapper/core/analytics';
 import type { TerminalFormConfig, TerminalNavTarget } from '@aklapper/ui';
 import { href } from 'react-router';
 
 export async function submitPortalContactForm(formData: FormData): Promise<ContactActionResult> {
   const endpoint = href('/api/contact');
+  const payload = new FormData();
+  for (const [key, value] of formData.entries()) {
+    payload.append(key, value);
+  }
+  const existingSessionId = payload.get('analyticsSessionId');
+  if (!existingSessionId || (typeof existingSessionId === 'string' && !existingSessionId.trim())) {
+    const activeSessionId = getActiveAnalyticsSessionId();
+    if (activeSessionId) {
+      payload.set('analyticsSessionId', activeSessionId);
+    }
+  }
   let response: Response;
   try {
     response = await fetch(endpoint, {
       method: 'POST',
       headers: { Accept: 'application/json' },
-      body: formData,
+      body: payload,
     });
   } catch {
     return {

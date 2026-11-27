@@ -2,7 +2,6 @@ import {
   type AdminAnalyticsBreakdownsData,
   type AdminAnalyticsLoaderData,
   type AdminAnalyticsSummaryData,
-  type AdminAnalyticsWindow,
   type AdminHomeLoaderData,
   type AdminRootLoaderData,
   AgensiSkillSchema,
@@ -25,6 +24,10 @@ import {
   loadAdminAnalyticsData,
   loadAdminAnalyticsSummary,
 } from './admin-analytics-queries.ts';
+import {
+  type AdminAnalyticsFilterInput,
+  normalizeAdminAnalyticsFilter,
+} from './admin-analytics-visitors.ts';
 import type { AgensiSyncOptions } from './agensi-sync.ts';
 import { type AppDatabase, getSharedDb, isReactRouterPrerender } from './client.ts';
 import {
@@ -187,13 +190,23 @@ export function getPrerenderAdminHomeData(): AdminHomeLoaderData {
 }
 
 export function getPrerenderAdminAnalyticsSummaryData(
-  window: AdminAnalyticsWindow = '7d',
+  filterInput: AdminAnalyticsFilterInput = '7d',
 ): AdminAnalyticsSummaryData {
+  const filters = normalizeAdminAnalyticsFilter(filterInput);
   return {
     content: ADMIN_ANALYTICS_SEED,
-    window,
+    window: filters.window,
+    filters,
     totalSessions: 0,
     totalEvents: 0,
+    uniqueVisitors: 0,
+    returningVisitors: 0,
+    totalPageViews: 0,
+    profileViews: 0,
+    highIntentActions: 0,
+    identifiedLeads: 0,
+    botSessionsExcluded: 0,
+    dailyTrend: [],
     summary: {
       totalSessions: 0,
       totalEvents: 0,
@@ -222,14 +235,22 @@ export function getPrerenderAdminAnalyticsBreakdownsData(): AdminAnalyticsBreakd
     topReferrers: [],
     geoBreakdown: [],
     agensiConversions: [],
+    orgBreakdown: [],
+    campaignBreakdown: [],
+    deviceBreakdown: [],
+    osBreakdown: [],
+    browserBreakdown: [],
+    conversionFunnel: [],
+    recentVisitors: [],
+    askTurnsFeed: [],
   };
 }
 
 export function getPrerenderAdminAnalyticsData(
-  window: AdminAnalyticsWindow = '7d',
+  filterInput: AdminAnalyticsFilterInput = '7d',
 ): AdminAnalyticsLoaderData {
   return {
-    ...getPrerenderAdminAnalyticsSummaryData(window),
+    ...getPrerenderAdminAnalyticsSummaryData(filterInput),
     ...getPrerenderAdminAnalyticsBreakdownsData(),
   };
 }
@@ -304,28 +325,28 @@ export function loadAdminHomeDataWithPrerender(): Promise<AdminHomeLoaderData> {
 }
 
 export function loadAdminAnalyticsSummaryWithPrerender(
-  window: AdminAnalyticsWindow = '7d',
+  filterInput: AdminAnalyticsFilterInput = '7d',
 ): Promise<AdminAnalyticsSummaryData> {
   return withPrerenderFallback(
-    db => loadAdminAnalyticsSummary(db, window),
-    () => getPrerenderAdminAnalyticsSummaryData(window),
+    db => loadAdminAnalyticsSummary(db, filterInput),
+    () => getPrerenderAdminAnalyticsSummaryData(filterInput),
   );
 }
 
 export function loadAdminAnalyticsBreakdownsWithPrerender(
-  window: AdminAnalyticsWindow = '7d',
+  filterInput: AdminAnalyticsFilterInput = '7d',
 ): Promise<AdminAnalyticsBreakdownsData> {
   return withPrerenderFallback(
-    db => loadAdminAnalyticsBreakdowns(db, window),
+    db => loadAdminAnalyticsBreakdowns(db, filterInput),
     getPrerenderAdminAnalyticsBreakdownsData,
   );
 }
 
 export function loadAdminAnalyticsDataWithPrerender(
-  window: AdminAnalyticsWindow = '7d',
+  filterInput: AdminAnalyticsFilterInput = '7d',
 ): Promise<AdminAnalyticsLoaderData> {
   return withPrerenderFallback(
-    db => loadAdminAnalyticsData(db, window),
-    () => getPrerenderAdminAnalyticsData(window),
+    db => loadAdminAnalyticsData(db, filterInput),
+    () => getPrerenderAdminAnalyticsData(filterInput),
   );
 }

@@ -1,14 +1,20 @@
 import {
   type AdminAnalyticsBreakdownsData,
+  type AdminAnalyticsFilter,
   type AdminAnalyticsSummaryData,
-  AdminAnalyticsWindowSchema,
+  parseAdminAnalyticsFilter,
   type StreamResult,
 } from '@aklapper/core';
 import {
   loadAdminAnalyticsBreakdownsWithPrerender,
   loadAdminAnalyticsSummaryWithPrerender,
 } from '@aklapper/db';
-import { deferStreamResult, getOrCreateCorrelationId } from '@aklapper/node-runtime/ssr/stream';
+import {
+  createFallbackLogger,
+  deferStreamResult,
+  getOrCreateCorrelationId,
+  getRequestContext,
+} from '@aklapper/node-runtime/ssr/stream';
 import { RouteErrorBoundaryView, SuspenseElement } from '@aklapper/ui';
 import { href } from 'react-router';
 
@@ -21,6 +27,7 @@ import type { Route } from './+types/analytics';
 
 export interface AdminAnalyticsStreamData {
   readonly correlationId: string;
+  readonly filter?: AdminAnalyticsFilter;
   readonly summaryPayload: Promise<StreamResult<AdminAnalyticsSummaryData>>;
   readonly breakdownsPayload: Promise<StreamResult<AdminAnalyticsBreakdownsData>>;
 }
@@ -36,13 +43,25 @@ export async function loader({
   });
 
   const url = new URL(request.url);
-  const parsedWindow = AdminAnalyticsWindowSchema.safeParse(url.searchParams.get('window'));
-  const window = parsedWindow.success ? parsedWindow.data : '7d';
+  const { filter, clampedFields } = parseAdminAnalyticsFilter(url.searchParams);
+  if (clampedFields.length > 0) {
+    const logger = getRequestContext(context)?.logger ?? createFallbackLogger('admin-analytics');
+    logger.warn(
+      {
+        seam_type: 'UNSOUND_CONDITION',
+        event: 'admin.analytics.invalid_filter_clamped',
+        clampedFields,
+        correlationId,
+      },
+      'Clamped invalid admin analytics filter query parameters',
+    );
+  }
 
   return {
     correlationId,
+    filter,
     summaryPayload: deferStreamResult(
-      (async () => loadAdminAnalyticsSummaryWithPrerender(window))(),
+      (async () => loadAdminAnalyticsSummaryWithPrerender(filter))(),
       {
         request,
         context,
@@ -50,7 +69,7 @@ export async function loader({
       },
     ),
     breakdownsPayload: deferStreamResult(
-      (async () => loadAdminAnalyticsBreakdownsWithPrerender(window))(),
+      (async () => loadAdminAnalyticsBreakdownsWithPrerender(filter))(),
       {
         request,
         context,
@@ -89,7 +108,7 @@ export default function AdminAnalyticsRoute({ loaderData }: Route.ComponentProps
         );
       }}
     >
-      {breakdowns => <AdminAnalyticsBreakdowns data={breakdowns} />}
+      {breakdowns => <AdminAnalyticsBreakdowns data={breakdowns} filter={loaderData.filter} />}
     </SuspenseElement>
   );
 

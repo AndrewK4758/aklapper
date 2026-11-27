@@ -1,4 +1,5 @@
 import type { PortalHomeContent, TerminalProfileData } from '@aklapper/core';
+import { trackTerminalCommand } from '@aklapper/core/analytics';
 import {
   buildZshCommandHandlers,
   Button,
@@ -123,6 +124,9 @@ export function PortalHomePage({
           initialEntries={terminal.initialEntries}
           initialEntryCompanion={initialEntryCompanion}
           placeholder={terminal.placeholder}
+          onCommandExecute={commandName => {
+            trackTerminalCommand(commandName, '/');
+          }}
         />
       </div>
     );
@@ -135,6 +139,9 @@ export function PortalHomePage({
         terminalForms={terminalForms}
         initialEntryCompanion={initialEntryCompanion}
         navigate={onNavigate}
+        onCommandExecute={commandName => {
+          trackTerminalCommand(commandName, '/');
+        }}
         renderTui={({ ttyNumber, isSinglePane, closeTui }) => (
           <PortalLauncherTui
             content={content}

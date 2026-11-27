@@ -1,4 +1,5 @@
 import { normalizePathname, type PortalRootLoaderData } from '@aklapper/core';
+import { trackTerminalCommand } from '@aklapper/core/analytics';
 import {
   Button,
   Menu,
@@ -224,6 +225,9 @@ export function PortalRootShell({
             navigatePrimaryInPaneRoutes
             routeKey={pathname}
             workspaceStore={portalWorkspaceStore}
+            onCommandExecute={commandName => {
+              trackTerminalCommand(commandName, pathname);
+            }}
             navigate={to => {
               void navigate(to);
             }}

@@ -1,4 +1,5 @@
 import { type CareerDossier, isSafeHttpUrl, type PortalAboutContent } from '@aklapper/core';
+import { trackProfileOutboundClick } from '@aklapper/core/analytics';
 import { Button, OscStatusBadge, PaneLink, Separator, StatusPill, TuiWindow } from '@aklapper/ui';
 import { TerminalPortrait } from '@aklapper/ui/terminal-portrait';
 import { useId } from 'react';
@@ -112,7 +113,11 @@ export function PortalAboutPage({
                 <li>{content.identity.location}</li>
                 {brandContactEmail ? (
                   <li>
-                    <a href={`mailto:${brandContactEmail}`} className={styles.metaLink}>
+                    <a
+                      href={`mailto:${brandContactEmail}`}
+                      className={styles.metaLink}
+                      onClick={() => trackProfileOutboundClick('email')}
+                    >
                       {brandContactEmail}
                     </a>
                   </li>
@@ -124,6 +129,7 @@ export function PortalAboutPage({
                       target='_blank'
                       rel='noreferrer'
                       className={styles.metaLink}
+                      onClick={() => trackProfileOutboundClick('github')}
                     >
                       {content.identity.githubLabel}
                     </a>
@@ -138,6 +144,7 @@ export function PortalAboutPage({
                       target='_blank'
                       rel='noreferrer'
                       className={styles.metaLink}
+                      onClick={() => trackProfileOutboundClick('website')}
                     >
                       {content.identity.websiteLabel}
                     </a>

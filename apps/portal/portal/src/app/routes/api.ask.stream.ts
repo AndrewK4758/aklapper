@@ -8,6 +8,7 @@ import {
   getRequestContext,
 } from '@aklapper/node-runtime/ssr/stream';
 
+import { triggerPortalGuestSessionBinding } from '../contact-analytics-link.server';
 import { resolveGuestSession } from '../guest-session.server';
 import type { Route } from './+types/api.ask.stream';
 
@@ -67,6 +68,7 @@ export async function action({ request, context }: Route.ActionArgs): Promise<Re
   const reqCtx = getRequestContext(context);
   const correlationId = getOrCreateCorrelationId(request, context);
   const logger = reqCtx?.logger ?? createFallbackLogger('portal-ask-stream');
+  triggerPortalGuestSessionBinding(request, sessionId, logger, '/chat');
 
   let rawBody: unknown;
   try {

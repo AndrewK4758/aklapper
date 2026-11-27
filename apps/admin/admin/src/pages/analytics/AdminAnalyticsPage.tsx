@@ -2,14 +2,14 @@ import type {
   AdminAnalyticsBreakdownsData,
   AdminAnalyticsLoaderData,
   AdminAnalyticsSummaryData,
-  AdminAnalyticsWindow,
   CwvMetricName,
 } from '@aklapper/core';
 import { Meter, Separator, TuiWindow } from '@aklapper/ui';
 import type { ReactNode } from 'react';
-import { Link } from 'react-router';
 
 import { AdminAnalyticsBreakdowns } from './AdminAnalyticsBreakdowns';
+import { AdminAnalyticsFilterBar } from './AdminAnalyticsFilterBar';
+import { resolveActiveAnalyticsFilter } from './analytics-filter-url';
 
 import styles from './AdminAnalyticsPage.module.css';
 
@@ -17,13 +17,6 @@ export interface AdminAnalyticsPageProps {
   data: AdminAnalyticsSummaryData | AdminAnalyticsLoaderData;
   breakdownsSlot?: ReactNode;
 }
-
-const WINDOWS: readonly { id: AdminAnalyticsWindow; label: string }[] = [
-  { id: '24h', label: '24h' },
-  { id: '7d', label: '7d' },
-  { id: '30d', label: '30d' },
-  { id: 'all', label: 'All' },
-];
 
 function formatCwvValue(metric: CwvMetricName, value: number | null): string {
   if (value === null) return '—';
@@ -39,57 +32,96 @@ function hasBreakdownsData(
 
 export function AdminAnalyticsPage({ data, breakdownsSlot }: AdminAnalyticsPageProps) {
   const { content, window: activeWindow, totalSessions, totalEvents, cwv, aiMetrics } = data;
+  const activeFilter = resolveActiveAnalyticsFilter(activeWindow, data.filters);
   const eventCap = Math.max(totalEvents, 100);
+  const uniqueVisitors = data.uniqueVisitors ?? totalSessions;
+  const returningVisitors = data.returningVisitors ?? 0;
+  const totalPageViews = data.totalPageViews ?? 0;
+  const profileViews = data.profileViews ?? 0;
+  const highIntentActions = data.highIntentActions ?? 0;
+  const identifiedLeads = data.identifiedLeads ?? 0;
+  const botSessionsExcluded = data.botSessionsExcluded ?? 0;
+  const dailyTrend = data.dailyTrend ?? [];
+  const maxTrendViews = Math.max(
+    1,
+    ...dailyTrend.map(point => Math.max(point.pageViews, point.sessions)),
+  );
+
   const fallbackBreakdowns: AdminAnalyticsBreakdownsData | null = hasBreakdownsData(data)
     ? {
         topPaths: data.topPaths,
         topReferrers: data.topReferrers,
         geoBreakdown: data.geoBreakdown,
         agensiConversions: data.agensiConversions,
+        orgBreakdown: data.orgBreakdown,
+        campaignBreakdown: data.campaignBreakdown,
+        deviceBreakdown: data.deviceBreakdown,
+        osBreakdown: data.osBreakdown,
+        browserBreakdown: data.browserBreakdown,
+        conversionFunnel: data.conversionFunnel,
+        recentVisitors: data.recentVisitors,
+        askTurnsFeed: data.askTurnsFeed,
       }
     : null;
 
   return (
     <TuiWindow title={content.windowTitle}>
       <div className={styles.panel}>
-        <div className={styles.headerRow}>
-          <p>{content.description}</p>
-          <nav className={styles.windowBar} aria-label='Analytics time window'>
-            {WINDOWS.map(win => (
-              <Link
-                key={win.id}
-                to={`/analytics?window=${win.id}`}
-                prefetch='intent'
-                className={styles.windowLink}
-                data-active={activeWindow === win.id ? 'true' : 'false'}
-                aria-current={activeWindow === win.id ? 'true' : undefined}
-              >
-                {win.label}
-              </Link>
-            ))}
-          </nav>
+        <div className={styles.headerStack}>
+          <p className={styles.description}>{content.description}</p>
+          <AdminAnalyticsFilterBar filter={activeFilter} />
         </div>
 
-        <div className={styles.summaryGrid}>
-          <article className={styles.metricCard}>
-            <span className={styles.metricLabel}>Total Sessions ({activeWindow})</span>
-            <strong className={styles.metricValue}>{totalSessions}</strong>
-          </article>
-          <article className={styles.metricCard}>
-            <span className={styles.metricLabel}>Total Events ({activeWindow})</span>
-            <strong className={styles.metricValue}>{totalEvents}</strong>
-          </article>
-          <article className={styles.metricCard}>
-            <span className={styles.metricLabel}>CADENCE Runs</span>
-            <strong className={styles.metricValue}>{aiMetrics.totalRuns}</strong>
-          </article>
-          <article className={styles.metricCard}>
-            <span className={styles.metricLabel}>AI Tokens (In / Out)</span>
-            <strong className={styles.metricValue}>
-              {aiMetrics.totalTokensIn} / {aiMetrics.totalTokensOut}
-            </strong>
-          </article>
-        </div>
+        <section aria-label='Visitor KPIs'>
+          <div className={styles.summaryGrid}>
+            <article className={styles.metricCard}>
+              <span className={styles.metricLabel}>Unique Visitors</span>
+              <strong className={styles.metricValue}>{uniqueVisitors}</strong>
+            </article>
+            <article className={styles.metricCard}>
+              <span className={styles.metricLabel}>Returning Visitors</span>
+              <strong className={styles.metricValue}>{returningVisitors}</strong>
+            </article>
+            <article className={styles.metricCard}>
+              <span className={styles.metricLabel}>Total Sessions ({activeWindow})</span>
+              <strong className={styles.metricValue}>{totalSessions}</strong>
+            </article>
+            <article className={styles.metricCard}>
+              <span className={styles.metricLabel}>Page Views</span>
+              <strong className={styles.metricValue}>{totalPageViews}</strong>
+            </article>
+            <article className={styles.metricCard}>
+              <span className={styles.metricLabel}>Profile Views</span>
+              <strong className={styles.metricValue}>{profileViews}</strong>
+            </article>
+            <article className={styles.metricCard}>
+              <span className={styles.metricLabel}>High-Intent Actions</span>
+              <strong className={styles.metricValue}>{highIntentActions}</strong>
+            </article>
+            <article className={styles.metricCard}>
+              <span className={styles.metricLabel}>Identified Leads</span>
+              <strong className={styles.metricValue}>{identifiedLeads}</strong>
+            </article>
+            <article className={styles.metricCard}>
+              <span className={styles.metricLabel}>Filtered Bots</span>
+              <strong className={styles.metricValue}>{botSessionsExcluded}</strong>
+            </article>
+            <article className={styles.metricCard}>
+              <span className={styles.metricLabel}>Total Events ({activeWindow})</span>
+              <strong className={styles.metricValue}>{totalEvents}</strong>
+            </article>
+            <article className={styles.metricCard}>
+              <span className={styles.metricLabel}>CADENCE Runs</span>
+              <strong className={styles.metricValue}>{aiMetrics.totalRuns}</strong>
+            </article>
+            <article className={styles.metricCard}>
+              <span className={styles.metricLabel}>AI Tokens (In / Out)</span>
+              <strong className={styles.metricValue}>
+                {aiMetrics.totalTokensIn} / {aiMetrics.totalTokensOut}
+              </strong>
+            </article>
+          </div>
+        </section>
 
         <Meter.Root value={totalEvents} min={0} max={eventCap} className={styles.meter}>
           <div className={styles.meterHeader}>
@@ -100,6 +132,31 @@ export function AdminAnalyticsPage({ data, breakdownsSlot }: AdminAnalyticsPageP
             <Meter.Indicator />
           </Meter.Track>
         </Meter.Root>
+
+        {dailyTrend.length > 0 ? (
+          <section className={styles.tableCard} aria-label='Daily traffic trend'>
+            <h2 className={styles.sectionTitle}>Daily Traffic Trend</h2>
+            <div className={styles.trendList}>
+              {dailyTrend.map(point => {
+                const widthPct = Math.max(
+                  4,
+                  Math.round((Math.max(point.pageViews, point.sessions) / maxTrendViews) * 100),
+                );
+                return (
+                  <div key={point.date} className={styles.trendRow}>
+                    <span className={styles.trendDate}>{point.date}</span>
+                    <div className={styles.trendBarTrack} aria-hidden='true'>
+                      <div className={styles.trendBarFill} style={{ width: `${widthPct}%` }} />
+                    </div>
+                    <span className={styles.trendStats}>
+                      {point.uniqueVisitors} uniq · {point.sessions} sess · {point.pageViews} views
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        ) : null}
 
         <section aria-label='Core Web Vitals percentiles'>
           <h2 className={styles.sectionTitle}>Core Web Vitals Percentiles</h2>
@@ -154,7 +211,9 @@ export function AdminAnalyticsPage({ data, breakdownsSlot }: AdminAnalyticsPageP
         <Separator.Root />
 
         {breakdownsSlot ??
-          (fallbackBreakdowns ? <AdminAnalyticsBreakdowns data={fallbackBreakdowns} /> : null)}
+          (fallbackBreakdowns ? (
+            <AdminAnalyticsBreakdowns data={fallbackBreakdowns} filter={activeFilter} />
+          ) : null)}
       </div>
     </TuiWindow>
   );
