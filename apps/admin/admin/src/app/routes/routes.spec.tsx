@@ -773,11 +773,15 @@ describe('Admin streaming routes, auth guards & SEO', () => {
         country: 'US',
         source: 'linkedin.com',
       });
-      const resolvedSummary = await clampedStream.summaryPayload;
+      const [resolvedSummary, resolvedBreakdowns] = await Promise.all([
+        clampedStream.summaryPayload,
+        clampedStream.breakdownsPayload,
+      ]);
       expect(resolvedSummary).toMatchObject({
         ok: true,
         data: { filters: clampedStream.filter },
       });
+      expect(resolvedBreakdowns.ok).toBe(true);
 
       const validStream = await analyticsLoader(
         makeArgs(
@@ -794,6 +798,7 @@ describe('Admin streaming routes, auth guards & SEO', () => {
         path: '/about',
         campaign: 'fall26',
       });
+      await Promise.all([validStream.summaryPayload, validStream.breakdownsPayload]);
     } finally {
       if (origPrerender === undefined) delete process.env['IS_RR_BUILD_REQUEST'];
       else process.env['IS_RR_BUILD_REQUEST'] = origPrerender;
