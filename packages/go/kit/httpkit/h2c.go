@@ -7,34 +7,27 @@ import (
 	"net"
 	"net/http"
 	"os/signal"
-	"strings"
-	"sync"
 	"syscall"
 	"time"
 )
 
-const defaultDualShutdownTimeout = 10 * time.Second
+const (
+	defaultShutdownTimeout  = 10 * time.Second
+	defaultH2ReadIdle       = 30 * time.Second
+	defaultH2PingTimeout    = 10 * time.Second
+	defaultReadHeaderTimout = 5 * time.Second
+)
 
-// GRPCGracefulServer captures the lifecycle surface of *grpc.Server without coupling httpkit to grpc-go.
-type GRPCGracefulServer interface {
-	Serve(net.Listener) error
-	GracefulStop()
-	Stop()
-}
-
-// DualServerConfig configures an HTTP/1.1+h2c server paired with an optional native gRPC server.
-// Setting GRPCAddr to "" cleanly disables the gRPC listener (single-port Cloud Run compatibility).
-type DualServerConfig struct {
-	HTTPAddr        string
-	HTTPHandler     http.Handler
-	GRPCAddr        string
-	GRPCServer      GRPCGracefulServer
+// H2CServerConfig configures a single-port HTTP/1.1 + unencrypted HTTP/2 (h2c) server.
+type H2CServerConfig struct {
+	Addr            string
+	Handler         http.Handler
 	ShutdownTimeout time.Duration
-	OnReady         func(httpAddr, grpcAddr string)
+	OnReady         func(addr string)
 }
 
 // NewH2CServer creates a Go 1.27 HTTP/1.1 + unencrypted HTTP/2 (h2c) server bound to baseCtx
-// so shutdown immediately cancels active SSE request contexts.
+// with WriteTimeout=0 for long-lived streams and explicit HTTP/2 keepalive pings.
 func NewH2CServer(addr string, handler http.Handler, baseCtx context.Context) *http.Server {
 	if baseCtx == nil {
 		baseCtx = context.Background()
@@ -46,66 +39,51 @@ func NewH2CServer(addr string, handler http.Handler, baseCtx context.Context) *h
 		Addr:              addr,
 		Handler:           handler,
 		Protocols:         protocols,
-		ReadHeaderTimeout: 5 * time.Second,
+		ReadHeaderTimeout: defaultReadHeaderTimout,
+		WriteTimeout:      0,
+		HTTP2: &http.HTTP2Config{
+			SendPingTimeout: defaultH2ReadIdle,
+			PingTimeout:     defaultH2PingTimeout,
+		},
 		BaseContext: func(net.Listener) context.Context {
 			return baseCtx
 		},
 	}
 }
 
-// ListenAndServeDualGraceful pre-binds both HTTP and optional gRPC sockets before serving traffic,
-// cancels BaseContext on shutdown, and drains both servers concurrently with forced gRPC Stop fallback.
-func ListenAndServeDualGraceful(ctx context.Context, cfg DualServerConfig) error {
-	if cfg.HTTPHandler == nil {
-		return errors.New("HTTPHandler is required")
+// ListenAndServeH2CGraceful pre-binds a single TCP socket serving HTTP/1.1 + h2c traffic,
+// cancels BaseContext on ctx cancellation so active streams run detached cleanup, and drains cleanly.
+func ListenAndServeH2CGraceful(ctx context.Context, cfg H2CServerConfig) error {
+	if cfg.Handler == nil {
+		return errors.New("Handler is required")
 	}
 	if ctx == nil {
 		ctx = context.Background()
 	}
 	shutdownTimeout := cfg.ShutdownTimeout
 	if shutdownTimeout <= 0 {
-		shutdownTimeout = defaultDualShutdownTimeout
+		shutdownTimeout = defaultShutdownTimeout
 	}
 
-	httpLn, err := net.Listen("tcp", cfg.HTTPAddr)
+	ln, err := net.Listen("tcp", cfg.Addr)
 	if err != nil {
-		return fmt.Errorf("bind http listener %s: %w", cfg.HTTPAddr, err)
-	}
-
-	var grpcLn net.Listener
-	grpcAddr := strings.TrimSpace(cfg.GRPCAddr)
-	if grpcAddr != "" && cfg.GRPCServer != nil {
-		grpcLn, err = net.Listen("tcp", grpcAddr)
-		if err != nil {
-			_ = httpLn.Close()
-			return fmt.Errorf("bind grpc listener %s: %w", grpcAddr, err)
-		}
+		return fmt.Errorf("bind listener %s: %w", cfg.Addr, err)
 	}
 
 	runCtx, cancelRun := context.WithCancel(ctx)
 	defer cancelRun()
 
-	httpSrv := NewH2CServer(httpLn.Addr().String(), cfg.HTTPHandler, runCtx)
-	errCh := make(chan error, 2)
+	srv := NewH2CServer(ln.Addr().String(), cfg.Handler, runCtx)
+	errCh := make(chan error, 1)
 
 	go func() {
-		if serveErr := httpSrv.Serve(httpLn); serveErr != nil && !errors.Is(serveErr, http.ErrServerClosed) {
+		if serveErr := srv.Serve(ln); serveErr != nil && !errors.Is(serveErr, http.ErrServerClosed) {
 			errCh <- fmt.Errorf("http server error: %w", serveErr)
 		}
 	}()
 
-	boundGRPCAddr := ""
-	if grpcLn != nil {
-		boundGRPCAddr = grpcLn.Addr().String()
-		go func() {
-			if serveErr := cfg.GRPCServer.Serve(grpcLn); serveErr != nil {
-				errCh <- fmt.Errorf("grpc server error: %w", serveErr)
-			}
-		}()
-	}
-
 	if cfg.OnReady != nil {
-		cfg.OnReady(httpLn.Addr().String(), boundGRPCAddr)
+		cfg.OnReady(ln.Addr().String())
 	}
 
 	var firstErr error
@@ -114,48 +92,26 @@ func ListenAndServeDualGraceful(ctx context.Context, cfg DualServerConfig) error
 	case firstErr = <-errCh:
 	}
 
-	// Cancel BaseContext so active long-lived SSE streams terminate promptly.
+	// Cancel BaseContext so active long-lived gRPC and SSE streams terminate promptly.
 	cancelRun()
 
 	drainCtx, cancelDrain := context.WithTimeout(context.Background(), shutdownTimeout)
 	defer cancelDrain()
 
-	var wg sync.WaitGroup
-	var httpShutdownErr error
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		httpShutdownErr = httpSrv.Shutdown(drainCtx)
-	}()
-
-	if grpcLn != nil {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			stopped := make(chan struct{})
-			go func() {
-				cfg.GRPCServer.GracefulStop()
-				close(stopped)
-			}()
-			select {
-			case <-stopped:
-			case <-drainCtx.Done():
-				cfg.GRPCServer.Stop()
-				<-stopped
-			}
-		}()
-	}
-
-	wg.Wait()
+	shutdownErr := srv.Shutdown(drainCtx)
 	if firstErr != nil {
 		return firstErr
 	}
-	return httpShutdownErr
+	return shutdownErr
 }
 
-// ListenAndServeDualGracefulSignals wraps ListenAndServeDualGraceful with SIGINT/SIGTERM handling.
-func ListenAndServeDualGracefulSignals(cfg DualServerConfig) error {
+// ListenAndServeH2CGracefulSignals wraps ListenAndServeH2CGraceful with SIGINT/SIGTERM handling.
+func ListenAndServeH2CGracefulSignals(addr string, handler http.Handler, shutdownTimeout time.Duration) error {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
-	return ListenAndServeDualGraceful(ctx, cfg)
+	return ListenAndServeH2CGraceful(ctx, H2CServerConfig{
+		Addr:            addr,
+		Handler:         handler,
+		ShutdownTimeout: shutdownTimeout,
+	})
 }

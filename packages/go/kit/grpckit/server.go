@@ -1,52 +1,79 @@
 package grpckit
 
 import (
-	"os"
+	"mime"
+	"net/http"
 	"strings"
-	"time"
 
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/health"
-	healthpb "google.golang.org/grpc/health/grpc_health_v1"
-	"google.golang.org/grpc/keepalive"
+	"connectrpc.com/connect"
+	"connectrpc.com/grpchealth"
 )
 
-// GRPCListenAddr resolves GRPC_PORT from the environment. An empty or unset GRPC_PORT returns ""
-// so single-port runtimes (such as Cloud Run) disable the gRPC listener cleanly.
-func GRPCListenAddr() string {
-	raw := strings.TrimSpace(os.Getenv("GRPC_PORT"))
-	if raw == "" {
-		return ""
-	}
-	if strings.Contains(raw, ":") {
-		return raw
-	}
-	return ":" + raw
+// NewGRPCOnlyMiddleware restricts mounted ConnectRPC service paths strictly to HTTP POST
+// requests carrying an exact parsed Content-Type of "application/grpc" or "application/grpc+proto".
+// Non-POST methods receive 405 Method Not Allowed (with Allow: POST); disallowed media types
+// (including application/grpc-web*, application/grpc+json, and application/connect+*) receive 415.
+func NewGRPCOnlyMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			logGRPCSeam("UNSOUND_CONDITION", "grpc.protocol.unsupported_media_type", map[string]any{
+				"reason": "method_not_allowed",
+				"method": r.Method,
+				"path":   r.URL.Path,
+			})
+			w.Header().Set("Allow", http.MethodPost)
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		mediaType, _, parseErr := mime.ParseMediaType(r.Header.Get("Content-Type"))
+		if parseErr != nil || (mediaType != "application/grpc" && mediaType != "application/grpc+proto") {
+			logGRPCSeam("UNSOUND_CONDITION", "grpc.protocol.unsupported_media_type", map[string]any{
+				"reason":    "unsupported_media_type",
+				"method":    r.Method,
+				"path":      r.URL.Path,
+				"mediaType": mediaType,
+			})
+			http.Error(w, "unsupported media type", http.StatusUnsupportedMediaType)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
 }
 
-// NewServer builds a configured *grpc.Server with keepalive parameters, HMAC auth + correlation
-// interceptors, and grpc.health.v1 registered as SERVING for "" and each listed serviceName.
-func NewServer(explicitSecret string, serviceNames ...string) (*grpc.Server, *health.Server) {
-	srv := grpc.NewServer(
-		grpc.KeepaliveParams(keepalive.ServerParameters{
-			Time:    30 * time.Second,
-			Timeout: 10 * time.Second,
-		}),
-		grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{
-			MinTime:             10 * time.Second,
-			PermitWithoutStream: true,
-		}),
-		grpc.UnaryInterceptor(UnaryServerAuthInterceptor(explicitSecret)),
-		grpc.StreamInterceptor(StreamServerAuthInterceptor(explicitSecret)),
-	)
+// NewHandlerOptions builds standard ConnectRPC handler options carrying server HMAC auth
+// and x-correlation-id sanitization/echo interceptors.
+func NewHandlerOptions(explicitSecret string) []connect.HandlerOption {
+	return []connect.HandlerOption{
+		connect.WithInterceptors(NewServerAuthInterceptor(explicitSecret)),
+	}
+}
 
-	hs := health.NewServer()
-	hs.SetServingStatus("", healthpb.HealthCheckResponse_SERVING)
+// NewHealthHandler constructs a strict gRPC-only /grpc.health.v1.Health/ handler marking ""
+// and every non-empty serviceName as SERVING without requiring x-internal-auth.
+func NewHealthHandler(serviceNames ...string) (string, http.Handler) {
+	cleaned := make([]string, 0, len(serviceNames))
 	for _, svc := range serviceNames {
 		if trimmed := strings.TrimSpace(svc); trimmed != "" {
-			hs.SetServingStatus(trimmed, healthpb.HealthCheckResponse_SERVING)
+			cleaned = append(cleaned, trimmed)
 		}
 	}
-	healthpb.RegisterHealthServer(srv, hs)
-	return srv, hs
+	checker := grpchealth.NewStaticChecker(cleaned...)
+	path, handler := grpchealth.NewHandler(
+		checker,
+		connect.WithInterceptors(NewServerAuthInterceptor("")),
+	)
+	return path, NewGRPCOnlyMiddleware(handler)
+}
+
+// NewH2CClient returns a Go 1.27 HTTP client configured for cleartext HTTP/2 (h2c) gRPC calls.
+func NewH2CClient() *http.Client {
+	protocols := new(http.Protocols)
+	protocols.SetUnencryptedHTTP2(true)
+	return &http.Client{
+		Transport: &http.Transport{
+			Protocols: protocols,
+		},
+	}
 }

@@ -7,6 +7,7 @@
 package ai_askv1
 
 import (
+	v1 "github.com/AndrewK4758/aklapper/packages/go/kit/gen/common/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -27,6 +28,8 @@ type StreamAskRequest struct {
 	Question       string                 `protobuf:"bytes,2,opt,name=question,proto3" json:"question,omitempty"`
 	JobDescription string                 `protobuf:"bytes,3,opt,name=job_description,json=jobDescription,proto3" json:"job_description,omitempty"`
 	AttemptId      string                 `protobuf:"bytes,4,opt,name=attempt_id,json=attemptId,proto3" json:"attempt_id,omitempty"`
+	ConversationId string                 `protobuf:"bytes,5,opt,name=conversation_id,json=conversationId,proto3" json:"conversation_id,omitempty"`
+	VisitorLens    string                 `protobuf:"bytes,6,opt,name=visitor_lens,json=visitorLens,proto3" json:"visitor_lens,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -89,20 +92,120 @@ func (x *StreamAskRequest) GetAttemptId() string {
 	return ""
 }
 
+func (x *StreamAskRequest) GetConversationId() string {
+	if x != nil {
+		return x.ConversationId
+	}
+	return ""
+}
+
+func (x *StreamAskRequest) GetVisitorLens() string {
+	if x != nil {
+		return x.VisitorLens
+	}
+	return ""
+}
+
+type AskRequest struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Mode           string                 `protobuf:"bytes,1,opt,name=mode,proto3" json:"mode,omitempty"`
+	Question       string                 `protobuf:"bytes,2,opt,name=question,proto3" json:"question,omitempty"`
+	JobDescription string                 `protobuf:"bytes,3,opt,name=job_description,json=jobDescription,proto3" json:"job_description,omitempty"`
+	AttemptId      string                 `protobuf:"bytes,4,opt,name=attempt_id,json=attemptId,proto3" json:"attempt_id,omitempty"`
+	ConversationId string                 `protobuf:"bytes,5,opt,name=conversation_id,json=conversationId,proto3" json:"conversation_id,omitempty"`
+	VisitorLens    string                 `protobuf:"bytes,6,opt,name=visitor_lens,json=visitorLens,proto3" json:"visitor_lens,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *AskRequest) Reset() {
+	*x = AskRequest{}
+	mi := &file_ai_ask_v1_ask_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AskRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AskRequest) ProtoMessage() {}
+
+func (x *AskRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_ask_v1_ask_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AskRequest.ProtoReflect.Descriptor instead.
+func (*AskRequest) Descriptor() ([]byte, []int) {
+	return file_ai_ask_v1_ask_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *AskRequest) GetMode() string {
+	if x != nil {
+		return x.Mode
+	}
+	return ""
+}
+
+func (x *AskRequest) GetQuestion() string {
+	if x != nil {
+		return x.Question
+	}
+	return ""
+}
+
+func (x *AskRequest) GetJobDescription() string {
+	if x != nil {
+		return x.JobDescription
+	}
+	return ""
+}
+
+func (x *AskRequest) GetAttemptId() string {
+	if x != nil {
+		return x.AttemptId
+	}
+	return ""
+}
+
+func (x *AskRequest) GetConversationId() string {
+	if x != nil {
+		return x.ConversationId
+	}
+	return ""
+}
+
+func (x *AskRequest) GetVisitorLens() string {
+	if x != nil {
+		return x.VisitorLens
+	}
+	return ""
+}
+
 type AskSource struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Title         string                 `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
-	Snippet       string                 `protobuf:"bytes,3,opt,name=snippet,proto3" json:"snippet,omitempty"`
-	Score         float64                `protobuf:"fixed64,4,opt,name=score,proto3" json:"score,omitempty"`
-	Category      string                 `protobuf:"bytes,5,opt,name=category,proto3" json:"category,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Id             string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Title          string                 `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
+	Snippet        string                 `protobuf:"bytes,3,opt,name=snippet,proto3" json:"snippet,omitempty"`
+	Score          float64                `protobuf:"fixed64,4,opt,name=score,proto3" json:"score,omitempty"`
+	Category       string                 `protobuf:"bytes,5,opt,name=category,proto3" json:"category,omitempty"`
+	SectionHeading string                 `protobuf:"bytes,6,opt,name=section_heading,json=sectionHeading,proto3" json:"section_heading,omitempty"`
+	DocKey         string                 `protobuf:"bytes,7,opt,name=doc_key,json=docKey,proto3" json:"doc_key,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *AskSource) Reset() {
 	*x = AskSource{}
-	mi := &file_ai_ask_v1_ask_proto_msgTypes[1]
+	mi := &file_ai_ask_v1_ask_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -114,7 +217,7 @@ func (x *AskSource) String() string {
 func (*AskSource) ProtoMessage() {}
 
 func (x *AskSource) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_ask_v1_ask_proto_msgTypes[1]
+	mi := &file_ai_ask_v1_ask_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -127,7 +230,7 @@ func (x *AskSource) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AskSource.ProtoReflect.Descriptor instead.
 func (*AskSource) Descriptor() ([]byte, []int) {
-	return file_ai_ask_v1_ask_proto_rawDescGZIP(), []int{1}
+	return file_ai_ask_v1_ask_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *AskSource) GetId() string {
@@ -165,107 +268,43 @@ func (x *AskSource) GetCategory() string {
 	return ""
 }
 
-type QuotaStatus struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Role          string                 `protobuf:"bytes,1,opt,name=role,proto3" json:"role,omitempty"`
-	TurnsUsed     int32                  `protobuf:"varint,2,opt,name=turns_used,json=turnsUsed,proto3" json:"turns_used,omitempty"`
-	MaxTurns      int32                  `protobuf:"varint,3,opt,name=max_turns,json=maxTurns,proto3" json:"max_turns,omitempty"`
-	TokensUsed    int32                  `protobuf:"varint,4,opt,name=tokens_used,json=tokensUsed,proto3" json:"tokens_used,omitempty"`
-	MaxTokens     int32                  `protobuf:"varint,5,opt,name=max_tokens,json=maxTokens,proto3" json:"max_tokens,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *QuotaStatus) Reset() {
-	*x = QuotaStatus{}
-	mi := &file_ai_ask_v1_ask_proto_msgTypes[2]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *QuotaStatus) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*QuotaStatus) ProtoMessage() {}
-
-func (x *QuotaStatus) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_ask_v1_ask_proto_msgTypes[2]
+func (x *AskSource) GetSectionHeading() string {
 	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use QuotaStatus.ProtoReflect.Descriptor instead.
-func (*QuotaStatus) Descriptor() ([]byte, []int) {
-	return file_ai_ask_v1_ask_proto_rawDescGZIP(), []int{2}
-}
-
-func (x *QuotaStatus) GetRole() string {
-	if x != nil {
-		return x.Role
+		return x.SectionHeading
 	}
 	return ""
 }
 
-func (x *QuotaStatus) GetTurnsUsed() int32 {
+func (x *AskSource) GetDocKey() string {
 	if x != nil {
-		return x.TurnsUsed
+		return x.DocKey
 	}
-	return 0
+	return ""
 }
 
-func (x *QuotaStatus) GetMaxTurns() int32 {
-	if x != nil {
-		return x.MaxTurns
-	}
-	return 0
-}
-
-func (x *QuotaStatus) GetTokensUsed() int32 {
-	if x != nil {
-		return x.TokensUsed
-	}
-	return 0
-}
-
-func (x *QuotaStatus) GetMaxTokens() int32 {
-	if x != nil {
-		return x.MaxTokens
-	}
-	return 0
-}
-
-type PublicAppError struct {
+type AskSuggestedLink struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Code          string                 `protobuf:"bytes,1,opt,name=code,proto3" json:"code,omitempty"`
-	Status        int32                  `protobuf:"varint,2,opt,name=status,proto3" json:"status,omitempty"`
-	Message       string                 `protobuf:"bytes,3,opt,name=message,proto3" json:"message,omitempty"`
-	Action        string                 `protobuf:"bytes,4,opt,name=action,proto3" json:"action,omitempty"`
-	CorrelationId string                 `protobuf:"bytes,5,opt,name=correlation_id,json=correlationId,proto3" json:"correlation_id,omitempty"`
+	Route         string                 `protobuf:"bytes,1,opt,name=route,proto3" json:"route,omitempty"`
+	Label         string                 `protobuf:"bytes,2,opt,name=label,proto3" json:"label,omitempty"`
+	Reason        string                 `protobuf:"bytes,3,opt,name=reason,proto3" json:"reason,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *PublicAppError) Reset() {
-	*x = PublicAppError{}
+func (x *AskSuggestedLink) Reset() {
+	*x = AskSuggestedLink{}
 	mi := &file_ai_ask_v1_ask_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *PublicAppError) String() string {
+func (x *AskSuggestedLink) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*PublicAppError) ProtoMessage() {}
+func (*AskSuggestedLink) ProtoMessage() {}
 
-func (x *PublicAppError) ProtoReflect() protoreflect.Message {
+func (x *AskSuggestedLink) ProtoReflect() protoreflect.Message {
 	mi := &file_ai_ask_v1_ask_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -277,60 +316,100 @@ func (x *PublicAppError) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use PublicAppError.ProtoReflect.Descriptor instead.
-func (*PublicAppError) Descriptor() ([]byte, []int) {
+// Deprecated: Use AskSuggestedLink.ProtoReflect.Descriptor instead.
+func (*AskSuggestedLink) Descriptor() ([]byte, []int) {
 	return file_ai_ask_v1_ask_proto_rawDescGZIP(), []int{3}
 }
 
-func (x *PublicAppError) GetCode() string {
+func (x *AskSuggestedLink) GetRoute() string {
 	if x != nil {
-		return x.Code
+		return x.Route
 	}
 	return ""
 }
 
-func (x *PublicAppError) GetStatus() int32 {
+func (x *AskSuggestedLink) GetLabel() string {
 	if x != nil {
-		return x.Status
-	}
-	return 0
-}
-
-func (x *PublicAppError) GetMessage() string {
-	if x != nil {
-		return x.Message
+		return x.Label
 	}
 	return ""
 }
 
-func (x *PublicAppError) GetAction() string {
+func (x *AskSuggestedLink) GetReason() string {
 	if x != nil {
-		return x.Action
+		return x.Reason
 	}
 	return ""
 }
 
-func (x *PublicAppError) GetCorrelationId() string {
+type AskStreamStatus struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Stage         string                 `protobuf:"bytes,1,opt,name=stage,proto3" json:"stage,omitempty"`
+	Label         string                 `protobuf:"bytes,2,opt,name=label,proto3" json:"label,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AskStreamStatus) Reset() {
+	*x = AskStreamStatus{}
+	mi := &file_ai_ask_v1_ask_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AskStreamStatus) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AskStreamStatus) ProtoMessage() {}
+
+func (x *AskStreamStatus) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_ask_v1_ask_proto_msgTypes[4]
 	if x != nil {
-		return x.CorrelationId
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AskStreamStatus.ProtoReflect.Descriptor instead.
+func (*AskStreamStatus) Descriptor() ([]byte, []int) {
+	return file_ai_ask_v1_ask_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *AskStreamStatus) GetStage() string {
+	if x != nil {
+		return x.Stage
+	}
+	return ""
+}
+
+func (x *AskStreamStatus) GetLabel() string {
+	if x != nil {
+		return x.Label
 	}
 	return ""
 }
 
 type AskStreamMeta struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	AttemptId     string                 `protobuf:"bytes,1,opt,name=attempt_id,json=attemptId,proto3" json:"attempt_id,omitempty"`
-	CorrelationId string                 `protobuf:"bytes,2,opt,name=correlation_id,json=correlationId,proto3" json:"correlation_id,omitempty"`
-	Mode          string                 `protobuf:"bytes,3,opt,name=mode,proto3" json:"mode,omitempty"`
-	Provider      string                 `protobuf:"bytes,4,opt,name=provider,proto3" json:"provider,omitempty"`
-	Model         string                 `protobuf:"bytes,5,opt,name=model,proto3" json:"model,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	AttemptId      string                 `protobuf:"bytes,1,opt,name=attempt_id,json=attemptId,proto3" json:"attempt_id,omitempty"`
+	CorrelationId  string                 `protobuf:"bytes,2,opt,name=correlation_id,json=correlationId,proto3" json:"correlation_id,omitempty"`
+	Mode           string                 `protobuf:"bytes,3,opt,name=mode,proto3" json:"mode,omitempty"`
+	Provider       string                 `protobuf:"bytes,4,opt,name=provider,proto3" json:"provider,omitempty"`
+	Model          string                 `protobuf:"bytes,5,opt,name=model,proto3" json:"model,omitempty"`
+	ConversationId string                 `protobuf:"bytes,6,opt,name=conversation_id,json=conversationId,proto3" json:"conversation_id,omitempty"`
+	TurnIndex      *int32                 `protobuf:"varint,7,opt,name=turn_index,json=turnIndex,proto3,oneof" json:"turn_index,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *AskStreamMeta) Reset() {
 	*x = AskStreamMeta{}
-	mi := &file_ai_ask_v1_ask_proto_msgTypes[4]
+	mi := &file_ai_ask_v1_ask_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -342,7 +421,7 @@ func (x *AskStreamMeta) String() string {
 func (*AskStreamMeta) ProtoMessage() {}
 
 func (x *AskStreamMeta) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_ask_v1_ask_proto_msgTypes[4]
+	mi := &file_ai_ask_v1_ask_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -355,7 +434,7 @@ func (x *AskStreamMeta) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AskStreamMeta.ProtoReflect.Descriptor instead.
 func (*AskStreamMeta) Descriptor() ([]byte, []int) {
-	return file_ai_ask_v1_ask_proto_rawDescGZIP(), []int{4}
+	return file_ai_ask_v1_ask_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *AskStreamMeta) GetAttemptId() string {
@@ -393,6 +472,132 @@ func (x *AskStreamMeta) GetModel() string {
 	return ""
 }
 
+func (x *AskStreamMeta) GetConversationId() string {
+	if x != nil {
+		return x.ConversationId
+	}
+	return ""
+}
+
+func (x *AskStreamMeta) GetTurnIndex() int32 {
+	if x != nil && x.TurnIndex != nil {
+		return *x.TurnIndex
+	}
+	return 0
+}
+
+type AskStreamPreamble struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Text          string                 `protobuf:"bytes,1,opt,name=text,proto3" json:"text,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AskStreamPreamble) Reset() {
+	*x = AskStreamPreamble{}
+	mi := &file_ai_ask_v1_ask_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AskStreamPreamble) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AskStreamPreamble) ProtoMessage() {}
+
+func (x *AskStreamPreamble) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_ask_v1_ask_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AskStreamPreamble.ProtoReflect.Descriptor instead.
+func (*AskStreamPreamble) Descriptor() ([]byte, []int) {
+	return file_ai_ask_v1_ask_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *AskStreamPreamble) GetText() string {
+	if x != nil {
+		return x.Text
+	}
+	return ""
+}
+
+type AskStreamPreambleError struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Code          string                 `protobuf:"bytes,1,opt,name=code,proto3" json:"code,omitempty"`
+	Message       string                 `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
+	Action        string                 `protobuf:"bytes,3,opt,name=action,proto3" json:"action,omitempty"`
+	CorrelationId string                 `protobuf:"bytes,4,opt,name=correlation_id,json=correlationId,proto3" json:"correlation_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AskStreamPreambleError) Reset() {
+	*x = AskStreamPreambleError{}
+	mi := &file_ai_ask_v1_ask_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AskStreamPreambleError) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AskStreamPreambleError) ProtoMessage() {}
+
+func (x *AskStreamPreambleError) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_ask_v1_ask_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AskStreamPreambleError.ProtoReflect.Descriptor instead.
+func (*AskStreamPreambleError) Descriptor() ([]byte, []int) {
+	return file_ai_ask_v1_ask_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *AskStreamPreambleError) GetCode() string {
+	if x != nil {
+		return x.Code
+	}
+	return ""
+}
+
+func (x *AskStreamPreambleError) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
+func (x *AskStreamPreambleError) GetAction() string {
+	if x != nil {
+		return x.Action
+	}
+	return ""
+}
+
+func (x *AskStreamPreambleError) GetCorrelationId() string {
+	if x != nil {
+		return x.CorrelationId
+	}
+	return ""
+}
+
 type AskStreamSources struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Sources       []*AskSource           `protobuf:"bytes,1,rep,name=sources,proto3" json:"sources,omitempty"`
@@ -402,7 +607,7 @@ type AskStreamSources struct {
 
 func (x *AskStreamSources) Reset() {
 	*x = AskStreamSources{}
-	mi := &file_ai_ask_v1_ask_proto_msgTypes[5]
+	mi := &file_ai_ask_v1_ask_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -414,7 +619,7 @@ func (x *AskStreamSources) String() string {
 func (*AskStreamSources) ProtoMessage() {}
 
 func (x *AskStreamSources) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_ask_v1_ask_proto_msgTypes[5]
+	mi := &file_ai_ask_v1_ask_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -427,7 +632,7 @@ func (x *AskStreamSources) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AskStreamSources.ProtoReflect.Descriptor instead.
 func (*AskStreamSources) Descriptor() ([]byte, []int) {
-	return file_ai_ask_v1_ask_proto_rawDescGZIP(), []int{5}
+	return file_ai_ask_v1_ask_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *AskStreamSources) GetSources() []*AskSource {
@@ -446,7 +651,7 @@ type AskStreamDelta struct {
 
 func (x *AskStreamDelta) Reset() {
 	*x = AskStreamDelta{}
-	mi := &file_ai_ask_v1_ask_proto_msgTypes[6]
+	mi := &file_ai_ask_v1_ask_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -458,7 +663,7 @@ func (x *AskStreamDelta) String() string {
 func (*AskStreamDelta) ProtoMessage() {}
 
 func (x *AskStreamDelta) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_ask_v1_ask_proto_msgTypes[6]
+	mi := &file_ai_ask_v1_ask_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -471,7 +676,7 @@ func (x *AskStreamDelta) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AskStreamDelta.ProtoReflect.Descriptor instead.
 func (*AskStreamDelta) Descriptor() ([]byte, []int) {
-	return file_ai_ask_v1_ask_proto_rawDescGZIP(), []int{6}
+	return file_ai_ask_v1_ask_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *AskStreamDelta) GetText() string {
@@ -482,25 +687,30 @@ func (x *AskStreamDelta) GetText() string {
 }
 
 type AskStreamDone struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	AttemptId      string                 `protobuf:"bytes,1,opt,name=attempt_id,json=attemptId,proto3" json:"attempt_id,omitempty"`
-	Grounded       bool                   `protobuf:"varint,2,opt,name=grounded,proto3" json:"grounded,omitempty"`
-	Abstained      bool                   `protobuf:"varint,3,opt,name=abstained,proto3" json:"abstained,omitempty"`
-	Answer         string                 `protobuf:"bytes,4,opt,name=answer,proto3" json:"answer,omitempty"`
-	Provider       string                 `protobuf:"bytes,5,opt,name=provider,proto3" json:"provider,omitempty"`
-	Model          string                 `protobuf:"bytes,6,opt,name=model,proto3" json:"model,omitempty"`
-	TokensUsed     int32                  `protobuf:"varint,7,opt,name=tokens_used,json=tokensUsed,proto3" json:"tokens_used,omitempty"`
-	UsageEstimated bool                   `protobuf:"varint,8,opt,name=usage_estimated,json=usageEstimated,proto3" json:"usage_estimated,omitempty"`
-	LatencyMs      int32                  `protobuf:"varint,9,opt,name=latency_ms,json=latencyMs,proto3" json:"latency_ms,omitempty"`
-	Quota          *QuotaStatus           `protobuf:"bytes,10,opt,name=quota,proto3" json:"quota,omitempty"`
-	CorrelationId  string                 `protobuf:"bytes,11,opt,name=correlation_id,json=correlationId,proto3" json:"correlation_id,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	AttemptId         string                 `protobuf:"bytes,1,opt,name=attempt_id,json=attemptId,proto3" json:"attempt_id,omitempty"`
+	Grounded          bool                   `protobuf:"varint,2,opt,name=grounded,proto3" json:"grounded,omitempty"`
+	Abstained         bool                   `protobuf:"varint,3,opt,name=abstained,proto3" json:"abstained,omitempty"`
+	Answer            string                 `protobuf:"bytes,4,opt,name=answer,proto3" json:"answer,omitempty"`
+	Provider          string                 `protobuf:"bytes,5,opt,name=provider,proto3" json:"provider,omitempty"`
+	Model             string                 `protobuf:"bytes,6,opt,name=model,proto3" json:"model,omitempty"`
+	TokensUsed        int32                  `protobuf:"varint,7,opt,name=tokens_used,json=tokensUsed,proto3" json:"tokens_used,omitempty"`
+	UsageEstimated    bool                   `protobuf:"varint,8,opt,name=usage_estimated,json=usageEstimated,proto3" json:"usage_estimated,omitempty"`
+	LatencyMs         *int32                 `protobuf:"varint,9,opt,name=latency_ms,json=latencyMs,proto3,oneof" json:"latency_ms,omitempty"`
+	Quota             *v1.QuotaStatus        `protobuf:"bytes,10,opt,name=quota,proto3" json:"quota,omitempty"`
+	CorrelationId     string                 `protobuf:"bytes,11,opt,name=correlation_id,json=correlationId,proto3" json:"correlation_id,omitempty"`
+	ConversationId    string                 `protobuf:"bytes,12,opt,name=conversation_id,json=conversationId,proto3" json:"conversation_id,omitempty"`
+	TurnIndex         *int32                 `protobuf:"varint,13,opt,name=turn_index,json=turnIndex,proto3,oneof" json:"turn_index,omitempty"`
+	GroundingTier     string                 `protobuf:"bytes,14,opt,name=grounding_tier,json=groundingTier,proto3" json:"grounding_tier,omitempty"`
+	SuggestedLinks    []*AskSuggestedLink    `protobuf:"bytes,15,rep,name=suggested_links,json=suggestedLinks,proto3" json:"suggested_links,omitempty"`
+	FollowUpQuestions []string               `protobuf:"bytes,16,rep,name=follow_up_questions,json=followUpQuestions,proto3" json:"follow_up_questions,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *AskStreamDone) Reset() {
 	*x = AskStreamDone{}
-	mi := &file_ai_ask_v1_ask_proto_msgTypes[7]
+	mi := &file_ai_ask_v1_ask_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -512,7 +722,7 @@ func (x *AskStreamDone) String() string {
 func (*AskStreamDone) ProtoMessage() {}
 
 func (x *AskStreamDone) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_ask_v1_ask_proto_msgTypes[7]
+	mi := &file_ai_ask_v1_ask_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -525,7 +735,7 @@ func (x *AskStreamDone) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AskStreamDone.ProtoReflect.Descriptor instead.
 func (*AskStreamDone) Descriptor() ([]byte, []int) {
-	return file_ai_ask_v1_ask_proto_rawDescGZIP(), []int{7}
+	return file_ai_ask_v1_ask_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *AskStreamDone) GetAttemptId() string {
@@ -585,13 +795,13 @@ func (x *AskStreamDone) GetUsageEstimated() bool {
 }
 
 func (x *AskStreamDone) GetLatencyMs() int32 {
-	if x != nil {
-		return x.LatencyMs
+	if x != nil && x.LatencyMs != nil {
+		return *x.LatencyMs
 	}
 	return 0
 }
 
-func (x *AskStreamDone) GetQuota() *QuotaStatus {
+func (x *AskStreamDone) GetQuota() *v1.QuotaStatus {
 	if x != nil {
 		return x.Quota
 	}
@@ -605,17 +815,52 @@ func (x *AskStreamDone) GetCorrelationId() string {
 	return ""
 }
 
+func (x *AskStreamDone) GetConversationId() string {
+	if x != nil {
+		return x.ConversationId
+	}
+	return ""
+}
+
+func (x *AskStreamDone) GetTurnIndex() int32 {
+	if x != nil && x.TurnIndex != nil {
+		return *x.TurnIndex
+	}
+	return 0
+}
+
+func (x *AskStreamDone) GetGroundingTier() string {
+	if x != nil {
+		return x.GroundingTier
+	}
+	return ""
+}
+
+func (x *AskStreamDone) GetSuggestedLinks() []*AskSuggestedLink {
+	if x != nil {
+		return x.SuggestedLinks
+	}
+	return nil
+}
+
+func (x *AskStreamDone) GetFollowUpQuestions() []string {
+	if x != nil {
+		return x.FollowUpQuestions
+	}
+	return nil
+}
+
 type AskStreamError struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Error         *PublicAppError        `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
-	Quota         *QuotaStatus           `protobuf:"bytes,2,opt,name=quota,proto3" json:"quota,omitempty"`
+	Error         *v1.PublicAppError     `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+	Quota         *v1.QuotaStatus        `protobuf:"bytes,2,opt,name=quota,proto3" json:"quota,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *AskStreamError) Reset() {
 	*x = AskStreamError{}
-	mi := &file_ai_ask_v1_ask_proto_msgTypes[8]
+	mi := &file_ai_ask_v1_ask_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -627,7 +872,7 @@ func (x *AskStreamError) String() string {
 func (*AskStreamError) ProtoMessage() {}
 
 func (x *AskStreamError) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_ask_v1_ask_proto_msgTypes[8]
+	mi := &file_ai_ask_v1_ask_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -640,17 +885,17 @@ func (x *AskStreamError) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AskStreamError.ProtoReflect.Descriptor instead.
 func (*AskStreamError) Descriptor() ([]byte, []int) {
-	return file_ai_ask_v1_ask_proto_rawDescGZIP(), []int{8}
+	return file_ai_ask_v1_ask_proto_rawDescGZIP(), []int{11}
 }
 
-func (x *AskStreamError) GetError() *PublicAppError {
+func (x *AskStreamError) GetError() *v1.PublicAppError {
 	if x != nil {
 		return x.Error
 	}
 	return nil
 }
 
-func (x *AskStreamError) GetQuota() *QuotaStatus {
+func (x *AskStreamError) GetQuota() *v1.QuotaStatus {
 	if x != nil {
 		return x.Quota
 	}
@@ -666,6 +911,9 @@ type AskStreamChunk struct {
 	//	*AskStreamChunk_Delta
 	//	*AskStreamChunk_Done
 	//	*AskStreamChunk_Error
+	//	*AskStreamChunk_Status
+	//	*AskStreamChunk_Preamble
+	//	*AskStreamChunk_PreambleError
 	Payload       isAskStreamChunk_Payload `protobuf_oneof:"payload"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -673,7 +921,7 @@ type AskStreamChunk struct {
 
 func (x *AskStreamChunk) Reset() {
 	*x = AskStreamChunk{}
-	mi := &file_ai_ask_v1_ask_proto_msgTypes[9]
+	mi := &file_ai_ask_v1_ask_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -685,7 +933,7 @@ func (x *AskStreamChunk) String() string {
 func (*AskStreamChunk) ProtoMessage() {}
 
 func (x *AskStreamChunk) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_ask_v1_ask_proto_msgTypes[9]
+	mi := &file_ai_ask_v1_ask_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -698,7 +946,7 @@ func (x *AskStreamChunk) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AskStreamChunk.ProtoReflect.Descriptor instead.
 func (*AskStreamChunk) Descriptor() ([]byte, []int) {
-	return file_ai_ask_v1_ask_proto_rawDescGZIP(), []int{9}
+	return file_ai_ask_v1_ask_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *AskStreamChunk) GetPayload() isAskStreamChunk_Payload {
@@ -753,6 +1001,33 @@ func (x *AskStreamChunk) GetError() *AskStreamError {
 	return nil
 }
 
+func (x *AskStreamChunk) GetStatus() *AskStreamStatus {
+	if x != nil {
+		if x, ok := x.Payload.(*AskStreamChunk_Status); ok {
+			return x.Status
+		}
+	}
+	return nil
+}
+
+func (x *AskStreamChunk) GetPreamble() *AskStreamPreamble {
+	if x != nil {
+		if x, ok := x.Payload.(*AskStreamChunk_Preamble); ok {
+			return x.Preamble
+		}
+	}
+	return nil
+}
+
+func (x *AskStreamChunk) GetPreambleError() *AskStreamPreambleError {
+	if x != nil {
+		if x, ok := x.Payload.(*AskStreamChunk_PreambleError); ok {
+			return x.PreambleError
+		}
+	}
+	return nil
+}
+
 type isAskStreamChunk_Payload interface {
 	isAskStreamChunk_Payload()
 }
@@ -777,6 +1052,18 @@ type AskStreamChunk_Error struct {
 	Error *AskStreamError `protobuf:"bytes,5,opt,name=error,proto3,oneof"`
 }
 
+type AskStreamChunk_Status struct {
+	Status *AskStreamStatus `protobuf:"bytes,6,opt,name=status,proto3,oneof"`
+}
+
+type AskStreamChunk_Preamble struct {
+	Preamble *AskStreamPreamble `protobuf:"bytes,7,opt,name=preamble,proto3,oneof"`
+}
+
+type AskStreamChunk_PreambleError struct {
+	PreambleError *AskStreamPreambleError `protobuf:"bytes,8,opt,name=preamble_error,json=preambleError,proto3,oneof"`
+}
+
 func (*AskStreamChunk_Meta) isAskStreamChunk_Payload() {}
 
 func (*AskStreamChunk_Sources) isAskStreamChunk_Payload() {}
@@ -787,6 +1074,12 @@ func (*AskStreamChunk_Done) isAskStreamChunk_Payload() {}
 
 func (*AskStreamChunk_Error) isAskStreamChunk_Payload() {}
 
+func (*AskStreamChunk_Status) isAskStreamChunk_Payload() {}
+
+func (*AskStreamChunk_Preamble) isAskStreamChunk_Payload() {}
+
+func (*AskStreamChunk_PreambleError) isAskStreamChunk_Payload() {}
+
 type GetAskStatusRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -795,7 +1088,7 @@ type GetAskStatusRequest struct {
 
 func (x *GetAskStatusRequest) Reset() {
 	*x = GetAskStatusRequest{}
-	mi := &file_ai_ask_v1_ask_proto_msgTypes[10]
+	mi := &file_ai_ask_v1_ask_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -807,7 +1100,7 @@ func (x *GetAskStatusRequest) String() string {
 func (*GetAskStatusRequest) ProtoMessage() {}
 
 func (x *GetAskStatusRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_ask_v1_ask_proto_msgTypes[10]
+	mi := &file_ai_ask_v1_ask_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -820,7 +1113,7 @@ func (x *GetAskStatusRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAskStatusRequest.ProtoReflect.Descriptor instead.
 func (*GetAskStatusRequest) Descriptor() ([]byte, []int) {
-	return file_ai_ask_v1_ask_proto_rawDescGZIP(), []int{10}
+	return file_ai_ask_v1_ask_proto_rawDescGZIP(), []int{13}
 }
 
 type AskCollectionStatus struct {
@@ -835,7 +1128,7 @@ type AskCollectionStatus struct {
 
 func (x *AskCollectionStatus) Reset() {
 	*x = AskCollectionStatus{}
-	mi := &file_ai_ask_v1_ask_proto_msgTypes[11]
+	mi := &file_ai_ask_v1_ask_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -847,7 +1140,7 @@ func (x *AskCollectionStatus) String() string {
 func (*AskCollectionStatus) ProtoMessage() {}
 
 func (x *AskCollectionStatus) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_ask_v1_ask_proto_msgTypes[11]
+	mi := &file_ai_ask_v1_ask_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -860,7 +1153,7 @@ func (x *AskCollectionStatus) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AskCollectionStatus.ProtoReflect.Descriptor instead.
 func (*AskCollectionStatus) Descriptor() ([]byte, []int) {
-	return file_ai_ask_v1_ask_proto_rawDescGZIP(), []int{11}
+	return file_ai_ask_v1_ask_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *AskCollectionStatus) GetName() string {
@@ -903,7 +1196,7 @@ type GetAskStatusResponse struct {
 
 func (x *GetAskStatusResponse) Reset() {
 	*x = GetAskStatusResponse{}
-	mi := &file_ai_ask_v1_ask_proto_msgTypes[12]
+	mi := &file_ai_ask_v1_ask_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -915,7 +1208,7 @@ func (x *GetAskStatusResponse) String() string {
 func (*GetAskStatusResponse) ProtoMessage() {}
 
 func (x *GetAskStatusResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_ask_v1_ask_proto_msgTypes[12]
+	mi := &file_ai_ask_v1_ask_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -928,7 +1221,7 @@ func (x *GetAskStatusResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAskStatusResponse.ProtoReflect.Descriptor instead.
 func (*GetAskStatusResponse) Descriptor() ([]byte, []int) {
-	return file_ai_ask_v1_ask_proto_rawDescGZIP(), []int{12}
+	return file_ai_ask_v1_ask_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *GetAskStatusResponse) GetStatus() string {
@@ -968,7 +1261,7 @@ type GetTurnRequest struct {
 
 func (x *GetTurnRequest) Reset() {
 	*x = GetTurnRequest{}
-	mi := &file_ai_ask_v1_ask_proto_msgTypes[13]
+	mi := &file_ai_ask_v1_ask_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -980,7 +1273,7 @@ func (x *GetTurnRequest) String() string {
 func (*GetTurnRequest) ProtoMessage() {}
 
 func (x *GetTurnRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_ask_v1_ask_proto_msgTypes[13]
+	mi := &file_ai_ask_v1_ask_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -993,7 +1286,7 @@ func (x *GetTurnRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetTurnRequest.ProtoReflect.Descriptor instead.
 func (*GetTurnRequest) Descriptor() ([]byte, []int) {
-	return file_ai_ask_v1_ask_proto_rawDescGZIP(), []int{13}
+	return file_ai_ask_v1_ask_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *GetTurnRequest) GetAttemptId() string {
@@ -1004,29 +1297,34 @@ func (x *GetTurnRequest) GetAttemptId() string {
 }
 
 type AskResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	AttemptId     string                 `protobuf:"bytes,1,opt,name=attempt_id,json=attemptId,proto3" json:"attempt_id,omitempty"`
-	Grounded      bool                   `protobuf:"varint,2,opt,name=grounded,proto3" json:"grounded,omitempty"`
-	Abstained     bool                   `protobuf:"varint,3,opt,name=abstained,proto3" json:"abstained,omitempty"`
-	Mode          string                 `protobuf:"bytes,4,opt,name=mode,proto3" json:"mode,omitempty"`
-	Answer        string                 `protobuf:"bytes,5,opt,name=answer,proto3" json:"answer,omitempty"`
-	Sources       []*AskSource           `protobuf:"bytes,6,rep,name=sources,proto3" json:"sources,omitempty"`
-	MatchScore    *int32                 `protobuf:"varint,7,opt,name=match_score,json=matchScore,proto3,oneof" json:"match_score,omitempty"`
-	Strengths     []string               `protobuf:"bytes,8,rep,name=strengths,proto3" json:"strengths,omitempty"`
-	Gaps          []string               `protobuf:"bytes,9,rep,name=gaps,proto3" json:"gaps,omitempty"`
-	Provider      string                 `protobuf:"bytes,10,opt,name=provider,proto3" json:"provider,omitempty"`
-	Model         string                 `protobuf:"bytes,11,opt,name=model,proto3" json:"model,omitempty"`
-	TokensUsed    int32                  `protobuf:"varint,12,opt,name=tokens_used,json=tokensUsed,proto3" json:"tokens_used,omitempty"`
-	LatencyMs     int32                  `protobuf:"varint,13,opt,name=latency_ms,json=latencyMs,proto3" json:"latency_ms,omitempty"`
-	CorrelationId string                 `protobuf:"bytes,14,opt,name=correlation_id,json=correlationId,proto3" json:"correlation_id,omitempty"`
-	Quota         *QuotaStatus           `protobuf:"bytes,15,opt,name=quota,proto3" json:"quota,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	AttemptId         string                 `protobuf:"bytes,1,opt,name=attempt_id,json=attemptId,proto3" json:"attempt_id,omitempty"`
+	Grounded          bool                   `protobuf:"varint,2,opt,name=grounded,proto3" json:"grounded,omitempty"`
+	Abstained         bool                   `protobuf:"varint,3,opt,name=abstained,proto3" json:"abstained,omitempty"`
+	Mode              string                 `protobuf:"bytes,4,opt,name=mode,proto3" json:"mode,omitempty"`
+	Answer            string                 `protobuf:"bytes,5,opt,name=answer,proto3" json:"answer,omitempty"`
+	Sources           []*AskSource           `protobuf:"bytes,6,rep,name=sources,proto3" json:"sources,omitempty"`
+	MatchScore        *int32                 `protobuf:"varint,7,opt,name=match_score,json=matchScore,proto3,oneof" json:"match_score,omitempty"`
+	Strengths         []string               `protobuf:"bytes,8,rep,name=strengths,proto3" json:"strengths,omitempty"`
+	Gaps              []string               `protobuf:"bytes,9,rep,name=gaps,proto3" json:"gaps,omitempty"`
+	Provider          string                 `protobuf:"bytes,10,opt,name=provider,proto3" json:"provider,omitempty"`
+	Model             string                 `protobuf:"bytes,11,opt,name=model,proto3" json:"model,omitempty"`
+	TokensUsed        int32                  `protobuf:"varint,12,opt,name=tokens_used,json=tokensUsed,proto3" json:"tokens_used,omitempty"`
+	LatencyMs         *int32                 `protobuf:"varint,13,opt,name=latency_ms,json=latencyMs,proto3,oneof" json:"latency_ms,omitempty"`
+	CorrelationId     string                 `protobuf:"bytes,14,opt,name=correlation_id,json=correlationId,proto3" json:"correlation_id,omitempty"`
+	Quota             *v1.QuotaStatus        `protobuf:"bytes,15,opt,name=quota,proto3" json:"quota,omitempty"`
+	ConversationId    string                 `protobuf:"bytes,16,opt,name=conversation_id,json=conversationId,proto3" json:"conversation_id,omitempty"`
+	TurnIndex         *int32                 `protobuf:"varint,17,opt,name=turn_index,json=turnIndex,proto3,oneof" json:"turn_index,omitempty"`
+	GroundingTier     string                 `protobuf:"bytes,18,opt,name=grounding_tier,json=groundingTier,proto3" json:"grounding_tier,omitempty"`
+	SuggestedLinks    []*AskSuggestedLink    `protobuf:"bytes,19,rep,name=suggested_links,json=suggestedLinks,proto3" json:"suggested_links,omitempty"`
+	FollowUpQuestions []string               `protobuf:"bytes,20,rep,name=follow_up_questions,json=followUpQuestions,proto3" json:"follow_up_questions,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *AskResponse) Reset() {
 	*x = AskResponse{}
-	mi := &file_ai_ask_v1_ask_proto_msgTypes[14]
+	mi := &file_ai_ask_v1_ask_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1038,7 +1336,7 @@ func (x *AskResponse) String() string {
 func (*AskResponse) ProtoMessage() {}
 
 func (x *AskResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_ask_v1_ask_proto_msgTypes[14]
+	mi := &file_ai_ask_v1_ask_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1051,7 +1349,7 @@ func (x *AskResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AskResponse.ProtoReflect.Descriptor instead.
 func (*AskResponse) Descriptor() ([]byte, []int) {
-	return file_ai_ask_v1_ask_proto_rawDescGZIP(), []int{14}
+	return file_ai_ask_v1_ask_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *AskResponse) GetAttemptId() string {
@@ -1139,8 +1437,8 @@ func (x *AskResponse) GetTokensUsed() int32 {
 }
 
 func (x *AskResponse) GetLatencyMs() int32 {
-	if x != nil {
-		return x.LatencyMs
+	if x != nil && x.LatencyMs != nil {
+		return *x.LatencyMs
 	}
 	return 0
 }
@@ -1152,12 +1450,253 @@ func (x *AskResponse) GetCorrelationId() string {
 	return ""
 }
 
-func (x *AskResponse) GetQuota() *QuotaStatus {
+func (x *AskResponse) GetQuota() *v1.QuotaStatus {
 	if x != nil {
 		return x.Quota
 	}
 	return nil
 }
+
+func (x *AskResponse) GetConversationId() string {
+	if x != nil {
+		return x.ConversationId
+	}
+	return ""
+}
+
+func (x *AskResponse) GetTurnIndex() int32 {
+	if x != nil && x.TurnIndex != nil {
+		return *x.TurnIndex
+	}
+	return 0
+}
+
+func (x *AskResponse) GetGroundingTier() string {
+	if x != nil {
+		return x.GroundingTier
+	}
+	return ""
+}
+
+func (x *AskResponse) GetSuggestedLinks() []*AskSuggestedLink {
+	if x != nil {
+		return x.SuggestedLinks
+	}
+	return nil
+}
+
+func (x *AskResponse) GetFollowUpQuestions() []string {
+	if x != nil {
+		return x.FollowUpQuestions
+	}
+	return nil
+}
+
+type AskTurnState struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	AttemptId      string                 `protobuf:"bytes,1,opt,name=attempt_id,json=attemptId,proto3" json:"attempt_id,omitempty"`
+	Status         string                 `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`
+	Mode           string                 `protobuf:"bytes,3,opt,name=mode,proto3" json:"mode,omitempty"`
+	CorrelationId  string                 `protobuf:"bytes,4,opt,name=correlation_id,json=correlationId,proto3" json:"correlation_id,omitempty"`
+	LeaseExpiresAt string                 `protobuf:"bytes,5,opt,name=lease_expires_at,json=leaseExpiresAt,proto3" json:"lease_expires_at,omitempty"`
+	ExpiresAt      string                 `protobuf:"bytes,6,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
+	Quota          *v1.QuotaStatus        `protobuf:"bytes,7,opt,name=quota,proto3" json:"quota,omitempty"`
+	Response       *AskResponse           `protobuf:"bytes,8,opt,name=response,proto3" json:"response,omitempty"`
+	Error          *v1.PublicAppError     `protobuf:"bytes,9,opt,name=error,proto3" json:"error,omitempty"`
+	ConversationId string                 `protobuf:"bytes,10,opt,name=conversation_id,json=conversationId,proto3" json:"conversation_id,omitempty"`
+	TurnIndex      *int32                 `protobuf:"varint,11,opt,name=turn_index,json=turnIndex,proto3,oneof" json:"turn_index,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *AskTurnState) Reset() {
+	*x = AskTurnState{}
+	mi := &file_ai_ask_v1_ask_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AskTurnState) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AskTurnState) ProtoMessage() {}
+
+func (x *AskTurnState) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_ask_v1_ask_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AskTurnState.ProtoReflect.Descriptor instead.
+func (*AskTurnState) Descriptor() ([]byte, []int) {
+	return file_ai_ask_v1_ask_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *AskTurnState) GetAttemptId() string {
+	if x != nil {
+		return x.AttemptId
+	}
+	return ""
+}
+
+func (x *AskTurnState) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+func (x *AskTurnState) GetMode() string {
+	if x != nil {
+		return x.Mode
+	}
+	return ""
+}
+
+func (x *AskTurnState) GetCorrelationId() string {
+	if x != nil {
+		return x.CorrelationId
+	}
+	return ""
+}
+
+func (x *AskTurnState) GetLeaseExpiresAt() string {
+	if x != nil {
+		return x.LeaseExpiresAt
+	}
+	return ""
+}
+
+func (x *AskTurnState) GetExpiresAt() string {
+	if x != nil {
+		return x.ExpiresAt
+	}
+	return ""
+}
+
+func (x *AskTurnState) GetQuota() *v1.QuotaStatus {
+	if x != nil {
+		return x.Quota
+	}
+	return nil
+}
+
+func (x *AskTurnState) GetResponse() *AskResponse {
+	if x != nil {
+		return x.Response
+	}
+	return nil
+}
+
+func (x *AskTurnState) GetError() *v1.PublicAppError {
+	if x != nil {
+		return x.Error
+	}
+	return nil
+}
+
+func (x *AskTurnState) GetConversationId() string {
+	if x != nil {
+		return x.ConversationId
+	}
+	return ""
+}
+
+func (x *AskTurnState) GetTurnIndex() int32 {
+	if x != nil && x.TurnIndex != nil {
+		return *x.TurnIndex
+	}
+	return 0
+}
+
+type AskUnaryResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Types that are valid to be assigned to Outcome:
+	//
+	//	*AskUnaryResponse_Completed
+	//	*AskUnaryResponse_Pending
+	Outcome       isAskUnaryResponse_Outcome `protobuf_oneof:"outcome"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AskUnaryResponse) Reset() {
+	*x = AskUnaryResponse{}
+	mi := &file_ai_ask_v1_ask_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AskUnaryResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AskUnaryResponse) ProtoMessage() {}
+
+func (x *AskUnaryResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_ask_v1_ask_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AskUnaryResponse.ProtoReflect.Descriptor instead.
+func (*AskUnaryResponse) Descriptor() ([]byte, []int) {
+	return file_ai_ask_v1_ask_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *AskUnaryResponse) GetOutcome() isAskUnaryResponse_Outcome {
+	if x != nil {
+		return x.Outcome
+	}
+	return nil
+}
+
+func (x *AskUnaryResponse) GetCompleted() *AskResponse {
+	if x != nil {
+		if x, ok := x.Outcome.(*AskUnaryResponse_Completed); ok {
+			return x.Completed
+		}
+	}
+	return nil
+}
+
+func (x *AskUnaryResponse) GetPending() *AskTurnState {
+	if x != nil {
+		if x, ok := x.Outcome.(*AskUnaryResponse_Pending); ok {
+			return x.Pending
+		}
+	}
+	return nil
+}
+
+type isAskUnaryResponse_Outcome interface {
+	isAskUnaryResponse_Outcome()
+}
+
+type AskUnaryResponse_Completed struct {
+	Completed *AskResponse `protobuf:"bytes,1,opt,name=completed,proto3,oneof"`
+}
+
+type AskUnaryResponse_Pending struct {
+	Pending *AskTurnState `protobuf:"bytes,2,opt,name=pending,proto3,oneof"`
+}
+
+func (*AskUnaryResponse_Completed) isAskUnaryResponse_Outcome() {}
+
+func (*AskUnaryResponse_Pending) isAskUnaryResponse_Outcome() {}
 
 type GetTurnResponse struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
@@ -1167,16 +1706,18 @@ type GetTurnResponse struct {
 	CorrelationId  string                 `protobuf:"bytes,4,opt,name=correlation_id,json=correlationId,proto3" json:"correlation_id,omitempty"`
 	LeaseExpiresAt string                 `protobuf:"bytes,5,opt,name=lease_expires_at,json=leaseExpiresAt,proto3" json:"lease_expires_at,omitempty"`
 	ExpiresAt      string                 `protobuf:"bytes,6,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
-	Quota          *QuotaStatus           `protobuf:"bytes,7,opt,name=quota,proto3" json:"quota,omitempty"`
+	Quota          *v1.QuotaStatus        `protobuf:"bytes,7,opt,name=quota,proto3" json:"quota,omitempty"`
 	Response       *AskResponse           `protobuf:"bytes,8,opt,name=response,proto3" json:"response,omitempty"`
-	Error          *PublicAppError        `protobuf:"bytes,9,opt,name=error,proto3" json:"error,omitempty"`
+	Error          *v1.PublicAppError     `protobuf:"bytes,9,opt,name=error,proto3" json:"error,omitempty"`
+	ConversationId string                 `protobuf:"bytes,10,opt,name=conversation_id,json=conversationId,proto3" json:"conversation_id,omitempty"`
+	TurnIndex      *int32                 `protobuf:"varint,11,opt,name=turn_index,json=turnIndex,proto3,oneof" json:"turn_index,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
 
 func (x *GetTurnResponse) Reset() {
 	*x = GetTurnResponse{}
-	mi := &file_ai_ask_v1_ask_proto_msgTypes[15]
+	mi := &file_ai_ask_v1_ask_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1188,7 +1729,7 @@ func (x *GetTurnResponse) String() string {
 func (*GetTurnResponse) ProtoMessage() {}
 
 func (x *GetTurnResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_ask_v1_ask_proto_msgTypes[15]
+	mi := &file_ai_ask_v1_ask_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1201,7 +1742,7 @@ func (x *GetTurnResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetTurnResponse.ProtoReflect.Descriptor instead.
 func (*GetTurnResponse) Descriptor() ([]byte, []int) {
-	return file_ai_ask_v1_ask_proto_rawDescGZIP(), []int{15}
+	return file_ai_ask_v1_ask_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *GetTurnResponse) GetAttemptId() string {
@@ -1246,7 +1787,7 @@ func (x *GetTurnResponse) GetExpiresAt() string {
 	return ""
 }
 
-func (x *GetTurnResponse) GetQuota() *QuotaStatus {
+func (x *GetTurnResponse) GetQuota() *v1.QuotaStatus {
 	if x != nil {
 		return x.Quota
 	}
@@ -1260,56 +1801,206 @@ func (x *GetTurnResponse) GetResponse() *AskResponse {
 	return nil
 }
 
-func (x *GetTurnResponse) GetError() *PublicAppError {
+func (x *GetTurnResponse) GetError() *v1.PublicAppError {
 	if x != nil {
 		return x.Error
 	}
 	return nil
 }
 
+func (x *GetTurnResponse) GetConversationId() string {
+	if x != nil {
+		return x.ConversationId
+	}
+	return ""
+}
+
+func (x *GetTurnResponse) GetTurnIndex() int32 {
+	if x != nil && x.TurnIndex != nil {
+		return *x.TurnIndex
+	}
+	return 0
+}
+
+type ReindexRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ReindexRequest) Reset() {
+	*x = ReindexRequest{}
+	mi := &file_ai_ask_v1_ask_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ReindexRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReindexRequest) ProtoMessage() {}
+
+func (x *ReindexRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_ask_v1_ask_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReindexRequest.ProtoReflect.Descriptor instead.
+func (*ReindexRequest) Descriptor() ([]byte, []int) {
+	return file_ai_ask_v1_ask_proto_rawDescGZIP(), []int{21}
+}
+
+type ReindexResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Indexed       int32                  `protobuf:"varint,1,opt,name=indexed,proto3" json:"indexed,omitempty"`
+	Pruned        int32                  `protobuf:"varint,2,opt,name=pruned,proto3" json:"pruned,omitempty"`
+	Collection    string                 `protobuf:"bytes,3,opt,name=collection,proto3" json:"collection,omitempty"`
+	VectorSize    int32                  `protobuf:"varint,4,opt,name=vector_size,json=vectorSize,proto3" json:"vector_size,omitempty"`
+	Provider      string                 `protobuf:"bytes,5,opt,name=provider,proto3" json:"provider,omitempty"`
+	CorrelationId string                 `protobuf:"bytes,6,opt,name=correlation_id,json=correlationId,proto3" json:"correlation_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ReindexResponse) Reset() {
+	*x = ReindexResponse{}
+	mi := &file_ai_ask_v1_ask_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ReindexResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReindexResponse) ProtoMessage() {}
+
+func (x *ReindexResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_ask_v1_ask_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReindexResponse.ProtoReflect.Descriptor instead.
+func (*ReindexResponse) Descriptor() ([]byte, []int) {
+	return file_ai_ask_v1_ask_proto_rawDescGZIP(), []int{22}
+}
+
+func (x *ReindexResponse) GetIndexed() int32 {
+	if x != nil {
+		return x.Indexed
+	}
+	return 0
+}
+
+func (x *ReindexResponse) GetPruned() int32 {
+	if x != nil {
+		return x.Pruned
+	}
+	return 0
+}
+
+func (x *ReindexResponse) GetCollection() string {
+	if x != nil {
+		return x.Collection
+	}
+	return ""
+}
+
+func (x *ReindexResponse) GetVectorSize() int32 {
+	if x != nil {
+		return x.VectorSize
+	}
+	return 0
+}
+
+func (x *ReindexResponse) GetProvider() string {
+	if x != nil {
+		return x.Provider
+	}
+	return ""
+}
+
+func (x *ReindexResponse) GetCorrelationId() string {
+	if x != nil {
+		return x.CorrelationId
+	}
+	return ""
+}
+
 var File_ai_ask_v1_ask_proto protoreflect.FileDescriptor
 
 const file_ai_ask_v1_ask_proto_rawDesc = "" +
 	"\n" +
-	"\x13ai_ask/v1/ask.proto\x12\tai_ask.v1\"\x8a\x01\n" +
+	"\x13ai_ask/v1/ask.proto\x12\tai_ask.v1\x1a\x15common/v1/error.proto\"\xd6\x01\n" +
 	"\x10StreamAskRequest\x12\x12\n" +
 	"\x04mode\x18\x01 \x01(\tR\x04mode\x12\x1a\n" +
 	"\bquestion\x18\x02 \x01(\tR\bquestion\x12'\n" +
 	"\x0fjob_description\x18\x03 \x01(\tR\x0ejobDescription\x12\x1d\n" +
 	"\n" +
-	"attempt_id\x18\x04 \x01(\tR\tattemptId\"}\n" +
+	"attempt_id\x18\x04 \x01(\tR\tattemptId\x12'\n" +
+	"\x0fconversation_id\x18\x05 \x01(\tR\x0econversationId\x12!\n" +
+	"\fvisitor_lens\x18\x06 \x01(\tR\vvisitorLens\"\xd0\x01\n" +
+	"\n" +
+	"AskRequest\x12\x12\n" +
+	"\x04mode\x18\x01 \x01(\tR\x04mode\x12\x1a\n" +
+	"\bquestion\x18\x02 \x01(\tR\bquestion\x12'\n" +
+	"\x0fjob_description\x18\x03 \x01(\tR\x0ejobDescription\x12\x1d\n" +
+	"\n" +
+	"attempt_id\x18\x04 \x01(\tR\tattemptId\x12'\n" +
+	"\x0fconversation_id\x18\x05 \x01(\tR\x0econversationId\x12!\n" +
+	"\fvisitor_lens\x18\x06 \x01(\tR\vvisitorLens\"\xbf\x01\n" +
 	"\tAskSource\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x12\x18\n" +
 	"\asnippet\x18\x03 \x01(\tR\asnippet\x12\x14\n" +
 	"\x05score\x18\x04 \x01(\x01R\x05score\x12\x1a\n" +
-	"\bcategory\x18\x05 \x01(\tR\bcategory\"\x9d\x01\n" +
-	"\vQuotaStatus\x12\x12\n" +
-	"\x04role\x18\x01 \x01(\tR\x04role\x12\x1d\n" +
-	"\n" +
-	"turns_used\x18\x02 \x01(\x05R\tturnsUsed\x12\x1b\n" +
-	"\tmax_turns\x18\x03 \x01(\x05R\bmaxTurns\x12\x1f\n" +
-	"\vtokens_used\x18\x04 \x01(\x05R\n" +
-	"tokensUsed\x12\x1d\n" +
-	"\n" +
-	"max_tokens\x18\x05 \x01(\x05R\tmaxTokens\"\x95\x01\n" +
-	"\x0ePublicAppError\x12\x12\n" +
-	"\x04code\x18\x01 \x01(\tR\x04code\x12\x16\n" +
-	"\x06status\x18\x02 \x01(\x05R\x06status\x12\x18\n" +
-	"\amessage\x18\x03 \x01(\tR\amessage\x12\x16\n" +
-	"\x06action\x18\x04 \x01(\tR\x06action\x12%\n" +
-	"\x0ecorrelation_id\x18\x05 \x01(\tR\rcorrelationId\"\x9b\x01\n" +
+	"\bcategory\x18\x05 \x01(\tR\bcategory\x12'\n" +
+	"\x0fsection_heading\x18\x06 \x01(\tR\x0esectionHeading\x12\x17\n" +
+	"\adoc_key\x18\a \x01(\tR\x06docKey\"V\n" +
+	"\x10AskSuggestedLink\x12\x14\n" +
+	"\x05route\x18\x01 \x01(\tR\x05route\x12\x14\n" +
+	"\x05label\x18\x02 \x01(\tR\x05label\x12\x16\n" +
+	"\x06reason\x18\x03 \x01(\tR\x06reason\"=\n" +
+	"\x0fAskStreamStatus\x12\x14\n" +
+	"\x05stage\x18\x01 \x01(\tR\x05stage\x12\x14\n" +
+	"\x05label\x18\x02 \x01(\tR\x05label\"\xf7\x01\n" +
 	"\rAskStreamMeta\x12\x1d\n" +
 	"\n" +
 	"attempt_id\x18\x01 \x01(\tR\tattemptId\x12%\n" +
 	"\x0ecorrelation_id\x18\x02 \x01(\tR\rcorrelationId\x12\x12\n" +
 	"\x04mode\x18\x03 \x01(\tR\x04mode\x12\x1a\n" +
 	"\bprovider\x18\x04 \x01(\tR\bprovider\x12\x14\n" +
-	"\x05model\x18\x05 \x01(\tR\x05model\"B\n" +
+	"\x05model\x18\x05 \x01(\tR\x05model\x12'\n" +
+	"\x0fconversation_id\x18\x06 \x01(\tR\x0econversationId\x12\"\n" +
+	"\n" +
+	"turn_index\x18\a \x01(\x05H\x00R\tturnIndex\x88\x01\x01B\r\n" +
+	"\v_turn_index\"'\n" +
+	"\x11AskStreamPreamble\x12\x12\n" +
+	"\x04text\x18\x01 \x01(\tR\x04text\"\x85\x01\n" +
+	"\x16AskStreamPreambleError\x12\x12\n" +
+	"\x04code\x18\x01 \x01(\tR\x04code\x12\x18\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage\x12\x16\n" +
+	"\x06action\x18\x03 \x01(\tR\x06action\x12%\n" +
+	"\x0ecorrelation_id\x18\x04 \x01(\tR\rcorrelationId\"B\n" +
 	"\x10AskStreamSources\x12.\n" +
 	"\asources\x18\x01 \x03(\v2\x14.ai_ask.v1.AskSourceR\asources\"$\n" +
 	"\x0eAskStreamDelta\x12\x12\n" +
-	"\x04text\x18\x01 \x01(\tR\x04text\"\xf0\x02\n" +
+	"\x04text\x18\x01 \x01(\tR\x04text\"\xfd\x04\n" +
 	"\rAskStreamDone\x12\x1d\n" +
 	"\n" +
 	"attempt_id\x18\x01 \x01(\tR\tattemptId\x12\x1a\n" +
@@ -1320,21 +2011,32 @@ const file_ai_ask_v1_ask_proto_rawDesc = "" +
 	"\x05model\x18\x06 \x01(\tR\x05model\x12\x1f\n" +
 	"\vtokens_used\x18\a \x01(\x05R\n" +
 	"tokensUsed\x12'\n" +
-	"\x0fusage_estimated\x18\b \x01(\bR\x0eusageEstimated\x12\x1d\n" +
+	"\x0fusage_estimated\x18\b \x01(\bR\x0eusageEstimated\x12\"\n" +
 	"\n" +
-	"latency_ms\x18\t \x01(\x05R\tlatencyMs\x12,\n" +
+	"latency_ms\x18\t \x01(\x05H\x00R\tlatencyMs\x88\x01\x01\x12,\n" +
 	"\x05quota\x18\n" +
-	" \x01(\v2\x16.ai_ask.v1.QuotaStatusR\x05quota\x12%\n" +
-	"\x0ecorrelation_id\x18\v \x01(\tR\rcorrelationId\"o\n" +
+	" \x01(\v2\x16.common.v1.QuotaStatusR\x05quota\x12%\n" +
+	"\x0ecorrelation_id\x18\v \x01(\tR\rcorrelationId\x12'\n" +
+	"\x0fconversation_id\x18\f \x01(\tR\x0econversationId\x12\"\n" +
+	"\n" +
+	"turn_index\x18\r \x01(\x05H\x01R\tturnIndex\x88\x01\x01\x12%\n" +
+	"\x0egrounding_tier\x18\x0e \x01(\tR\rgroundingTier\x12D\n" +
+	"\x0fsuggested_links\x18\x0f \x03(\v2\x1b.ai_ask.v1.AskSuggestedLinkR\x0esuggestedLinks\x12.\n" +
+	"\x13follow_up_questions\x18\x10 \x03(\tR\x11followUpQuestionsB\r\n" +
+	"\v_latency_msB\r\n" +
+	"\v_turn_index\"o\n" +
 	"\x0eAskStreamError\x12/\n" +
-	"\x05error\x18\x01 \x01(\v2\x19.ai_ask.v1.PublicAppErrorR\x05error\x12,\n" +
-	"\x05quota\x18\x02 \x01(\v2\x16.ai_ask.v1.QuotaStatusR\x05quota\"\x9a\x02\n" +
+	"\x05error\x18\x01 \x01(\v2\x19.common.v1.PublicAppErrorR\x05error\x12,\n" +
+	"\x05quota\x18\x02 \x01(\v2\x16.common.v1.QuotaStatusR\x05quota\"\xd8\x03\n" +
 	"\x0eAskStreamChunk\x12.\n" +
 	"\x04meta\x18\x01 \x01(\v2\x18.ai_ask.v1.AskStreamMetaH\x00R\x04meta\x127\n" +
 	"\asources\x18\x02 \x01(\v2\x1b.ai_ask.v1.AskStreamSourcesH\x00R\asources\x121\n" +
 	"\x05delta\x18\x03 \x01(\v2\x19.ai_ask.v1.AskStreamDeltaH\x00R\x05delta\x12.\n" +
 	"\x04done\x18\x04 \x01(\v2\x18.ai_ask.v1.AskStreamDoneH\x00R\x04done\x121\n" +
-	"\x05error\x18\x05 \x01(\v2\x19.ai_ask.v1.AskStreamErrorH\x00R\x05errorB\t\n" +
+	"\x05error\x18\x05 \x01(\v2\x19.ai_ask.v1.AskStreamErrorH\x00R\x05error\x124\n" +
+	"\x06status\x18\x06 \x01(\v2\x1a.ai_ask.v1.AskStreamStatusH\x00R\x06status\x12:\n" +
+	"\bpreamble\x18\a \x01(\v2\x1c.ai_ask.v1.AskStreamPreambleH\x00R\bpreamble\x12J\n" +
+	"\x0epreamble_error\x18\b \x01(\v2!.ai_ask.v1.AskStreamPreambleErrorH\x00R\rpreambleErrorB\t\n" +
 	"\apayload\"\x15\n" +
 	"\x13GetAskStatusRequest\"\x85\x01\n" +
 	"\x13AskCollectionStatus\x12\x12\n" +
@@ -1352,7 +2054,7 @@ const file_ai_ask_v1_ask_proto_rawDesc = "" +
 	"collection\"/\n" +
 	"\x0eGetTurnRequest\x12\x1d\n" +
 	"\n" +
-	"attempt_id\x18\x01 \x01(\tR\tattemptId\"\xf1\x03\n" +
+	"attempt_id\x18\x01 \x01(\tR\tattemptId\"\xfe\x05\n" +
 	"\vAskResponse\x12\x1d\n" +
 	"\n" +
 	"attempt_id\x18\x01 \x01(\tR\tattemptId\x12\x1a\n" +
@@ -1369,12 +2071,41 @@ const file_ai_ask_v1_ask_proto_rawDesc = "" +
 	" \x01(\tR\bprovider\x12\x14\n" +
 	"\x05model\x18\v \x01(\tR\x05model\x12\x1f\n" +
 	"\vtokens_used\x18\f \x01(\x05R\n" +
-	"tokensUsed\x12\x1d\n" +
+	"tokensUsed\x12\"\n" +
 	"\n" +
-	"latency_ms\x18\r \x01(\x05R\tlatencyMs\x12%\n" +
+	"latency_ms\x18\r \x01(\x05H\x01R\tlatencyMs\x88\x01\x01\x12%\n" +
 	"\x0ecorrelation_id\x18\x0e \x01(\tR\rcorrelationId\x12,\n" +
-	"\x05quota\x18\x0f \x01(\v2\x16.ai_ask.v1.QuotaStatusR\x05quotaB\x0e\n" +
-	"\f_match_score\"\xdf\x02\n" +
+	"\x05quota\x18\x0f \x01(\v2\x16.common.v1.QuotaStatusR\x05quota\x12'\n" +
+	"\x0fconversation_id\x18\x10 \x01(\tR\x0econversationId\x12\"\n" +
+	"\n" +
+	"turn_index\x18\x11 \x01(\x05H\x02R\tturnIndex\x88\x01\x01\x12%\n" +
+	"\x0egrounding_tier\x18\x12 \x01(\tR\rgroundingTier\x12D\n" +
+	"\x0fsuggested_links\x18\x13 \x03(\v2\x1b.ai_ask.v1.AskSuggestedLinkR\x0esuggestedLinks\x12.\n" +
+	"\x13follow_up_questions\x18\x14 \x03(\tR\x11followUpQuestionsB\x0e\n" +
+	"\f_match_scoreB\r\n" +
+	"\v_latency_msB\r\n" +
+	"\v_turn_index\"\xb8\x03\n" +
+	"\fAskTurnState\x12\x1d\n" +
+	"\n" +
+	"attempt_id\x18\x01 \x01(\tR\tattemptId\x12\x16\n" +
+	"\x06status\x18\x02 \x01(\tR\x06status\x12\x12\n" +
+	"\x04mode\x18\x03 \x01(\tR\x04mode\x12%\n" +
+	"\x0ecorrelation_id\x18\x04 \x01(\tR\rcorrelationId\x12(\n" +
+	"\x10lease_expires_at\x18\x05 \x01(\tR\x0eleaseExpiresAt\x12\x1d\n" +
+	"\n" +
+	"expires_at\x18\x06 \x01(\tR\texpiresAt\x12,\n" +
+	"\x05quota\x18\a \x01(\v2\x16.common.v1.QuotaStatusR\x05quota\x122\n" +
+	"\bresponse\x18\b \x01(\v2\x16.ai_ask.v1.AskResponseR\bresponse\x12/\n" +
+	"\x05error\x18\t \x01(\v2\x19.common.v1.PublicAppErrorR\x05error\x12'\n" +
+	"\x0fconversation_id\x18\n" +
+	" \x01(\tR\x0econversationId\x12\"\n" +
+	"\n" +
+	"turn_index\x18\v \x01(\x05H\x00R\tturnIndex\x88\x01\x01B\r\n" +
+	"\v_turn_index\"\x8a\x01\n" +
+	"\x10AskUnaryResponse\x126\n" +
+	"\tcompleted\x18\x01 \x01(\v2\x16.ai_ask.v1.AskResponseH\x00R\tcompleted\x123\n" +
+	"\apending\x18\x02 \x01(\v2\x17.ai_ask.v1.AskTurnStateH\x00R\apendingB\t\n" +
+	"\aoutcome\"\xbb\x03\n" +
 	"\x0fGetTurnResponse\x12\x1d\n" +
 	"\n" +
 	"attempt_id\x18\x01 \x01(\tR\tattemptId\x12\x16\n" +
@@ -1384,14 +2115,32 @@ const file_ai_ask_v1_ask_proto_rawDesc = "" +
 	"\x10lease_expires_at\x18\x05 \x01(\tR\x0eleaseExpiresAt\x12\x1d\n" +
 	"\n" +
 	"expires_at\x18\x06 \x01(\tR\texpiresAt\x12,\n" +
-	"\x05quota\x18\a \x01(\v2\x16.ai_ask.v1.QuotaStatusR\x05quota\x122\n" +
+	"\x05quota\x18\a \x01(\v2\x16.common.v1.QuotaStatusR\x05quota\x122\n" +
 	"\bresponse\x18\b \x01(\v2\x16.ai_ask.v1.AskResponseR\bresponse\x12/\n" +
-	"\x05error\x18\t \x01(\v2\x19.ai_ask.v1.PublicAppErrorR\x05error2\xe6\x01\n" +
+	"\x05error\x18\t \x01(\v2\x19.common.v1.PublicAppErrorR\x05error\x12'\n" +
+	"\x0fconversation_id\x18\n" +
+	" \x01(\tR\x0econversationId\x12\"\n" +
+	"\n" +
+	"turn_index\x18\v \x01(\x05H\x00R\tturnIndex\x88\x01\x01B\r\n" +
+	"\v_turn_index\"\x10\n" +
+	"\x0eReindexRequest\"\xc7\x01\n" +
+	"\x0fReindexResponse\x12\x18\n" +
+	"\aindexed\x18\x01 \x01(\x05R\aindexed\x12\x16\n" +
+	"\x06pruned\x18\x02 \x01(\x05R\x06pruned\x12\x1e\n" +
+	"\n" +
+	"collection\x18\x03 \x01(\tR\n" +
+	"collection\x12\x1f\n" +
+	"\vvector_size\x18\x04 \x01(\x05R\n" +
+	"vectorSize\x12\x1a\n" +
+	"\bprovider\x18\x05 \x01(\tR\bprovider\x12%\n" +
+	"\x0ecorrelation_id\x18\x06 \x01(\tR\rcorrelationId2\xe3\x02\n" +
 	"\n" +
 	"AskService\x12E\n" +
-	"\tStreamAsk\x12\x1b.ai_ask.v1.StreamAskRequest\x1a\x19.ai_ask.v1.AskStreamChunk0\x01\x12O\n" +
+	"\tStreamAsk\x12\x1b.ai_ask.v1.StreamAskRequest\x1a\x19.ai_ask.v1.AskStreamChunk0\x01\x129\n" +
+	"\x03Ask\x12\x15.ai_ask.v1.AskRequest\x1a\x1b.ai_ask.v1.AskUnaryResponse\x12O\n" +
 	"\fGetAskStatus\x12\x1e.ai_ask.v1.GetAskStatusRequest\x1a\x1f.ai_ask.v1.GetAskStatusResponse\x12@\n" +
-	"\aGetTurn\x12\x19.ai_ask.v1.GetTurnRequest\x1a\x1a.ai_ask.v1.GetTurnResponseB\xa2\x01\n" +
+	"\aGetTurn\x12\x19.ai_ask.v1.GetTurnRequest\x1a\x1a.ai_ask.v1.GetTurnResponse\x12@\n" +
+	"\aReindex\x12\x19.ai_ask.v1.ReindexRequest\x1a\x1a.ai_ask.v1.ReindexResponseB\xa2\x01\n" +
 	"\rcom.ai_ask.v1B\bAskProtoP\x01ZFgithub.com/AndrewK4758/aklapper/packages/go/kit/gen/ai_ask/v1;ai_askv1\xa2\x02\x03AXX\xaa\x02\bAiAsk.V1\xca\x02\bAiAsk\\V1\xe2\x02\x14AiAsk\\V1\\GPBMetadata\xea\x02\tAiAsk::V1b\x06proto3"
 
 var (
@@ -1406,52 +2155,75 @@ func file_ai_ask_v1_ask_proto_rawDescGZIP() []byte {
 	return file_ai_ask_v1_ask_proto_rawDescData
 }
 
-var file_ai_ask_v1_ask_proto_msgTypes = make([]protoimpl.MessageInfo, 16)
+var file_ai_ask_v1_ask_proto_msgTypes = make([]protoimpl.MessageInfo, 23)
 var file_ai_ask_v1_ask_proto_goTypes = []any{
-	(*StreamAskRequest)(nil),     // 0: ai_ask.v1.StreamAskRequest
-	(*AskSource)(nil),            // 1: ai_ask.v1.AskSource
-	(*QuotaStatus)(nil),          // 2: ai_ask.v1.QuotaStatus
-	(*PublicAppError)(nil),       // 3: ai_ask.v1.PublicAppError
-	(*AskStreamMeta)(nil),        // 4: ai_ask.v1.AskStreamMeta
-	(*AskStreamSources)(nil),     // 5: ai_ask.v1.AskStreamSources
-	(*AskStreamDelta)(nil),       // 6: ai_ask.v1.AskStreamDelta
-	(*AskStreamDone)(nil),        // 7: ai_ask.v1.AskStreamDone
-	(*AskStreamError)(nil),       // 8: ai_ask.v1.AskStreamError
-	(*AskStreamChunk)(nil),       // 9: ai_ask.v1.AskStreamChunk
-	(*GetAskStatusRequest)(nil),  // 10: ai_ask.v1.GetAskStatusRequest
-	(*AskCollectionStatus)(nil),  // 11: ai_ask.v1.AskCollectionStatus
-	(*GetAskStatusResponse)(nil), // 12: ai_ask.v1.GetAskStatusResponse
-	(*GetTurnRequest)(nil),       // 13: ai_ask.v1.GetTurnRequest
-	(*AskResponse)(nil),          // 14: ai_ask.v1.AskResponse
-	(*GetTurnResponse)(nil),      // 15: ai_ask.v1.GetTurnResponse
+	(*StreamAskRequest)(nil),       // 0: ai_ask.v1.StreamAskRequest
+	(*AskRequest)(nil),             // 1: ai_ask.v1.AskRequest
+	(*AskSource)(nil),              // 2: ai_ask.v1.AskSource
+	(*AskSuggestedLink)(nil),       // 3: ai_ask.v1.AskSuggestedLink
+	(*AskStreamStatus)(nil),        // 4: ai_ask.v1.AskStreamStatus
+	(*AskStreamMeta)(nil),          // 5: ai_ask.v1.AskStreamMeta
+	(*AskStreamPreamble)(nil),      // 6: ai_ask.v1.AskStreamPreamble
+	(*AskStreamPreambleError)(nil), // 7: ai_ask.v1.AskStreamPreambleError
+	(*AskStreamSources)(nil),       // 8: ai_ask.v1.AskStreamSources
+	(*AskStreamDelta)(nil),         // 9: ai_ask.v1.AskStreamDelta
+	(*AskStreamDone)(nil),          // 10: ai_ask.v1.AskStreamDone
+	(*AskStreamError)(nil),         // 11: ai_ask.v1.AskStreamError
+	(*AskStreamChunk)(nil),         // 12: ai_ask.v1.AskStreamChunk
+	(*GetAskStatusRequest)(nil),    // 13: ai_ask.v1.GetAskStatusRequest
+	(*AskCollectionStatus)(nil),    // 14: ai_ask.v1.AskCollectionStatus
+	(*GetAskStatusResponse)(nil),   // 15: ai_ask.v1.GetAskStatusResponse
+	(*GetTurnRequest)(nil),         // 16: ai_ask.v1.GetTurnRequest
+	(*AskResponse)(nil),            // 17: ai_ask.v1.AskResponse
+	(*AskTurnState)(nil),           // 18: ai_ask.v1.AskTurnState
+	(*AskUnaryResponse)(nil),       // 19: ai_ask.v1.AskUnaryResponse
+	(*GetTurnResponse)(nil),        // 20: ai_ask.v1.GetTurnResponse
+	(*ReindexRequest)(nil),         // 21: ai_ask.v1.ReindexRequest
+	(*ReindexResponse)(nil),        // 22: ai_ask.v1.ReindexResponse
+	(*v1.QuotaStatus)(nil),         // 23: common.v1.QuotaStatus
+	(*v1.PublicAppError)(nil),      // 24: common.v1.PublicAppError
 }
 var file_ai_ask_v1_ask_proto_depIdxs = []int32{
-	1,  // 0: ai_ask.v1.AskStreamSources.sources:type_name -> ai_ask.v1.AskSource
-	2,  // 1: ai_ask.v1.AskStreamDone.quota:type_name -> ai_ask.v1.QuotaStatus
-	3,  // 2: ai_ask.v1.AskStreamError.error:type_name -> ai_ask.v1.PublicAppError
-	2,  // 3: ai_ask.v1.AskStreamError.quota:type_name -> ai_ask.v1.QuotaStatus
-	4,  // 4: ai_ask.v1.AskStreamChunk.meta:type_name -> ai_ask.v1.AskStreamMeta
-	5,  // 5: ai_ask.v1.AskStreamChunk.sources:type_name -> ai_ask.v1.AskStreamSources
-	6,  // 6: ai_ask.v1.AskStreamChunk.delta:type_name -> ai_ask.v1.AskStreamDelta
-	7,  // 7: ai_ask.v1.AskStreamChunk.done:type_name -> ai_ask.v1.AskStreamDone
-	8,  // 8: ai_ask.v1.AskStreamChunk.error:type_name -> ai_ask.v1.AskStreamError
-	11, // 9: ai_ask.v1.GetAskStatusResponse.collection:type_name -> ai_ask.v1.AskCollectionStatus
-	1,  // 10: ai_ask.v1.AskResponse.sources:type_name -> ai_ask.v1.AskSource
-	2,  // 11: ai_ask.v1.AskResponse.quota:type_name -> ai_ask.v1.QuotaStatus
-	2,  // 12: ai_ask.v1.GetTurnResponse.quota:type_name -> ai_ask.v1.QuotaStatus
-	14, // 13: ai_ask.v1.GetTurnResponse.response:type_name -> ai_ask.v1.AskResponse
-	3,  // 14: ai_ask.v1.GetTurnResponse.error:type_name -> ai_ask.v1.PublicAppError
-	0,  // 15: ai_ask.v1.AskService.StreamAsk:input_type -> ai_ask.v1.StreamAskRequest
-	10, // 16: ai_ask.v1.AskService.GetAskStatus:input_type -> ai_ask.v1.GetAskStatusRequest
-	13, // 17: ai_ask.v1.AskService.GetTurn:input_type -> ai_ask.v1.GetTurnRequest
-	9,  // 18: ai_ask.v1.AskService.StreamAsk:output_type -> ai_ask.v1.AskStreamChunk
-	12, // 19: ai_ask.v1.AskService.GetAskStatus:output_type -> ai_ask.v1.GetAskStatusResponse
-	15, // 20: ai_ask.v1.AskService.GetTurn:output_type -> ai_ask.v1.GetTurnResponse
-	18, // [18:21] is the sub-list for method output_type
-	15, // [15:18] is the sub-list for method input_type
-	15, // [15:15] is the sub-list for extension type_name
-	15, // [15:15] is the sub-list for extension extendee
-	0,  // [0:15] is the sub-list for field type_name
+	2,  // 0: ai_ask.v1.AskStreamSources.sources:type_name -> ai_ask.v1.AskSource
+	23, // 1: ai_ask.v1.AskStreamDone.quota:type_name -> common.v1.QuotaStatus
+	3,  // 2: ai_ask.v1.AskStreamDone.suggested_links:type_name -> ai_ask.v1.AskSuggestedLink
+	24, // 3: ai_ask.v1.AskStreamError.error:type_name -> common.v1.PublicAppError
+	23, // 4: ai_ask.v1.AskStreamError.quota:type_name -> common.v1.QuotaStatus
+	5,  // 5: ai_ask.v1.AskStreamChunk.meta:type_name -> ai_ask.v1.AskStreamMeta
+	8,  // 6: ai_ask.v1.AskStreamChunk.sources:type_name -> ai_ask.v1.AskStreamSources
+	9,  // 7: ai_ask.v1.AskStreamChunk.delta:type_name -> ai_ask.v1.AskStreamDelta
+	10, // 8: ai_ask.v1.AskStreamChunk.done:type_name -> ai_ask.v1.AskStreamDone
+	11, // 9: ai_ask.v1.AskStreamChunk.error:type_name -> ai_ask.v1.AskStreamError
+	4,  // 10: ai_ask.v1.AskStreamChunk.status:type_name -> ai_ask.v1.AskStreamStatus
+	6,  // 11: ai_ask.v1.AskStreamChunk.preamble:type_name -> ai_ask.v1.AskStreamPreamble
+	7,  // 12: ai_ask.v1.AskStreamChunk.preamble_error:type_name -> ai_ask.v1.AskStreamPreambleError
+	14, // 13: ai_ask.v1.GetAskStatusResponse.collection:type_name -> ai_ask.v1.AskCollectionStatus
+	2,  // 14: ai_ask.v1.AskResponse.sources:type_name -> ai_ask.v1.AskSource
+	23, // 15: ai_ask.v1.AskResponse.quota:type_name -> common.v1.QuotaStatus
+	3,  // 16: ai_ask.v1.AskResponse.suggested_links:type_name -> ai_ask.v1.AskSuggestedLink
+	23, // 17: ai_ask.v1.AskTurnState.quota:type_name -> common.v1.QuotaStatus
+	17, // 18: ai_ask.v1.AskTurnState.response:type_name -> ai_ask.v1.AskResponse
+	24, // 19: ai_ask.v1.AskTurnState.error:type_name -> common.v1.PublicAppError
+	17, // 20: ai_ask.v1.AskUnaryResponse.completed:type_name -> ai_ask.v1.AskResponse
+	18, // 21: ai_ask.v1.AskUnaryResponse.pending:type_name -> ai_ask.v1.AskTurnState
+	23, // 22: ai_ask.v1.GetTurnResponse.quota:type_name -> common.v1.QuotaStatus
+	17, // 23: ai_ask.v1.GetTurnResponse.response:type_name -> ai_ask.v1.AskResponse
+	24, // 24: ai_ask.v1.GetTurnResponse.error:type_name -> common.v1.PublicAppError
+	0,  // 25: ai_ask.v1.AskService.StreamAsk:input_type -> ai_ask.v1.StreamAskRequest
+	1,  // 26: ai_ask.v1.AskService.Ask:input_type -> ai_ask.v1.AskRequest
+	13, // 27: ai_ask.v1.AskService.GetAskStatus:input_type -> ai_ask.v1.GetAskStatusRequest
+	16, // 28: ai_ask.v1.AskService.GetTurn:input_type -> ai_ask.v1.GetTurnRequest
+	21, // 29: ai_ask.v1.AskService.Reindex:input_type -> ai_ask.v1.ReindexRequest
+	12, // 30: ai_ask.v1.AskService.StreamAsk:output_type -> ai_ask.v1.AskStreamChunk
+	19, // 31: ai_ask.v1.AskService.Ask:output_type -> ai_ask.v1.AskUnaryResponse
+	15, // 32: ai_ask.v1.AskService.GetAskStatus:output_type -> ai_ask.v1.GetAskStatusResponse
+	20, // 33: ai_ask.v1.AskService.GetTurn:output_type -> ai_ask.v1.GetTurnResponse
+	22, // 34: ai_ask.v1.AskService.Reindex:output_type -> ai_ask.v1.ReindexResponse
+	30, // [30:35] is the sub-list for method output_type
+	25, // [25:30] is the sub-list for method input_type
+	25, // [25:25] is the sub-list for extension type_name
+	25, // [25:25] is the sub-list for extension extendee
+	0,  // [0:25] is the sub-list for field type_name
 }
 
 func init() { file_ai_ask_v1_ask_proto_init() }
@@ -1459,21 +2231,32 @@ func file_ai_ask_v1_ask_proto_init() {
 	if File_ai_ask_v1_ask_proto != nil {
 		return
 	}
-	file_ai_ask_v1_ask_proto_msgTypes[9].OneofWrappers = []any{
+	file_ai_ask_v1_ask_proto_msgTypes[5].OneofWrappers = []any{}
+	file_ai_ask_v1_ask_proto_msgTypes[10].OneofWrappers = []any{}
+	file_ai_ask_v1_ask_proto_msgTypes[12].OneofWrappers = []any{
 		(*AskStreamChunk_Meta)(nil),
 		(*AskStreamChunk_Sources)(nil),
 		(*AskStreamChunk_Delta)(nil),
 		(*AskStreamChunk_Done)(nil),
 		(*AskStreamChunk_Error)(nil),
+		(*AskStreamChunk_Status)(nil),
+		(*AskStreamChunk_Preamble)(nil),
+		(*AskStreamChunk_PreambleError)(nil),
 	}
-	file_ai_ask_v1_ask_proto_msgTypes[14].OneofWrappers = []any{}
+	file_ai_ask_v1_ask_proto_msgTypes[17].OneofWrappers = []any{}
+	file_ai_ask_v1_ask_proto_msgTypes[18].OneofWrappers = []any{}
+	file_ai_ask_v1_ask_proto_msgTypes[19].OneofWrappers = []any{
+		(*AskUnaryResponse_Completed)(nil),
+		(*AskUnaryResponse_Pending)(nil),
+	}
+	file_ai_ask_v1_ask_proto_msgTypes[20].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_ask_v1_ask_proto_rawDesc), len(file_ai_ask_v1_ask_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   16,
+			NumMessages:   23,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

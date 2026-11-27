@@ -7,6 +7,7 @@
 package cadencev1
 
 import (
+	v1 "github.com/AndrewK4758/aklapper/packages/go/kit/gen/common/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -21,17 +22,1206 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type Osc7501Status struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Source        string                 `protobuf:"bytes,1,opt,name=source,proto3" json:"source,omitempty"`
+	State         string                 `protobuf:"bytes,2,opt,name=state,proto3" json:"state,omitempty"`
+	Label         string                 `protobuf:"bytes,3,opt,name=label,proto3" json:"label,omitempty"`
+	Progress      *int32                 `protobuf:"varint,4,opt,name=progress,proto3,oneof" json:"progress,omitempty"`
+	Timestamp     string                 `protobuf:"bytes,5,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Osc7501Status) Reset() {
+	*x = Osc7501Status{}
+	mi := &file_cadence_v1_cadence_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Osc7501Status) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Osc7501Status) ProtoMessage() {}
+
+func (x *Osc7501Status) ProtoReflect() protoreflect.Message {
+	mi := &file_cadence_v1_cadence_proto_msgTypes[0]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Osc7501Status.ProtoReflect.Descriptor instead.
+func (*Osc7501Status) Descriptor() ([]byte, []int) {
+	return file_cadence_v1_cadence_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *Osc7501Status) GetSource() string {
+	if x != nil {
+		return x.Source
+	}
+	return ""
+}
+
+func (x *Osc7501Status) GetState() string {
+	if x != nil {
+		return x.State
+	}
+	return ""
+}
+
+func (x *Osc7501Status) GetLabel() string {
+	if x != nil {
+		return x.Label
+	}
+	return ""
+}
+
+func (x *Osc7501Status) GetProgress() int32 {
+	if x != nil && x.Progress != nil {
+		return *x.Progress
+	}
+	return 0
+}
+
+func (x *Osc7501Status) GetTimestamp() string {
+	if x != nil {
+		return x.Timestamp
+	}
+	return ""
+}
+
+type CadenceSpecArtifact struct {
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	Title            string                 `protobuf:"bytes,1,opt,name=title,proto3" json:"title,omitempty"`
+	Summary          string                 `protobuf:"bytes,2,opt,name=summary,proto3" json:"summary,omitempty"`
+	Conditions       []string               `protobuf:"bytes,3,rep,name=conditions,proto3" json:"conditions,omitempty"`
+	Handling         []string               `protobuf:"bytes,4,rep,name=handling,proto3" json:"handling,omitempty"`
+	Outcomes         []string               `protobuf:"bytes,5,rep,name=outcomes,proto3" json:"outcomes,omitempty"`
+	Rules            []string               `protobuf:"bytes,6,rep,name=rules,proto3" json:"rules,omitempty"`
+	Deltas           []string               `protobuf:"bytes,7,rep,name=deltas,proto3" json:"deltas,omitempty"`
+	RecalledPatterns []string               `protobuf:"bytes,8,rep,name=recalled_patterns,json=recalledPatterns,proto3" json:"recalled_patterns,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *CadenceSpecArtifact) Reset() {
+	*x = CadenceSpecArtifact{}
+	mi := &file_cadence_v1_cadence_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CadenceSpecArtifact) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CadenceSpecArtifact) ProtoMessage() {}
+
+func (x *CadenceSpecArtifact) ProtoReflect() protoreflect.Message {
+	mi := &file_cadence_v1_cadence_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CadenceSpecArtifact.ProtoReflect.Descriptor instead.
+func (*CadenceSpecArtifact) Descriptor() ([]byte, []int) {
+	return file_cadence_v1_cadence_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *CadenceSpecArtifact) GetTitle() string {
+	if x != nil {
+		return x.Title
+	}
+	return ""
+}
+
+func (x *CadenceSpecArtifact) GetSummary() string {
+	if x != nil {
+		return x.Summary
+	}
+	return ""
+}
+
+func (x *CadenceSpecArtifact) GetConditions() []string {
+	if x != nil {
+		return x.Conditions
+	}
+	return nil
+}
+
+func (x *CadenceSpecArtifact) GetHandling() []string {
+	if x != nil {
+		return x.Handling
+	}
+	return nil
+}
+
+func (x *CadenceSpecArtifact) GetOutcomes() []string {
+	if x != nil {
+		return x.Outcomes
+	}
+	return nil
+}
+
+func (x *CadenceSpecArtifact) GetRules() []string {
+	if x != nil {
+		return x.Rules
+	}
+	return nil
+}
+
+func (x *CadenceSpecArtifact) GetDeltas() []string {
+	if x != nil {
+		return x.Deltas
+	}
+	return nil
+}
+
+func (x *CadenceSpecArtifact) GetRecalledPatterns() []string {
+	if x != nil {
+		return x.RecalledPatterns
+	}
+	return nil
+}
+
+type CadenceGateCheckItem struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Label         string                 `protobuf:"bytes,2,opt,name=label,proto3" json:"label,omitempty"`
+	Status        string                 `protobuf:"bytes,3,opt,name=status,proto3" json:"status,omitempty"`
+	Detail        string                 `protobuf:"bytes,4,opt,name=detail,proto3" json:"detail,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CadenceGateCheckItem) Reset() {
+	*x = CadenceGateCheckItem{}
+	mi := &file_cadence_v1_cadence_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CadenceGateCheckItem) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CadenceGateCheckItem) ProtoMessage() {}
+
+func (x *CadenceGateCheckItem) ProtoReflect() protoreflect.Message {
+	mi := &file_cadence_v1_cadence_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CadenceGateCheckItem.ProtoReflect.Descriptor instead.
+func (*CadenceGateCheckItem) Descriptor() ([]byte, []int) {
+	return file_cadence_v1_cadence_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *CadenceGateCheckItem) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *CadenceGateCheckItem) GetLabel() string {
+	if x != nil {
+		return x.Label
+	}
+	return ""
+}
+
+func (x *CadenceGateCheckItem) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+func (x *CadenceGateCheckItem) GetDetail() string {
+	if x != nil {
+		return x.Detail
+	}
+	return ""
+}
+
+type CadenceGateAudit struct {
+	state         protoimpl.MessageState  `protogen:"open.v1"`
+	Summary       string                  `protobuf:"bytes,1,opt,name=summary,proto3" json:"summary,omitempty"`
+	Sanitized     bool                    `protobuf:"varint,2,opt,name=sanitized,proto3" json:"sanitized,omitempty"`
+	ArtifactBytes int32                   `protobuf:"varint,3,opt,name=artifact_bytes,json=artifactBytes,proto3" json:"artifact_bytes,omitempty"`
+	Checks        []*CadenceGateCheckItem `protobuf:"bytes,4,rep,name=checks,proto3" json:"checks,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CadenceGateAudit) Reset() {
+	*x = CadenceGateAudit{}
+	mi := &file_cadence_v1_cadence_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CadenceGateAudit) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CadenceGateAudit) ProtoMessage() {}
+
+func (x *CadenceGateAudit) ProtoReflect() protoreflect.Message {
+	mi := &file_cadence_v1_cadence_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CadenceGateAudit.ProtoReflect.Descriptor instead.
+func (*CadenceGateAudit) Descriptor() ([]byte, []int) {
+	return file_cadence_v1_cadence_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *CadenceGateAudit) GetSummary() string {
+	if x != nil {
+		return x.Summary
+	}
+	return ""
+}
+
+func (x *CadenceGateAudit) GetSanitized() bool {
+	if x != nil {
+		return x.Sanitized
+	}
+	return false
+}
+
+func (x *CadenceGateAudit) GetArtifactBytes() int32 {
+	if x != nil {
+		return x.ArtifactBytes
+	}
+	return 0
+}
+
+func (x *CadenceGateAudit) GetChecks() []*CadenceGateCheckItem {
+	if x != nil {
+		return x.Checks
+	}
+	return nil
+}
+
+type CadenceStringList struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Values        []string               `protobuf:"bytes,1,rep,name=values,proto3" json:"values,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CadenceStringList) Reset() {
+	*x = CadenceStringList{}
+	mi := &file_cadence_v1_cadence_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CadenceStringList) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CadenceStringList) ProtoMessage() {}
+
+func (x *CadenceStringList) ProtoReflect() protoreflect.Message {
+	mi := &file_cadence_v1_cadence_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CadenceStringList.ProtoReflect.Descriptor instead.
+func (*CadenceStringList) Descriptor() ([]byte, []int) {
+	return file_cadence_v1_cadence_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *CadenceStringList) GetValues() []string {
+	if x != nil {
+		return x.Values
+	}
+	return nil
+}
+
+type CadenceTurnPayloadValue struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Types that are valid to be assigned to Kind:
+	//
+	//	*CadenceTurnPayloadValue_StringValue
+	//	*CadenceTurnPayloadValue_NumberValue
+	//	*CadenceTurnPayloadValue_BoolValue
+	//	*CadenceTurnPayloadValue_NullValue
+	//	*CadenceTurnPayloadValue_StringListValue
+	Kind          isCadenceTurnPayloadValue_Kind `protobuf_oneof:"kind"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CadenceTurnPayloadValue) Reset() {
+	*x = CadenceTurnPayloadValue{}
+	mi := &file_cadence_v1_cadence_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CadenceTurnPayloadValue) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CadenceTurnPayloadValue) ProtoMessage() {}
+
+func (x *CadenceTurnPayloadValue) ProtoReflect() protoreflect.Message {
+	mi := &file_cadence_v1_cadence_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CadenceTurnPayloadValue.ProtoReflect.Descriptor instead.
+func (*CadenceTurnPayloadValue) Descriptor() ([]byte, []int) {
+	return file_cadence_v1_cadence_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *CadenceTurnPayloadValue) GetKind() isCadenceTurnPayloadValue_Kind {
+	if x != nil {
+		return x.Kind
+	}
+	return nil
+}
+
+func (x *CadenceTurnPayloadValue) GetStringValue() string {
+	if x != nil {
+		if x, ok := x.Kind.(*CadenceTurnPayloadValue_StringValue); ok {
+			return x.StringValue
+		}
+	}
+	return ""
+}
+
+func (x *CadenceTurnPayloadValue) GetNumberValue() float64 {
+	if x != nil {
+		if x, ok := x.Kind.(*CadenceTurnPayloadValue_NumberValue); ok {
+			return x.NumberValue
+		}
+	}
+	return 0
+}
+
+func (x *CadenceTurnPayloadValue) GetBoolValue() bool {
+	if x != nil {
+		if x, ok := x.Kind.(*CadenceTurnPayloadValue_BoolValue); ok {
+			return x.BoolValue
+		}
+	}
+	return false
+}
+
+func (x *CadenceTurnPayloadValue) GetNullValue() bool {
+	if x != nil {
+		if x, ok := x.Kind.(*CadenceTurnPayloadValue_NullValue); ok {
+			return x.NullValue
+		}
+	}
+	return false
+}
+
+func (x *CadenceTurnPayloadValue) GetStringListValue() *CadenceStringList {
+	if x != nil {
+		if x, ok := x.Kind.(*CadenceTurnPayloadValue_StringListValue); ok {
+			return x.StringListValue
+		}
+	}
+	return nil
+}
+
+type isCadenceTurnPayloadValue_Kind interface {
+	isCadenceTurnPayloadValue_Kind()
+}
+
+type CadenceTurnPayloadValue_StringValue struct {
+	StringValue string `protobuf:"bytes,1,opt,name=string_value,json=stringValue,proto3,oneof"`
+}
+
+type CadenceTurnPayloadValue_NumberValue struct {
+	NumberValue float64 `protobuf:"fixed64,2,opt,name=number_value,json=numberValue,proto3,oneof"`
+}
+
+type CadenceTurnPayloadValue_BoolValue struct {
+	BoolValue bool `protobuf:"varint,3,opt,name=bool_value,json=boolValue,proto3,oneof"`
+}
+
+type CadenceTurnPayloadValue_NullValue struct {
+	NullValue bool `protobuf:"varint,4,opt,name=null_value,json=nullValue,proto3,oneof"`
+}
+
+type CadenceTurnPayloadValue_StringListValue struct {
+	StringListValue *CadenceStringList `protobuf:"bytes,5,opt,name=string_list_value,json=stringListValue,proto3,oneof"`
+}
+
+func (*CadenceTurnPayloadValue_StringValue) isCadenceTurnPayloadValue_Kind() {}
+
+func (*CadenceTurnPayloadValue_NumberValue) isCadenceTurnPayloadValue_Kind() {}
+
+func (*CadenceTurnPayloadValue_BoolValue) isCadenceTurnPayloadValue_Kind() {}
+
+func (*CadenceTurnPayloadValue_NullValue) isCadenceTurnPayloadValue_Kind() {}
+
+func (*CadenceTurnPayloadValue_StringListValue) isCadenceTurnPayloadValue_Kind() {}
+
+type CadenceTurn struct {
+	state         protoimpl.MessageState              `protogen:"open.v1"`
+	Id            *int32                              `protobuf:"varint,1,opt,name=id,proto3,oneof" json:"id,omitempty"`
+	Phase         string                              `protobuf:"bytes,2,opt,name=phase,proto3" json:"phase,omitempty"`
+	AgentName     string                              `protobuf:"bytes,3,opt,name=agent_name,json=agentName,proto3" json:"agent_name,omitempty"`
+	Status        string                              `protobuf:"bytes,4,opt,name=status,proto3" json:"status,omitempty"`
+	Summary       string                              `protobuf:"bytes,5,opt,name=summary,proto3" json:"summary,omitempty"`
+	LatencyMs     int32                               `protobuf:"varint,6,opt,name=latency_ms,json=latencyMs,proto3" json:"latency_ms,omitempty"`
+	Payload       map[string]*CadenceTurnPayloadValue `protobuf:"bytes,7,rep,name=payload,proto3" json:"payload,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	CreatedAt     string                              `protobuf:"bytes,8,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CadenceTurn) Reset() {
+	*x = CadenceTurn{}
+	mi := &file_cadence_v1_cadence_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CadenceTurn) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CadenceTurn) ProtoMessage() {}
+
+func (x *CadenceTurn) ProtoReflect() protoreflect.Message {
+	mi := &file_cadence_v1_cadence_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CadenceTurn.ProtoReflect.Descriptor instead.
+func (*CadenceTurn) Descriptor() ([]byte, []int) {
+	return file_cadence_v1_cadence_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *CadenceTurn) GetId() int32 {
+	if x != nil && x.Id != nil {
+		return *x.Id
+	}
+	return 0
+}
+
+func (x *CadenceTurn) GetPhase() string {
+	if x != nil {
+		return x.Phase
+	}
+	return ""
+}
+
+func (x *CadenceTurn) GetAgentName() string {
+	if x != nil {
+		return x.AgentName
+	}
+	return ""
+}
+
+func (x *CadenceTurn) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+func (x *CadenceTurn) GetSummary() string {
+	if x != nil {
+		return x.Summary
+	}
+	return ""
+}
+
+func (x *CadenceTurn) GetLatencyMs() int32 {
+	if x != nil {
+		return x.LatencyMs
+	}
+	return 0
+}
+
+func (x *CadenceTurn) GetPayload() map[string]*CadenceTurnPayloadValue {
+	if x != nil {
+		return x.Payload
+	}
+	return nil
+}
+
+func (x *CadenceTurn) GetCreatedAt() string {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return ""
+}
+
+type CadenceRunResult struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	RunId         string                 `protobuf:"bytes,1,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
+	Prompt        string                 `protobuf:"bytes,2,opt,name=prompt,proto3" json:"prompt,omitempty"`
+	PresetSlug    string                 `protobuf:"bytes,3,opt,name=preset_slug,json=presetSlug,proto3" json:"preset_slug,omitempty"`
+	RunStatus     string                 `protobuf:"bytes,4,opt,name=run_status,json=runStatus,proto3" json:"run_status,omitempty"`
+	Mode          string                 `protobuf:"bytes,5,opt,name=mode,proto3" json:"mode,omitempty"`
+	ExecutionMode string                 `protobuf:"bytes,6,opt,name=execution_mode,json=executionMode,proto3" json:"execution_mode,omitempty"`
+	IsGolden      bool                   `protobuf:"varint,7,opt,name=is_golden,json=isGolden,proto3" json:"is_golden,omitempty"`
+	Spec          *CadenceSpecArtifact   `protobuf:"bytes,8,opt,name=spec,proto3" json:"spec,omitempty"`
+	GateAudit     *CadenceGateAudit      `protobuf:"bytes,9,opt,name=gate_audit,json=gateAudit,proto3" json:"gate_audit,omitempty"`
+	Status        *Osc7501Status         `protobuf:"bytes,10,opt,name=status,proto3" json:"status,omitempty"`
+	Osc7501       string                 `protobuf:"bytes,11,opt,name=osc7501,proto3" json:"osc7501,omitempty"`
+	GateVerdict   string                 `protobuf:"bytes,12,opt,name=gate_verdict,json=gateVerdict,proto3" json:"gate_verdict,omitempty"`
+	Turns         []*CadenceTurn         `protobuf:"bytes,13,rep,name=turns,proto3" json:"turns,omitempty"`
+	ArtifactHtml  string                 `protobuf:"bytes,14,opt,name=artifact_html,json=artifactHtml,proto3" json:"artifact_html,omitempty"`
+	TokensIn      *int32                 `protobuf:"varint,15,opt,name=tokens_in,json=tokensIn,proto3,oneof" json:"tokens_in,omitempty"`
+	TokensOut     *int32                 `protobuf:"varint,16,opt,name=tokens_out,json=tokensOut,proto3,oneof" json:"tokens_out,omitempty"`
+	Quota         *v1.QuotaStatus        `protobuf:"bytes,17,opt,name=quota,proto3" json:"quota,omitempty"`
+	CreatedAt     string                 `protobuf:"bytes,18,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CadenceRunResult) Reset() {
+	*x = CadenceRunResult{}
+	mi := &file_cadence_v1_cadence_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CadenceRunResult) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CadenceRunResult) ProtoMessage() {}
+
+func (x *CadenceRunResult) ProtoReflect() protoreflect.Message {
+	mi := &file_cadence_v1_cadence_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CadenceRunResult.ProtoReflect.Descriptor instead.
+func (*CadenceRunResult) Descriptor() ([]byte, []int) {
+	return file_cadence_v1_cadence_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *CadenceRunResult) GetRunId() string {
+	if x != nil {
+		return x.RunId
+	}
+	return ""
+}
+
+func (x *CadenceRunResult) GetPrompt() string {
+	if x != nil {
+		return x.Prompt
+	}
+	return ""
+}
+
+func (x *CadenceRunResult) GetPresetSlug() string {
+	if x != nil {
+		return x.PresetSlug
+	}
+	return ""
+}
+
+func (x *CadenceRunResult) GetRunStatus() string {
+	if x != nil {
+		return x.RunStatus
+	}
+	return ""
+}
+
+func (x *CadenceRunResult) GetMode() string {
+	if x != nil {
+		return x.Mode
+	}
+	return ""
+}
+
+func (x *CadenceRunResult) GetExecutionMode() string {
+	if x != nil {
+		return x.ExecutionMode
+	}
+	return ""
+}
+
+func (x *CadenceRunResult) GetIsGolden() bool {
+	if x != nil {
+		return x.IsGolden
+	}
+	return false
+}
+
+func (x *CadenceRunResult) GetSpec() *CadenceSpecArtifact {
+	if x != nil {
+		return x.Spec
+	}
+	return nil
+}
+
+func (x *CadenceRunResult) GetGateAudit() *CadenceGateAudit {
+	if x != nil {
+		return x.GateAudit
+	}
+	return nil
+}
+
+func (x *CadenceRunResult) GetStatus() *Osc7501Status {
+	if x != nil {
+		return x.Status
+	}
+	return nil
+}
+
+func (x *CadenceRunResult) GetOsc7501() string {
+	if x != nil {
+		return x.Osc7501
+	}
+	return ""
+}
+
+func (x *CadenceRunResult) GetGateVerdict() string {
+	if x != nil {
+		return x.GateVerdict
+	}
+	return ""
+}
+
+func (x *CadenceRunResult) GetTurns() []*CadenceTurn {
+	if x != nil {
+		return x.Turns
+	}
+	return nil
+}
+
+func (x *CadenceRunResult) GetArtifactHtml() string {
+	if x != nil {
+		return x.ArtifactHtml
+	}
+	return ""
+}
+
+func (x *CadenceRunResult) GetTokensIn() int32 {
+	if x != nil && x.TokensIn != nil {
+		return *x.TokensIn
+	}
+	return 0
+}
+
+func (x *CadenceRunResult) GetTokensOut() int32 {
+	if x != nil && x.TokensOut != nil {
+		return *x.TokensOut
+	}
+	return 0
+}
+
+func (x *CadenceRunResult) GetQuota() *v1.QuotaStatus {
+	if x != nil {
+		return x.Quota
+	}
+	return nil
+}
+
+func (x *CadenceRunResult) GetCreatedAt() string {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return ""
+}
+
+type CreateRunRequest struct {
+	state               protoimpl.MessageState `protogen:"open.v1"`
+	Prompt              string                 `protobuf:"bytes,1,opt,name=prompt,proto3" json:"prompt,omitempty"`
+	PresetSlug          string                 `protobuf:"bytes,2,opt,name=preset_slug,json=presetSlug,proto3" json:"preset_slug,omitempty"`
+	Mode                string                 `protobuf:"bytes,3,opt,name=mode,proto3" json:"mode,omitempty"`
+	DeferExecution      bool                   `protobuf:"varint,4,opt,name=defer_execution,json=deferExecution,proto3" json:"defer_execution,omitempty"`
+	RequireSpecApproval bool                   `protobuf:"varint,5,opt,name=require_spec_approval,json=requireSpecApproval,proto3" json:"require_spec_approval,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
+}
+
+func (x *CreateRunRequest) Reset() {
+	*x = CreateRunRequest{}
+	mi := &file_cadence_v1_cadence_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateRunRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateRunRequest) ProtoMessage() {}
+
+func (x *CreateRunRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_cadence_v1_cadence_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateRunRequest.ProtoReflect.Descriptor instead.
+func (*CreateRunRequest) Descriptor() ([]byte, []int) {
+	return file_cadence_v1_cadence_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *CreateRunRequest) GetPrompt() string {
+	if x != nil {
+		return x.Prompt
+	}
+	return ""
+}
+
+func (x *CreateRunRequest) GetPresetSlug() string {
+	if x != nil {
+		return x.PresetSlug
+	}
+	return ""
+}
+
+func (x *CreateRunRequest) GetMode() string {
+	if x != nil {
+		return x.Mode
+	}
+	return ""
+}
+
+func (x *CreateRunRequest) GetDeferExecution() bool {
+	if x != nil {
+		return x.DeferExecution
+	}
+	return false
+}
+
+func (x *CreateRunRequest) GetRequireSpecApproval() bool {
+	if x != nil {
+		return x.RequireSpecApproval
+	}
+	return false
+}
+
+type CreateRunResponse struct {
+	state              protoimpl.MessageState `protogen:"open.v1"`
+	Run                *CadenceRunResult      `protobuf:"bytes,1,opt,name=run,proto3" json:"run,omitempty"`
+	CreatedImmediately bool                   `protobuf:"varint,2,opt,name=created_immediately,json=createdImmediately,proto3" json:"created_immediately,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
+}
+
+func (x *CreateRunResponse) Reset() {
+	*x = CreateRunResponse{}
+	mi := &file_cadence_v1_cadence_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateRunResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateRunResponse) ProtoMessage() {}
+
+func (x *CreateRunResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_cadence_v1_cadence_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateRunResponse.ProtoReflect.Descriptor instead.
+func (*CreateRunResponse) Descriptor() ([]byte, []int) {
+	return file_cadence_v1_cadence_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *CreateRunResponse) GetRun() *CadenceRunResult {
+	if x != nil {
+		return x.Run
+	}
+	return nil
+}
+
+func (x *CreateRunResponse) GetCreatedImmediately() bool {
+	if x != nil {
+		return x.CreatedImmediately
+	}
+	return false
+}
+
+type ListRunsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	SessionId     string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+	Limit         int32                  `protobuf:"varint,2,opt,name=limit,proto3" json:"limit,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListRunsRequest) Reset() {
+	*x = ListRunsRequest{}
+	mi := &file_cadence_v1_cadence_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListRunsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListRunsRequest) ProtoMessage() {}
+
+func (x *ListRunsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_cadence_v1_cadence_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListRunsRequest.ProtoReflect.Descriptor instead.
+func (*ListRunsRequest) Descriptor() ([]byte, []int) {
+	return file_cadence_v1_cadence_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *ListRunsRequest) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
+func (x *ListRunsRequest) GetLimit() int32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+type ListRunsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Runs          []*CadenceRunResult    `protobuf:"bytes,1,rep,name=runs,proto3" json:"runs,omitempty"`
+	Quota         *v1.QuotaStatus        `protobuf:"bytes,2,opt,name=quota,proto3" json:"quota,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListRunsResponse) Reset() {
+	*x = ListRunsResponse{}
+	mi := &file_cadence_v1_cadence_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListRunsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListRunsResponse) ProtoMessage() {}
+
+func (x *ListRunsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_cadence_v1_cadence_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListRunsResponse.ProtoReflect.Descriptor instead.
+func (*ListRunsResponse) Descriptor() ([]byte, []int) {
+	return file_cadence_v1_cadence_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *ListRunsResponse) GetRuns() []*CadenceRunResult {
+	if x != nil {
+		return x.Runs
+	}
+	return nil
+}
+
+func (x *ListRunsResponse) GetQuota() *v1.QuotaStatus {
+	if x != nil {
+		return x.Quota
+	}
+	return nil
+}
+
+type ApproveSpecGateRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	RunId         string                 `protobuf:"bytes,1,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ApproveSpecGateRequest) Reset() {
+	*x = ApproveSpecGateRequest{}
+	mi := &file_cadence_v1_cadence_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ApproveSpecGateRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ApproveSpecGateRequest) ProtoMessage() {}
+
+func (x *ApproveSpecGateRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_cadence_v1_cadence_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ApproveSpecGateRequest.ProtoReflect.Descriptor instead.
+func (*ApproveSpecGateRequest) Descriptor() ([]byte, []int) {
+	return file_cadence_v1_cadence_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *ApproveSpecGateRequest) GetRunId() string {
+	if x != nil {
+		return x.RunId
+	}
+	return ""
+}
+
+type ApproveSpecGateResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Run           *CadenceRunResult      `protobuf:"bytes,1,opt,name=run,proto3" json:"run,omitempty"`
+	Quota         *v1.QuotaStatus        `protobuf:"bytes,2,opt,name=quota,proto3" json:"quota,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ApproveSpecGateResponse) Reset() {
+	*x = ApproveSpecGateResponse{}
+	mi := &file_cadence_v1_cadence_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ApproveSpecGateResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ApproveSpecGateResponse) ProtoMessage() {}
+
+func (x *ApproveSpecGateResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_cadence_v1_cadence_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ApproveSpecGateResponse.ProtoReflect.Descriptor instead.
+func (*ApproveSpecGateResponse) Descriptor() ([]byte, []int) {
+	return file_cadence_v1_cadence_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *ApproveSpecGateResponse) GetRun() *CadenceRunResult {
+	if x != nil {
+		return x.Run
+	}
+	return nil
+}
+
+func (x *ApproveSpecGateResponse) GetQuota() *v1.QuotaStatus {
+	if x != nil {
+		return x.Quota
+	}
+	return nil
+}
+
+type SubmitGateVerdictRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	RunId         string                 `protobuf:"bytes,1,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
+	Verdict       string                 `protobuf:"bytes,2,opt,name=verdict,proto3" json:"verdict,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SubmitGateVerdictRequest) Reset() {
+	*x = SubmitGateVerdictRequest{}
+	mi := &file_cadence_v1_cadence_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SubmitGateVerdictRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SubmitGateVerdictRequest) ProtoMessage() {}
+
+func (x *SubmitGateVerdictRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_cadence_v1_cadence_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SubmitGateVerdictRequest.ProtoReflect.Descriptor instead.
+func (*SubmitGateVerdictRequest) Descriptor() ([]byte, []int) {
+	return file_cadence_v1_cadence_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *SubmitGateVerdictRequest) GetRunId() string {
+	if x != nil {
+		return x.RunId
+	}
+	return ""
+}
+
+func (x *SubmitGateVerdictRequest) GetVerdict() string {
+	if x != nil {
+		return x.Verdict
+	}
+	return ""
+}
+
+type SubmitGateVerdictResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Run           *CadenceRunResult      `protobuf:"bytes,1,opt,name=run,proto3" json:"run,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SubmitGateVerdictResponse) Reset() {
+	*x = SubmitGateVerdictResponse{}
+	mi := &file_cadence_v1_cadence_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SubmitGateVerdictResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SubmitGateVerdictResponse) ProtoMessage() {}
+
+func (x *SubmitGateVerdictResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_cadence_v1_cadence_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SubmitGateVerdictResponse.ProtoReflect.Descriptor instead.
+func (*SubmitGateVerdictResponse) Descriptor() ([]byte, []int) {
+	return file_cadence_v1_cadence_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *SubmitGateVerdictResponse) GetRun() *CadenceRunResult {
+	if x != nil {
+		return x.Run
+	}
+	return nil
+}
+
 type StreamRunRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Prompt        string                 `protobuf:"bytes,1,opt,name=prompt,proto3" json:"prompt,omitempty"`
-	PresetSlug    string                 `protobuf:"bytes,2,opt,name=preset_slug,json=presetSlug,proto3" json:"preset_slug,omitempty"`
+	RunId         string                 `protobuf:"bytes,1,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *StreamRunRequest) Reset() {
 	*x = StreamRunRequest{}
-	mi := &file_cadence_v1_cadence_proto_msgTypes[0]
+	mi := &file_cadence_v1_cadence_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -43,7 +1233,7 @@ func (x *StreamRunRequest) String() string {
 func (*StreamRunRequest) ProtoMessage() {}
 
 func (x *StreamRunRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_cadence_v1_cadence_proto_msgTypes[0]
+	mi := &file_cadence_v1_cadence_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -56,50 +1246,43 @@ func (x *StreamRunRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StreamRunRequest.ProtoReflect.Descriptor instead.
 func (*StreamRunRequest) Descriptor() ([]byte, []int) {
-	return file_cadence_v1_cadence_proto_rawDescGZIP(), []int{0}
+	return file_cadence_v1_cadence_proto_rawDescGZIP(), []int{16}
 }
 
-func (x *StreamRunRequest) GetPrompt() string {
+func (x *StreamRunRequest) GetRunId() string {
 	if x != nil {
-		return x.Prompt
+		return x.RunId
 	}
 	return ""
 }
 
-func (x *StreamRunRequest) GetPresetSlug() string {
-	if x != nil {
-		return x.PresetSlug
-	}
-	return ""
-}
-
-type CadencePhaseEvent struct {
+type CadenceStreamPhaseEvent struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	RunId         string                 `protobuf:"bytes,1,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
-	Phase         string                 `protobuf:"bytes,2,opt,name=phase,proto3" json:"phase,omitempty"`
-	AgentName     string                 `protobuf:"bytes,3,opt,name=agent_name,json=agentName,proto3" json:"agent_name,omitempty"`
-	Status        string                 `protobuf:"bytes,4,opt,name=status,proto3" json:"status,omitempty"`
-	Summary       string                 `protobuf:"bytes,5,opt,name=summary,proto3" json:"summary,omitempty"`
-	LatencyMs     int32                  `protobuf:"varint,6,opt,name=latency_ms,json=latencyMs,proto3" json:"latency_ms,omitempty"`
+	RunStatus     string                 `protobuf:"bytes,2,opt,name=run_status,json=runStatus,proto3" json:"run_status,omitempty"`
+	Status        *Osc7501Status         `protobuf:"bytes,3,opt,name=status,proto3" json:"status,omitempty"`
+	Progress      *int32                 `protobuf:"varint,4,opt,name=progress,proto3,oneof" json:"progress,omitempty"`
+	Turn          *CadenceTurn           `protobuf:"bytes,5,opt,name=turn,proto3" json:"turn,omitempty"`
+	Spec          *CadenceSpecArtifact   `protobuf:"bytes,6,opt,name=spec,proto3" json:"spec,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *CadencePhaseEvent) Reset() {
-	*x = CadencePhaseEvent{}
-	mi := &file_cadence_v1_cadence_proto_msgTypes[1]
+func (x *CadenceStreamPhaseEvent) Reset() {
+	*x = CadenceStreamPhaseEvent{}
+	mi := &file_cadence_v1_cadence_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *CadencePhaseEvent) String() string {
+func (x *CadenceStreamPhaseEvent) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*CadencePhaseEvent) ProtoMessage() {}
+func (*CadenceStreamPhaseEvent) ProtoMessage() {}
 
-func (x *CadencePhaseEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_cadence_v1_cadence_proto_msgTypes[1]
+func (x *CadenceStreamPhaseEvent) ProtoReflect() protoreflect.Message {
+	mi := &file_cadence_v1_cadence_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -110,77 +1293,77 @@ func (x *CadencePhaseEvent) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use CadencePhaseEvent.ProtoReflect.Descriptor instead.
-func (*CadencePhaseEvent) Descriptor() ([]byte, []int) {
-	return file_cadence_v1_cadence_proto_rawDescGZIP(), []int{1}
+// Deprecated: Use CadenceStreamPhaseEvent.ProtoReflect.Descriptor instead.
+func (*CadenceStreamPhaseEvent) Descriptor() ([]byte, []int) {
+	return file_cadence_v1_cadence_proto_rawDescGZIP(), []int{17}
 }
 
-func (x *CadencePhaseEvent) GetRunId() string {
+func (x *CadenceStreamPhaseEvent) GetRunId() string {
 	if x != nil {
 		return x.RunId
 	}
 	return ""
 }
 
-func (x *CadencePhaseEvent) GetPhase() string {
+func (x *CadenceStreamPhaseEvent) GetRunStatus() string {
 	if x != nil {
-		return x.Phase
+		return x.RunStatus
 	}
 	return ""
 }
 
-func (x *CadencePhaseEvent) GetAgentName() string {
-	if x != nil {
-		return x.AgentName
-	}
-	return ""
-}
-
-func (x *CadencePhaseEvent) GetStatus() string {
+func (x *CadenceStreamPhaseEvent) GetStatus() *Osc7501Status {
 	if x != nil {
 		return x.Status
 	}
-	return ""
+	return nil
 }
 
-func (x *CadencePhaseEvent) GetSummary() string {
-	if x != nil {
-		return x.Summary
-	}
-	return ""
-}
-
-func (x *CadencePhaseEvent) GetLatencyMs() int32 {
-	if x != nil {
-		return x.LatencyMs
+func (x *CadenceStreamPhaseEvent) GetProgress() int32 {
+	if x != nil && x.Progress != nil {
+		return *x.Progress
 	}
 	return 0
 }
 
-type CadenceDeltaEvent struct {
+func (x *CadenceStreamPhaseEvent) GetTurn() *CadenceTurn {
+	if x != nil {
+		return x.Turn
+	}
+	return nil
+}
+
+func (x *CadenceStreamPhaseEvent) GetSpec() *CadenceSpecArtifact {
+	if x != nil {
+		return x.Spec
+	}
+	return nil
+}
+
+type CadenceStreamLogEvent struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	RunId         string                 `protobuf:"bytes,1,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
-	Phase         string                 `protobuf:"bytes,2,opt,name=phase,proto3" json:"phase,omitempty"`
-	Text          string                 `protobuf:"bytes,3,opt,name=text,proto3" json:"text,omitempty"`
+	Line          string                 `protobuf:"bytes,2,opt,name=line,proto3" json:"line,omitempty"`
+	Timestamp     string                 `protobuf:"bytes,3,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *CadenceDeltaEvent) Reset() {
-	*x = CadenceDeltaEvent{}
-	mi := &file_cadence_v1_cadence_proto_msgTypes[2]
+func (x *CadenceStreamLogEvent) Reset() {
+	*x = CadenceStreamLogEvent{}
+	mi := &file_cadence_v1_cadence_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *CadenceDeltaEvent) String() string {
+func (x *CadenceStreamLogEvent) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*CadenceDeltaEvent) ProtoMessage() {}
+func (*CadenceStreamLogEvent) ProtoMessage() {}
 
-func (x *CadenceDeltaEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_cadence_v1_cadence_proto_msgTypes[2]
+func (x *CadenceStreamLogEvent) ProtoReflect() protoreflect.Message {
+	mi := &file_cadence_v1_cadence_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -191,59 +1374,55 @@ func (x *CadenceDeltaEvent) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use CadenceDeltaEvent.ProtoReflect.Descriptor instead.
-func (*CadenceDeltaEvent) Descriptor() ([]byte, []int) {
-	return file_cadence_v1_cadence_proto_rawDescGZIP(), []int{2}
+// Deprecated: Use CadenceStreamLogEvent.ProtoReflect.Descriptor instead.
+func (*CadenceStreamLogEvent) Descriptor() ([]byte, []int) {
+	return file_cadence_v1_cadence_proto_rawDescGZIP(), []int{18}
 }
 
-func (x *CadenceDeltaEvent) GetRunId() string {
+func (x *CadenceStreamLogEvent) GetRunId() string {
 	if x != nil {
 		return x.RunId
 	}
 	return ""
 }
 
-func (x *CadenceDeltaEvent) GetPhase() string {
+func (x *CadenceStreamLogEvent) GetLine() string {
 	if x != nil {
-		return x.Phase
+		return x.Line
 	}
 	return ""
 }
 
-func (x *CadenceDeltaEvent) GetText() string {
+func (x *CadenceStreamLogEvent) GetTimestamp() string {
 	if x != nil {
-		return x.Text
+		return x.Timestamp
 	}
 	return ""
 }
 
-type CadenceDoneEvent struct {
+type CadenceStreamCompleteEvent struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	RunId         string                 `protobuf:"bytes,1,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
-	Status        string                 `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`
-	GateVerdict   string                 `protobuf:"bytes,3,opt,name=gate_verdict,json=gateVerdict,proto3" json:"gate_verdict,omitempty"`
-	TokensIn      int32                  `protobuf:"varint,4,opt,name=tokens_in,json=tokensIn,proto3" json:"tokens_in,omitempty"`
-	TokensOut     int32                  `protobuf:"varint,5,opt,name=tokens_out,json=tokensOut,proto3" json:"tokens_out,omitempty"`
-	ArtifactHtml  string                 `protobuf:"bytes,6,opt,name=artifact_html,json=artifactHtml,proto3" json:"artifact_html,omitempty"`
+	Run           *CadenceRunResult      `protobuf:"bytes,1,opt,name=run,proto3" json:"run,omitempty"`
+	Quota         *v1.QuotaStatus        `protobuf:"bytes,2,opt,name=quota,proto3" json:"quota,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *CadenceDoneEvent) Reset() {
-	*x = CadenceDoneEvent{}
-	mi := &file_cadence_v1_cadence_proto_msgTypes[3]
+func (x *CadenceStreamCompleteEvent) Reset() {
+	*x = CadenceStreamCompleteEvent{}
+	mi := &file_cadence_v1_cadence_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *CadenceDoneEvent) String() string {
+func (x *CadenceStreamCompleteEvent) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*CadenceDoneEvent) ProtoMessage() {}
+func (*CadenceStreamCompleteEvent) ProtoMessage() {}
 
-func (x *CadenceDoneEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_cadence_v1_cadence_proto_msgTypes[3]
+func (x *CadenceStreamCompleteEvent) ProtoReflect() protoreflect.Message {
+	mi := &file_cadence_v1_cadence_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -254,49 +1433,89 @@ func (x *CadenceDoneEvent) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use CadenceDoneEvent.ProtoReflect.Descriptor instead.
-func (*CadenceDoneEvent) Descriptor() ([]byte, []int) {
-	return file_cadence_v1_cadence_proto_rawDescGZIP(), []int{3}
+// Deprecated: Use CadenceStreamCompleteEvent.ProtoReflect.Descriptor instead.
+func (*CadenceStreamCompleteEvent) Descriptor() ([]byte, []int) {
+	return file_cadence_v1_cadence_proto_rawDescGZIP(), []int{19}
 }
 
-func (x *CadenceDoneEvent) GetRunId() string {
+func (x *CadenceStreamCompleteEvent) GetRun() *CadenceRunResult {
+	if x != nil {
+		return x.Run
+	}
+	return nil
+}
+
+func (x *CadenceStreamCompleteEvent) GetQuota() *v1.QuotaStatus {
+	if x != nil {
+		return x.Quota
+	}
+	return nil
+}
+
+type CadenceStreamErrorEvent struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	RunId         string                 `protobuf:"bytes,1,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
+	Error         string                 `protobuf:"bytes,2,opt,name=error,proto3" json:"error,omitempty"`
+	Code          string                 `protobuf:"bytes,3,opt,name=code,proto3" json:"code,omitempty"`
+	RunStatus     string                 `protobuf:"bytes,4,opt,name=run_status,json=runStatus,proto3" json:"run_status,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CadenceStreamErrorEvent) Reset() {
+	*x = CadenceStreamErrorEvent{}
+	mi := &file_cadence_v1_cadence_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CadenceStreamErrorEvent) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CadenceStreamErrorEvent) ProtoMessage() {}
+
+func (x *CadenceStreamErrorEvent) ProtoReflect() protoreflect.Message {
+	mi := &file_cadence_v1_cadence_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CadenceStreamErrorEvent.ProtoReflect.Descriptor instead.
+func (*CadenceStreamErrorEvent) Descriptor() ([]byte, []int) {
+	return file_cadence_v1_cadence_proto_rawDescGZIP(), []int{20}
+}
+
+func (x *CadenceStreamErrorEvent) GetRunId() string {
 	if x != nil {
 		return x.RunId
 	}
 	return ""
 }
 
-func (x *CadenceDoneEvent) GetStatus() string {
+func (x *CadenceStreamErrorEvent) GetError() string {
 	if x != nil {
-		return x.Status
+		return x.Error
 	}
 	return ""
 }
 
-func (x *CadenceDoneEvent) GetGateVerdict() string {
+func (x *CadenceStreamErrorEvent) GetCode() string {
 	if x != nil {
-		return x.GateVerdict
+		return x.Code
 	}
 	return ""
 }
 
-func (x *CadenceDoneEvent) GetTokensIn() int32 {
+func (x *CadenceStreamErrorEvent) GetRunStatus() string {
 	if x != nil {
-		return x.TokensIn
-	}
-	return 0
-}
-
-func (x *CadenceDoneEvent) GetTokensOut() int32 {
-	if x != nil {
-		return x.TokensOut
-	}
-	return 0
-}
-
-func (x *CadenceDoneEvent) GetArtifactHtml() string {
-	if x != nil {
-		return x.ArtifactHtml
+		return x.RunStatus
 	}
 	return ""
 }
@@ -306,8 +1525,9 @@ type StreamRunResponse struct {
 	// Types that are valid to be assigned to Payload:
 	//
 	//	*StreamRunResponse_Phase
-	//	*StreamRunResponse_Delta
-	//	*StreamRunResponse_Done
+	//	*StreamRunResponse_Log
+	//	*StreamRunResponse_Complete
+	//	*StreamRunResponse_Error
 	Payload       isStreamRunResponse_Payload `protobuf_oneof:"payload"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -315,7 +1535,7 @@ type StreamRunResponse struct {
 
 func (x *StreamRunResponse) Reset() {
 	*x = StreamRunResponse{}
-	mi := &file_cadence_v1_cadence_proto_msgTypes[4]
+	mi := &file_cadence_v1_cadence_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -327,7 +1547,7 @@ func (x *StreamRunResponse) String() string {
 func (*StreamRunResponse) ProtoMessage() {}
 
 func (x *StreamRunResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_cadence_v1_cadence_proto_msgTypes[4]
+	mi := &file_cadence_v1_cadence_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -340,7 +1560,7 @@ func (x *StreamRunResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StreamRunResponse.ProtoReflect.Descriptor instead.
 func (*StreamRunResponse) Descriptor() ([]byte, []int) {
-	return file_cadence_v1_cadence_proto_rawDescGZIP(), []int{4}
+	return file_cadence_v1_cadence_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *StreamRunResponse) GetPayload() isStreamRunResponse_Payload {
@@ -350,7 +1570,7 @@ func (x *StreamRunResponse) GetPayload() isStreamRunResponse_Payload {
 	return nil
 }
 
-func (x *StreamRunResponse) GetPhase() *CadencePhaseEvent {
+func (x *StreamRunResponse) GetPhase() *CadenceStreamPhaseEvent {
 	if x != nil {
 		if x, ok := x.Payload.(*StreamRunResponse_Phase); ok {
 			return x.Phase
@@ -359,19 +1579,28 @@ func (x *StreamRunResponse) GetPhase() *CadencePhaseEvent {
 	return nil
 }
 
-func (x *StreamRunResponse) GetDelta() *CadenceDeltaEvent {
+func (x *StreamRunResponse) GetLog() *CadenceStreamLogEvent {
 	if x != nil {
-		if x, ok := x.Payload.(*StreamRunResponse_Delta); ok {
-			return x.Delta
+		if x, ok := x.Payload.(*StreamRunResponse_Log); ok {
+			return x.Log
 		}
 	}
 	return nil
 }
 
-func (x *StreamRunResponse) GetDone() *CadenceDoneEvent {
+func (x *StreamRunResponse) GetComplete() *CadenceStreamCompleteEvent {
 	if x != nil {
-		if x, ok := x.Payload.(*StreamRunResponse_Done); ok {
-			return x.Done
+		if x, ok := x.Payload.(*StreamRunResponse_Complete); ok {
+			return x.Complete
+		}
+	}
+	return nil
+}
+
+func (x *StreamRunResponse) GetError() *CadenceStreamErrorEvent {
+	if x != nil {
+		if x, ok := x.Payload.(*StreamRunResponse_Error); ok {
+			return x.Error
 		}
 	}
 	return nil
@@ -382,60 +1611,180 @@ type isStreamRunResponse_Payload interface {
 }
 
 type StreamRunResponse_Phase struct {
-	Phase *CadencePhaseEvent `protobuf:"bytes,1,opt,name=phase,proto3,oneof"`
+	Phase *CadenceStreamPhaseEvent `protobuf:"bytes,1,opt,name=phase,proto3,oneof"`
 }
 
-type StreamRunResponse_Delta struct {
-	Delta *CadenceDeltaEvent `protobuf:"bytes,2,opt,name=delta,proto3,oneof"`
+type StreamRunResponse_Log struct {
+	Log *CadenceStreamLogEvent `protobuf:"bytes,2,opt,name=log,proto3,oneof"`
 }
 
-type StreamRunResponse_Done struct {
-	Done *CadenceDoneEvent `protobuf:"bytes,3,opt,name=done,proto3,oneof"`
+type StreamRunResponse_Complete struct {
+	Complete *CadenceStreamCompleteEvent `protobuf:"bytes,3,opt,name=complete,proto3,oneof"`
+}
+
+type StreamRunResponse_Error struct {
+	Error *CadenceStreamErrorEvent `protobuf:"bytes,4,opt,name=error,proto3,oneof"`
 }
 
 func (*StreamRunResponse_Phase) isStreamRunResponse_Payload() {}
 
-func (*StreamRunResponse_Delta) isStreamRunResponse_Payload() {}
+func (*StreamRunResponse_Log) isStreamRunResponse_Payload() {}
 
-func (*StreamRunResponse_Done) isStreamRunResponse_Payload() {}
+func (*StreamRunResponse_Complete) isStreamRunResponse_Payload() {}
+
+func (*StreamRunResponse_Error) isStreamRunResponse_Payload() {}
 
 var File_cadence_v1_cadence_proto protoreflect.FileDescriptor
 
 const file_cadence_v1_cadence_proto_rawDesc = "" +
 	"\n" +
 	"\x18cadence/v1/cadence.proto\x12\n" +
-	"cadence.v1\"K\n" +
-	"\x10StreamRunRequest\x12\x16\n" +
-	"\x06prompt\x18\x01 \x01(\tR\x06prompt\x12\x1f\n" +
-	"\vpreset_slug\x18\x02 \x01(\tR\n" +
-	"presetSlug\"\xb0\x01\n" +
-	"\x11CadencePhaseEvent\x12\x15\n" +
-	"\x06run_id\x18\x01 \x01(\tR\x05runId\x12\x14\n" +
+	"cadence.v1\x1a\x15common/v1/error.proto\"\x9f\x01\n" +
+	"\rOsc7501Status\x12\x16\n" +
+	"\x06source\x18\x01 \x01(\tR\x06source\x12\x14\n" +
+	"\x05state\x18\x02 \x01(\tR\x05state\x12\x14\n" +
+	"\x05label\x18\x03 \x01(\tR\x05label\x12\x1f\n" +
+	"\bprogress\x18\x04 \x01(\x05H\x00R\bprogress\x88\x01\x01\x12\x1c\n" +
+	"\ttimestamp\x18\x05 \x01(\tR\ttimestampB\v\n" +
+	"\t_progress\"\xf8\x01\n" +
+	"\x13CadenceSpecArtifact\x12\x14\n" +
+	"\x05title\x18\x01 \x01(\tR\x05title\x12\x18\n" +
+	"\asummary\x18\x02 \x01(\tR\asummary\x12\x1e\n" +
+	"\n" +
+	"conditions\x18\x03 \x03(\tR\n" +
+	"conditions\x12\x1a\n" +
+	"\bhandling\x18\x04 \x03(\tR\bhandling\x12\x1a\n" +
+	"\boutcomes\x18\x05 \x03(\tR\boutcomes\x12\x14\n" +
+	"\x05rules\x18\x06 \x03(\tR\x05rules\x12\x16\n" +
+	"\x06deltas\x18\a \x03(\tR\x06deltas\x12+\n" +
+	"\x11recalled_patterns\x18\b \x03(\tR\x10recalledPatterns\"l\n" +
+	"\x14CadenceGateCheckItem\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
+	"\x05label\x18\x02 \x01(\tR\x05label\x12\x16\n" +
+	"\x06status\x18\x03 \x01(\tR\x06status\x12\x16\n" +
+	"\x06detail\x18\x04 \x01(\tR\x06detail\"\xab\x01\n" +
+	"\x10CadenceGateAudit\x12\x18\n" +
+	"\asummary\x18\x01 \x01(\tR\asummary\x12\x1c\n" +
+	"\tsanitized\x18\x02 \x01(\bR\tsanitized\x12%\n" +
+	"\x0eartifact_bytes\x18\x03 \x01(\x05R\rartifactBytes\x128\n" +
+	"\x06checks\x18\x04 \x03(\v2 .cadence.v1.CadenceGateCheckItemR\x06checks\"+\n" +
+	"\x11CadenceStringList\x12\x16\n" +
+	"\x06values\x18\x01 \x03(\tR\x06values\"\xfa\x01\n" +
+	"\x17CadenceTurnPayloadValue\x12#\n" +
+	"\fstring_value\x18\x01 \x01(\tH\x00R\vstringValue\x12#\n" +
+	"\fnumber_value\x18\x02 \x01(\x01H\x00R\vnumberValue\x12\x1f\n" +
+	"\n" +
+	"bool_value\x18\x03 \x01(\bH\x00R\tboolValue\x12\x1f\n" +
+	"\n" +
+	"null_value\x18\x04 \x01(\bH\x00R\tnullValue\x12K\n" +
+	"\x11string_list_value\x18\x05 \x01(\v2\x1d.cadence.v1.CadenceStringListH\x00R\x0fstringListValueB\x06\n" +
+	"\x04kind\"\xef\x02\n" +
+	"\vCadenceTurn\x12\x13\n" +
+	"\x02id\x18\x01 \x01(\x05H\x00R\x02id\x88\x01\x01\x12\x14\n" +
 	"\x05phase\x18\x02 \x01(\tR\x05phase\x12\x1d\n" +
 	"\n" +
 	"agent_name\x18\x03 \x01(\tR\tagentName\x12\x16\n" +
 	"\x06status\x18\x04 \x01(\tR\x06status\x12\x18\n" +
 	"\asummary\x18\x05 \x01(\tR\asummary\x12\x1d\n" +
 	"\n" +
-	"latency_ms\x18\x06 \x01(\x05R\tlatencyMs\"T\n" +
-	"\x11CadenceDeltaEvent\x12\x15\n" +
-	"\x06run_id\x18\x01 \x01(\tR\x05runId\x12\x14\n" +
-	"\x05phase\x18\x02 \x01(\tR\x05phase\x12\x12\n" +
-	"\x04text\x18\x03 \x01(\tR\x04text\"\xc5\x01\n" +
-	"\x10CadenceDoneEvent\x12\x15\n" +
-	"\x06run_id\x18\x01 \x01(\tR\x05runId\x12\x16\n" +
-	"\x06status\x18\x02 \x01(\tR\x06status\x12!\n" +
-	"\fgate_verdict\x18\x03 \x01(\tR\vgateVerdict\x12\x1b\n" +
-	"\ttokens_in\x18\x04 \x01(\x05R\btokensIn\x12\x1d\n" +
+	"latency_ms\x18\x06 \x01(\x05R\tlatencyMs\x12>\n" +
+	"\apayload\x18\a \x03(\v2$.cadence.v1.CadenceTurn.PayloadEntryR\apayload\x12\x1d\n" +
 	"\n" +
-	"tokens_out\x18\x05 \x01(\x05R\ttokensOut\x12#\n" +
-	"\rartifact_html\x18\x06 \x01(\tR\fartifactHtml\"\xc0\x01\n" +
-	"\x11StreamRunResponse\x125\n" +
-	"\x05phase\x18\x01 \x01(\v2\x1d.cadence.v1.CadencePhaseEventH\x00R\x05phase\x125\n" +
-	"\x05delta\x18\x02 \x01(\v2\x1d.cadence.v1.CadenceDeltaEventH\x00R\x05delta\x122\n" +
-	"\x04done\x18\x03 \x01(\v2\x1c.cadence.v1.CadenceDoneEventH\x00R\x04doneB\t\n" +
-	"\apayload2\\\n" +
-	"\x0eCadenceService\x12J\n" +
+	"created_at\x18\b \x01(\tR\tcreatedAt\x1a_\n" +
+	"\fPayloadEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x129\n" +
+	"\x05value\x18\x02 \x01(\v2#.cadence.v1.CadenceTurnPayloadValueR\x05value:\x028\x01B\x05\n" +
+	"\x03_id\"\xbf\x05\n" +
+	"\x10CadenceRunResult\x12\x15\n" +
+	"\x06run_id\x18\x01 \x01(\tR\x05runId\x12\x16\n" +
+	"\x06prompt\x18\x02 \x01(\tR\x06prompt\x12\x1f\n" +
+	"\vpreset_slug\x18\x03 \x01(\tR\n" +
+	"presetSlug\x12\x1d\n" +
+	"\n" +
+	"run_status\x18\x04 \x01(\tR\trunStatus\x12\x12\n" +
+	"\x04mode\x18\x05 \x01(\tR\x04mode\x12%\n" +
+	"\x0eexecution_mode\x18\x06 \x01(\tR\rexecutionMode\x12\x1b\n" +
+	"\tis_golden\x18\a \x01(\bR\bisGolden\x123\n" +
+	"\x04spec\x18\b \x01(\v2\x1f.cadence.v1.CadenceSpecArtifactR\x04spec\x12;\n" +
+	"\n" +
+	"gate_audit\x18\t \x01(\v2\x1c.cadence.v1.CadenceGateAuditR\tgateAudit\x121\n" +
+	"\x06status\x18\n" +
+	" \x01(\v2\x19.cadence.v1.Osc7501StatusR\x06status\x12\x18\n" +
+	"\aosc7501\x18\v \x01(\tR\aosc7501\x12!\n" +
+	"\fgate_verdict\x18\f \x01(\tR\vgateVerdict\x12-\n" +
+	"\x05turns\x18\r \x03(\v2\x17.cadence.v1.CadenceTurnR\x05turns\x12#\n" +
+	"\rartifact_html\x18\x0e \x01(\tR\fartifactHtml\x12 \n" +
+	"\ttokens_in\x18\x0f \x01(\x05H\x00R\btokensIn\x88\x01\x01\x12\"\n" +
+	"\n" +
+	"tokens_out\x18\x10 \x01(\x05H\x01R\ttokensOut\x88\x01\x01\x12,\n" +
+	"\x05quota\x18\x11 \x01(\v2\x16.common.v1.QuotaStatusR\x05quota\x12\x1d\n" +
+	"\n" +
+	"created_at\x18\x12 \x01(\tR\tcreatedAtB\f\n" +
+	"\n" +
+	"_tokens_inB\r\n" +
+	"\v_tokens_out\"\xbc\x01\n" +
+	"\x10CreateRunRequest\x12\x16\n" +
+	"\x06prompt\x18\x01 \x01(\tR\x06prompt\x12\x1f\n" +
+	"\vpreset_slug\x18\x02 \x01(\tR\n" +
+	"presetSlug\x12\x12\n" +
+	"\x04mode\x18\x03 \x01(\tR\x04mode\x12'\n" +
+	"\x0fdefer_execution\x18\x04 \x01(\bR\x0edeferExecution\x122\n" +
+	"\x15require_spec_approval\x18\x05 \x01(\bR\x13requireSpecApproval\"t\n" +
+	"\x11CreateRunResponse\x12.\n" +
+	"\x03run\x18\x01 \x01(\v2\x1c.cadence.v1.CadenceRunResultR\x03run\x12/\n" +
+	"\x13created_immediately\x18\x02 \x01(\bR\x12createdImmediately\"F\n" +
+	"\x0fListRunsRequest\x12\x1d\n" +
+	"\n" +
+	"session_id\x18\x01 \x01(\tR\tsessionId\x12\x14\n" +
+	"\x05limit\x18\x02 \x01(\x05R\x05limit\"r\n" +
+	"\x10ListRunsResponse\x120\n" +
+	"\x04runs\x18\x01 \x03(\v2\x1c.cadence.v1.CadenceRunResultR\x04runs\x12,\n" +
+	"\x05quota\x18\x02 \x01(\v2\x16.common.v1.QuotaStatusR\x05quota\"/\n" +
+	"\x16ApproveSpecGateRequest\x12\x15\n" +
+	"\x06run_id\x18\x01 \x01(\tR\x05runId\"w\n" +
+	"\x17ApproveSpecGateResponse\x12.\n" +
+	"\x03run\x18\x01 \x01(\v2\x1c.cadence.v1.CadenceRunResultR\x03run\x12,\n" +
+	"\x05quota\x18\x02 \x01(\v2\x16.common.v1.QuotaStatusR\x05quota\"K\n" +
+	"\x18SubmitGateVerdictRequest\x12\x15\n" +
+	"\x06run_id\x18\x01 \x01(\tR\x05runId\x12\x18\n" +
+	"\averdict\x18\x02 \x01(\tR\averdict\"K\n" +
+	"\x19SubmitGateVerdictResponse\x12.\n" +
+	"\x03run\x18\x01 \x01(\v2\x1c.cadence.v1.CadenceRunResultR\x03run\")\n" +
+	"\x10StreamRunRequest\x12\x15\n" +
+	"\x06run_id\x18\x01 \x01(\tR\x05runId\"\x92\x02\n" +
+	"\x17CadenceStreamPhaseEvent\x12\x15\n" +
+	"\x06run_id\x18\x01 \x01(\tR\x05runId\x12\x1d\n" +
+	"\n" +
+	"run_status\x18\x02 \x01(\tR\trunStatus\x121\n" +
+	"\x06status\x18\x03 \x01(\v2\x19.cadence.v1.Osc7501StatusR\x06status\x12\x1f\n" +
+	"\bprogress\x18\x04 \x01(\x05H\x00R\bprogress\x88\x01\x01\x12+\n" +
+	"\x04turn\x18\x05 \x01(\v2\x17.cadence.v1.CadenceTurnR\x04turn\x123\n" +
+	"\x04spec\x18\x06 \x01(\v2\x1f.cadence.v1.CadenceSpecArtifactR\x04specB\v\n" +
+	"\t_progress\"`\n" +
+	"\x15CadenceStreamLogEvent\x12\x15\n" +
+	"\x06run_id\x18\x01 \x01(\tR\x05runId\x12\x12\n" +
+	"\x04line\x18\x02 \x01(\tR\x04line\x12\x1c\n" +
+	"\ttimestamp\x18\x03 \x01(\tR\ttimestamp\"z\n" +
+	"\x1aCadenceStreamCompleteEvent\x12.\n" +
+	"\x03run\x18\x01 \x01(\v2\x1c.cadence.v1.CadenceRunResultR\x03run\x12,\n" +
+	"\x05quota\x18\x02 \x01(\v2\x16.common.v1.QuotaStatusR\x05quota\"y\n" +
+	"\x17CadenceStreamErrorEvent\x12\x15\n" +
+	"\x06run_id\x18\x01 \x01(\tR\x05runId\x12\x14\n" +
+	"\x05error\x18\x02 \x01(\tR\x05error\x12\x12\n" +
+	"\x04code\x18\x03 \x01(\tR\x04code\x12\x1d\n" +
+	"\n" +
+	"run_status\x18\x04 \x01(\tR\trunStatus\"\x95\x02\n" +
+	"\x11StreamRunResponse\x12;\n" +
+	"\x05phase\x18\x01 \x01(\v2#.cadence.v1.CadenceStreamPhaseEventH\x00R\x05phase\x125\n" +
+	"\x03log\x18\x02 \x01(\v2!.cadence.v1.CadenceStreamLogEventH\x00R\x03log\x12D\n" +
+	"\bcomplete\x18\x03 \x01(\v2&.cadence.v1.CadenceStreamCompleteEventH\x00R\bcomplete\x12;\n" +
+	"\x05error\x18\x04 \x01(\v2#.cadence.v1.CadenceStreamErrorEventH\x00R\x05errorB\t\n" +
+	"\apayload2\xab\x03\n" +
+	"\x0eCadenceService\x12H\n" +
+	"\tCreateRun\x12\x1c.cadence.v1.CreateRunRequest\x1a\x1d.cadence.v1.CreateRunResponse\x12E\n" +
+	"\bListRuns\x12\x1b.cadence.v1.ListRunsRequest\x1a\x1c.cadence.v1.ListRunsResponse\x12Z\n" +
+	"\x0fApproveSpecGate\x12\".cadence.v1.ApproveSpecGateRequest\x1a#.cadence.v1.ApproveSpecGateResponse\x12`\n" +
+	"\x11SubmitGateVerdict\x12$.cadence.v1.SubmitGateVerdictRequest\x1a%.cadence.v1.SubmitGateVerdictResponse\x12J\n" +
 	"\tStreamRun\x12\x1c.cadence.v1.StreamRunRequest\x1a\x1d.cadence.v1.StreamRunResponse0\x01B\xb1\x01\n" +
 	"\x0ecom.cadence.v1B\fCadenceProtoP\x01ZHgithub.com/AndrewK4758/aklapper/packages/go/kit/gen/cadence/v1;cadencev1\xa2\x02\x03CXX\xaa\x02\n" +
 	"Cadence.V1\xca\x02\n" +
@@ -453,25 +1802,73 @@ func file_cadence_v1_cadence_proto_rawDescGZIP() []byte {
 	return file_cadence_v1_cadence_proto_rawDescData
 }
 
-var file_cadence_v1_cadence_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_cadence_v1_cadence_proto_msgTypes = make([]protoimpl.MessageInfo, 23)
 var file_cadence_v1_cadence_proto_goTypes = []any{
-	(*StreamRunRequest)(nil),  // 0: cadence.v1.StreamRunRequest
-	(*CadencePhaseEvent)(nil), // 1: cadence.v1.CadencePhaseEvent
-	(*CadenceDeltaEvent)(nil), // 2: cadence.v1.CadenceDeltaEvent
-	(*CadenceDoneEvent)(nil),  // 3: cadence.v1.CadenceDoneEvent
-	(*StreamRunResponse)(nil), // 4: cadence.v1.StreamRunResponse
+	(*Osc7501Status)(nil),              // 0: cadence.v1.Osc7501Status
+	(*CadenceSpecArtifact)(nil),        // 1: cadence.v1.CadenceSpecArtifact
+	(*CadenceGateCheckItem)(nil),       // 2: cadence.v1.CadenceGateCheckItem
+	(*CadenceGateAudit)(nil),           // 3: cadence.v1.CadenceGateAudit
+	(*CadenceStringList)(nil),          // 4: cadence.v1.CadenceStringList
+	(*CadenceTurnPayloadValue)(nil),    // 5: cadence.v1.CadenceTurnPayloadValue
+	(*CadenceTurn)(nil),                // 6: cadence.v1.CadenceTurn
+	(*CadenceRunResult)(nil),           // 7: cadence.v1.CadenceRunResult
+	(*CreateRunRequest)(nil),           // 8: cadence.v1.CreateRunRequest
+	(*CreateRunResponse)(nil),          // 9: cadence.v1.CreateRunResponse
+	(*ListRunsRequest)(nil),            // 10: cadence.v1.ListRunsRequest
+	(*ListRunsResponse)(nil),           // 11: cadence.v1.ListRunsResponse
+	(*ApproveSpecGateRequest)(nil),     // 12: cadence.v1.ApproveSpecGateRequest
+	(*ApproveSpecGateResponse)(nil),    // 13: cadence.v1.ApproveSpecGateResponse
+	(*SubmitGateVerdictRequest)(nil),   // 14: cadence.v1.SubmitGateVerdictRequest
+	(*SubmitGateVerdictResponse)(nil),  // 15: cadence.v1.SubmitGateVerdictResponse
+	(*StreamRunRequest)(nil),           // 16: cadence.v1.StreamRunRequest
+	(*CadenceStreamPhaseEvent)(nil),    // 17: cadence.v1.CadenceStreamPhaseEvent
+	(*CadenceStreamLogEvent)(nil),      // 18: cadence.v1.CadenceStreamLogEvent
+	(*CadenceStreamCompleteEvent)(nil), // 19: cadence.v1.CadenceStreamCompleteEvent
+	(*CadenceStreamErrorEvent)(nil),    // 20: cadence.v1.CadenceStreamErrorEvent
+	(*StreamRunResponse)(nil),          // 21: cadence.v1.StreamRunResponse
+	nil,                                // 22: cadence.v1.CadenceTurn.PayloadEntry
+	(*v1.QuotaStatus)(nil),             // 23: common.v1.QuotaStatus
 }
 var file_cadence_v1_cadence_proto_depIdxs = []int32{
-	1, // 0: cadence.v1.StreamRunResponse.phase:type_name -> cadence.v1.CadencePhaseEvent
-	2, // 1: cadence.v1.StreamRunResponse.delta:type_name -> cadence.v1.CadenceDeltaEvent
-	3, // 2: cadence.v1.StreamRunResponse.done:type_name -> cadence.v1.CadenceDoneEvent
-	0, // 3: cadence.v1.CadenceService.StreamRun:input_type -> cadence.v1.StreamRunRequest
-	4, // 4: cadence.v1.CadenceService.StreamRun:output_type -> cadence.v1.StreamRunResponse
-	4, // [4:5] is the sub-list for method output_type
-	3, // [3:4] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	2,  // 0: cadence.v1.CadenceGateAudit.checks:type_name -> cadence.v1.CadenceGateCheckItem
+	4,  // 1: cadence.v1.CadenceTurnPayloadValue.string_list_value:type_name -> cadence.v1.CadenceStringList
+	22, // 2: cadence.v1.CadenceTurn.payload:type_name -> cadence.v1.CadenceTurn.PayloadEntry
+	1,  // 3: cadence.v1.CadenceRunResult.spec:type_name -> cadence.v1.CadenceSpecArtifact
+	3,  // 4: cadence.v1.CadenceRunResult.gate_audit:type_name -> cadence.v1.CadenceGateAudit
+	0,  // 5: cadence.v1.CadenceRunResult.status:type_name -> cadence.v1.Osc7501Status
+	6,  // 6: cadence.v1.CadenceRunResult.turns:type_name -> cadence.v1.CadenceTurn
+	23, // 7: cadence.v1.CadenceRunResult.quota:type_name -> common.v1.QuotaStatus
+	7,  // 8: cadence.v1.CreateRunResponse.run:type_name -> cadence.v1.CadenceRunResult
+	7,  // 9: cadence.v1.ListRunsResponse.runs:type_name -> cadence.v1.CadenceRunResult
+	23, // 10: cadence.v1.ListRunsResponse.quota:type_name -> common.v1.QuotaStatus
+	7,  // 11: cadence.v1.ApproveSpecGateResponse.run:type_name -> cadence.v1.CadenceRunResult
+	23, // 12: cadence.v1.ApproveSpecGateResponse.quota:type_name -> common.v1.QuotaStatus
+	7,  // 13: cadence.v1.SubmitGateVerdictResponse.run:type_name -> cadence.v1.CadenceRunResult
+	0,  // 14: cadence.v1.CadenceStreamPhaseEvent.status:type_name -> cadence.v1.Osc7501Status
+	6,  // 15: cadence.v1.CadenceStreamPhaseEvent.turn:type_name -> cadence.v1.CadenceTurn
+	1,  // 16: cadence.v1.CadenceStreamPhaseEvent.spec:type_name -> cadence.v1.CadenceSpecArtifact
+	7,  // 17: cadence.v1.CadenceStreamCompleteEvent.run:type_name -> cadence.v1.CadenceRunResult
+	23, // 18: cadence.v1.CadenceStreamCompleteEvent.quota:type_name -> common.v1.QuotaStatus
+	17, // 19: cadence.v1.StreamRunResponse.phase:type_name -> cadence.v1.CadenceStreamPhaseEvent
+	18, // 20: cadence.v1.StreamRunResponse.log:type_name -> cadence.v1.CadenceStreamLogEvent
+	19, // 21: cadence.v1.StreamRunResponse.complete:type_name -> cadence.v1.CadenceStreamCompleteEvent
+	20, // 22: cadence.v1.StreamRunResponse.error:type_name -> cadence.v1.CadenceStreamErrorEvent
+	5,  // 23: cadence.v1.CadenceTurn.PayloadEntry.value:type_name -> cadence.v1.CadenceTurnPayloadValue
+	8,  // 24: cadence.v1.CadenceService.CreateRun:input_type -> cadence.v1.CreateRunRequest
+	10, // 25: cadence.v1.CadenceService.ListRuns:input_type -> cadence.v1.ListRunsRequest
+	12, // 26: cadence.v1.CadenceService.ApproveSpecGate:input_type -> cadence.v1.ApproveSpecGateRequest
+	14, // 27: cadence.v1.CadenceService.SubmitGateVerdict:input_type -> cadence.v1.SubmitGateVerdictRequest
+	16, // 28: cadence.v1.CadenceService.StreamRun:input_type -> cadence.v1.StreamRunRequest
+	9,  // 29: cadence.v1.CadenceService.CreateRun:output_type -> cadence.v1.CreateRunResponse
+	11, // 30: cadence.v1.CadenceService.ListRuns:output_type -> cadence.v1.ListRunsResponse
+	13, // 31: cadence.v1.CadenceService.ApproveSpecGate:output_type -> cadence.v1.ApproveSpecGateResponse
+	15, // 32: cadence.v1.CadenceService.SubmitGateVerdict:output_type -> cadence.v1.SubmitGateVerdictResponse
+	21, // 33: cadence.v1.CadenceService.StreamRun:output_type -> cadence.v1.StreamRunResponse
+	29, // [29:34] is the sub-list for method output_type
+	24, // [24:29] is the sub-list for method input_type
+	24, // [24:24] is the sub-list for extension type_name
+	24, // [24:24] is the sub-list for extension extendee
+	0,  // [0:24] is the sub-list for field type_name
 }
 
 func init() { file_cadence_v1_cadence_proto_init() }
@@ -479,10 +1876,22 @@ func file_cadence_v1_cadence_proto_init() {
 	if File_cadence_v1_cadence_proto != nil {
 		return
 	}
-	file_cadence_v1_cadence_proto_msgTypes[4].OneofWrappers = []any{
+	file_cadence_v1_cadence_proto_msgTypes[0].OneofWrappers = []any{}
+	file_cadence_v1_cadence_proto_msgTypes[5].OneofWrappers = []any{
+		(*CadenceTurnPayloadValue_StringValue)(nil),
+		(*CadenceTurnPayloadValue_NumberValue)(nil),
+		(*CadenceTurnPayloadValue_BoolValue)(nil),
+		(*CadenceTurnPayloadValue_NullValue)(nil),
+		(*CadenceTurnPayloadValue_StringListValue)(nil),
+	}
+	file_cadence_v1_cadence_proto_msgTypes[6].OneofWrappers = []any{}
+	file_cadence_v1_cadence_proto_msgTypes[7].OneofWrappers = []any{}
+	file_cadence_v1_cadence_proto_msgTypes[17].OneofWrappers = []any{}
+	file_cadence_v1_cadence_proto_msgTypes[21].OneofWrappers = []any{
 		(*StreamRunResponse_Phase)(nil),
-		(*StreamRunResponse_Delta)(nil),
-		(*StreamRunResponse_Done)(nil),
+		(*StreamRunResponse_Log)(nil),
+		(*StreamRunResponse_Complete)(nil),
+		(*StreamRunResponse_Error)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
@@ -490,7 +1899,7 @@ func file_cadence_v1_cadence_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_cadence_v1_cadence_proto_rawDesc), len(file_cadence_v1_cadence_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   5,
+			NumMessages:   23,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

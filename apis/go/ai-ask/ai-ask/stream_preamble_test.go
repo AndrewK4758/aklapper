@@ -537,7 +537,7 @@ func TestConcurrentPreambleOrchestrationAndBoundarySuppression(t *testing.T) {
 		}
 	})
 
-	t.Run("grpcStreamEmitter skips preamble launch completely", func(t *testing.T) {
+	t.Run("non-preamble emitter skips preamble launch while connectStreamEmitter enables preamble", func(t *testing.T) {
 		fakeLLM := &preambleCaptureLLM{}
 		store := pg.NewMemoryStore()
 		em := &orderingEmitter{supportsPreamble: false}
@@ -559,8 +559,8 @@ func TestConcurrentPreambleOrchestrationAndBoundarySuppression(t *testing.T) {
 		if fakeLLM.preambleHits.Load() != 0 {
 			t.Fatalf("expected 0 preamble calls when SupportsPreamble() is false, got %d", fakeLLM.preambleHits.Load())
 		}
-		if (&grpcStreamEmitter{}).SupportsPreamble() {
-			t.Fatalf("expected grpcStreamEmitter.SupportsPreamble() to be false")
+		if !(&connectStreamEmitter{}).SupportsPreamble() {
+			t.Fatalf("expected connectStreamEmitter.SupportsPreamble() to be true")
 		}
 	})
 }

@@ -1,4 +1,5 @@
 version: v2
+clean: true
 managed:
   enabled: true
   override:
@@ -8,6 +9,16 @@ plugins:
   - local: ['go', 'tool', 'protoc-gen-go']
     out: packages/go/kit/gen
     opt: paths=source_relative
-  - local: ['go', 'tool', 'protoc-gen-go-grpc']
+    exclude_types:
+      - grpc.health.v1
+  - local: ['go', 'tool', 'protoc-gen-connect-go']
     out: packages/go/kit/gen
     opt: paths=source_relative
+    exclude_types:
+      - grpc.health.v1
+  - local: ['node_modules/.bin/protoc-gen-es']
+    out: packages/node/runtime/src/grpc/gen
+    opt:
+      - target=ts
+      - import_extension=ts
+      - erasable_syntax=true

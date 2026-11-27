@@ -3,187 +3,282 @@ package main
 import (
 	"context"
 	"errors"
+	"net/http"
 	"strings"
+	"sync"
+	"time"
 
+	"connectrpc.com/connect"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/contracts"
 	ai_askv1 "github.com/AndrewK4758/aklapper/packages/go/kit/gen/ai_ask/v1"
+	"github.com/AndrewK4758/aklapper/packages/go/kit/gen/ai_ask/v1/ai_askv1connect"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/grpckit"
+	"github.com/AndrewK4758/aklapper/packages/go/kit/internalauth"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/pg"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
-type askGRPCServer struct {
-	ai_askv1.UnimplementedAskServiceServer
-	deps askStreamDeps
+type askConnectServer struct {
+	deps     askStreamDeps
+	syncWait time.Duration
 }
 
-func newAskGRPCServer(deps askStreamDeps) *askGRPCServer {
-	return &askGRPCServer{deps: deps}
-}
+var _ ai_askv1connect.AskServiceHandler = (*askConnectServer)(nil)
 
-type grpcStreamEmitter struct {
-	stream grpc.ServerStreamingServer[ai_askv1.AskStreamChunk]
-}
-
-func toProtoSources(sources []contracts.AskSource) []*ai_askv1.AskSource {
-	out := make([]*ai_askv1.AskSource, 0, len(sources))
-	for _, s := range sources {
-		out = append(out, &ai_askv1.AskSource{
-			Id:       s.ID,
-			Title:    s.Title,
-			Snippet:  s.Snippet,
-			Score:    s.Score,
-			Category: s.Category,
-		})
+func newAskConnectServer(deps askStreamDeps, syncWait time.Duration) *askConnectServer {
+	if syncWait <= 0 {
+		syncWait = defaultSyncWaitWindow
 	}
-	return out
+	return &askConnectServer{deps: deps, syncWait: syncWait}
 }
 
-func toProtoQuota(q *contracts.QuotaStatus) *ai_askv1.QuotaStatus {
-	if q == nil {
-		return nil
-	}
-	return &ai_askv1.QuotaStatus{
-		Role:       q.Role,
-		TurnsUsed:  int32(q.TurnsUsed),
-		MaxTurns:   int32(q.MaxTurns),
-		TokensUsed: int32(q.TokensUsed),
-		MaxTokens:  int32(q.MaxTokens),
-	}
+type connectStreamEmitter struct {
+	mu     sync.Mutex
+	stream *connect.ServerStream[ai_askv1.AskStreamChunk]
 }
 
-func toProtoError(e *contracts.PublicAppError) *ai_askv1.PublicAppError {
-	if e == nil {
-		return nil
-	}
-	return &ai_askv1.PublicAppError{
-		Code:          e.Code,
-		Status:        int32(e.Status),
-		Message:       e.Message,
-		Action:        e.Action,
-		CorrelationId: e.CorrelationID,
-	}
+func (e *connectStreamEmitter) send(chunk *ai_askv1.AskStreamChunk) error {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	return e.stream.Send(chunk)
 }
 
-func (e *grpcStreamEmitter) EmitStatus(_, _ string) error {
-	return nil
-}
-
-func (e *grpcStreamEmitter) EmitPreambleDelta(_ string) error {
-	return nil
-}
-
-func (e *grpcStreamEmitter) EmitPreambleError(_ contracts.PublicAppError) error {
-	return nil
-}
-
-func (e *grpcStreamEmitter) SupportsPreamble() bool {
-	return false
-}
-
-func (e *grpcStreamEmitter) EmitMeta(meta askStreamMeta) error {
-	return e.stream.Send(&ai_askv1.AskStreamChunk{
-		Payload: &ai_askv1.AskStreamChunk_Meta{
-			Meta: &ai_askv1.AskStreamMeta{
-				AttemptId:     meta.AttemptID,
-				CorrelationId: meta.CorrelationID,
-				Mode:          meta.Mode,
-				Provider:      meta.Provider,
-				Model:         meta.Model,
+func (e *connectStreamEmitter) EmitStatus(stage, label string) error {
+	return e.send(&ai_askv1.AskStreamChunk{
+		Payload: &ai_askv1.AskStreamChunk_Status{
+			Status: &ai_askv1.AskStreamStatus{
+				Stage: stage,
+				Label: label,
 			},
 		},
 	})
 }
 
-func (e *grpcStreamEmitter) EmitSources(sources []contracts.AskSource) error {
-	return e.stream.Send(&ai_askv1.AskStreamChunk{
+func (e *connectStreamEmitter) EmitMeta(meta askStreamMeta) error {
+	return e.send(&ai_askv1.AskStreamChunk{
+		Payload: &ai_askv1.AskStreamChunk_Meta{
+			Meta: &ai_askv1.AskStreamMeta{
+				AttemptId:      meta.AttemptID,
+				CorrelationId:  meta.CorrelationID,
+				Mode:           meta.Mode,
+				Provider:       meta.Provider,
+				Model:          meta.Model,
+				ConversationId: meta.ConversationID,
+				TurnIndex:      optionalPositiveInt32(meta.TurnIndex),
+			},
+		},
+	})
+}
+
+func (e *connectStreamEmitter) EmitPreambleDelta(text string) error {
+	return e.send(&ai_askv1.AskStreamChunk{
+		Payload: &ai_askv1.AskStreamChunk_Preamble{
+			Preamble: &ai_askv1.AskStreamPreamble{Text: text},
+		},
+	})
+}
+
+func (e *connectStreamEmitter) EmitPreambleError(pubErr contracts.PublicAppError) error {
+	return e.send(&ai_askv1.AskStreamChunk{
+		Payload: &ai_askv1.AskStreamChunk_PreambleError{
+			PreambleError: &ai_askv1.AskStreamPreambleError{
+				Code:          pubErr.Code,
+				Message:       pubErr.Message,
+				Action:        pubErr.Action,
+				CorrelationId: pubErr.CorrelationID,
+			},
+		},
+	})
+}
+
+func (e *connectStreamEmitter) SupportsPreamble() bool {
+	return true
+}
+
+func (e *connectStreamEmitter) EmitSources(sources []contracts.AskSource) error {
+	return e.send(&ai_askv1.AskStreamChunk{
 		Payload: &ai_askv1.AskStreamChunk_Sources{
 			Sources: &ai_askv1.AskStreamSources{Sources: toProtoSources(sources)},
 		},
 	})
 }
 
-func (e *grpcStreamEmitter) EmitDelta(text string) error {
-	return e.stream.Send(&ai_askv1.AskStreamChunk{
+func (e *connectStreamEmitter) EmitDelta(text string) error {
+	return e.send(&ai_askv1.AskStreamChunk{
 		Payload: &ai_askv1.AskStreamChunk_Delta{
 			Delta: &ai_askv1.AskStreamDelta{Text: text},
 		},
 	})
 }
 
-func (e *grpcStreamEmitter) EmitDone(done askStreamDone) error {
-	return e.stream.Send(&ai_askv1.AskStreamChunk{
+func (e *connectStreamEmitter) EmitDone(done askStreamDone) error {
+	return e.send(&ai_askv1.AskStreamChunk{
 		Payload: &ai_askv1.AskStreamChunk_Done{
 			Done: &ai_askv1.AskStreamDone{
-				AttemptId:      done.AttemptID,
-				Grounded:       done.Grounded,
-				Abstained:      done.Abstained,
-				Answer:         done.Answer,
-				Provider:       done.Provider,
-				Model:          done.Model,
-				TokensUsed:     int32(done.TokensUsed),
-				UsageEstimated: done.UsageEstimated,
-				LatencyMs:      int32(done.LatencyMs),
-				Quota:          toProtoQuota(done.Quota),
-				CorrelationId:  done.CorrelationID,
+				AttemptId:         done.AttemptID,
+				Grounded:          done.Grounded,
+				Abstained:         done.Abstained,
+				Answer:            done.Answer,
+				Provider:          done.Provider,
+				Model:             done.Model,
+				TokensUsed:        int32(done.TokensUsed),
+				UsageEstimated:    done.UsageEstimated,
+				LatencyMs:         optionalNonNegInt32(done.LatencyMs),
+				Quota:             grpckit.ToProtoQuota(done.Quota),
+				CorrelationId:     done.CorrelationID,
+				ConversationId:    done.ConversationID,
+				TurnIndex:         optionalPositiveInt32(done.TurnIndex),
+				GroundingTier:     done.GroundingTier,
+				SuggestedLinks:    toProtoSuggestedLinks(done.SuggestedLinks),
+				FollowUpQuestions: done.FollowUpQuestions,
 			},
 		},
 	})
 }
 
-func (e *grpcStreamEmitter) EmitError(pubErr contracts.PublicAppError, quota *contracts.QuotaStatus) error {
-	return e.stream.Send(&ai_askv1.AskStreamChunk{
+func (e *connectStreamEmitter) EmitError(pubErr contracts.PublicAppError, quota *contracts.QuotaStatus) error {
+	return e.send(&ai_askv1.AskStreamChunk{
 		Payload: &ai_askv1.AskStreamChunk_Error{
 			Error: &ai_askv1.AskStreamError{
-				Error: toProtoError(&pubErr),
-				Quota: toProtoQuota(quota),
+				Error: grpckit.ToProtoPublicError(&pubErr),
+				Quota: grpckit.ToProtoQuota(quota),
 			},
 		},
 	})
 }
 
-func (s *askGRPCServer) StreamAsk(
-	req *ai_askv1.StreamAskRequest,
-	stream grpc.ServerStreamingServer[ai_askv1.AskStreamChunk],
+func resolveConnectCorrelationID(ctx context.Context) string {
+	if corrID := grpckit.CorrelationIDFromContext(ctx); corrID != "" {
+		return corrID
+	}
+	return contracts.NewUUIDv4()
+}
+
+func (s *askConnectServer) StreamAsk(
+	ctx context.Context,
+	req *connect.Request[ai_askv1.StreamAskRequest],
+	stream *connect.ServerStream[ai_askv1.AskStreamChunk],
 ) error {
-	ctx := stream.Context()
 	claims, ok := grpckit.ClaimsFromContext(ctx)
 	if !ok || claims == nil {
-		return status.Error(codes.Unauthenticated, "signed x-internal-auth metadata required")
+		return connect.NewError(connect.CodeUnauthenticated, errors.New("signed x-internal-auth metadata required"))
 	}
-	corrID := grpckit.CorrelationIDFromContext(ctx)
-	if corrID == "" {
-		corrID = contracts.NewUUIDv4()
-	}
+	corrID := resolveConnectCorrelationID(ctx)
 
 	syncFail := executeStreamingTurn(ctx, s.deps, askStreamInput{
-		Mode:          req.GetMode(),
-		Question:      req.GetQuestion(),
-		AttemptID:     req.GetAttemptId(),
-		SessionID:     claims.Sub,
-		Role:          claims.Role,
-		CorrelationID: corrID,
+		Mode:           req.Msg.GetMode(),
+		Question:       req.Msg.GetQuestion(),
+		AttemptID:      req.Msg.GetAttemptId(),
+		ConversationID: req.Msg.GetConversationId(),
+		VisitorLens:    req.Msg.GetVisitorLens(),
+		SessionID:      claims.Sub,
+		Role:           claims.Role,
+		CorrelationID:  corrID,
 	}, func() (streamEmitter, func(), error) {
-		return &grpcStreamEmitter{stream: stream}, nil, nil
+		return &connectStreamEmitter{stream: stream}, nil, nil
 	})
 	if syncFail != nil {
-		return status.Error(syncFail.GRPCCode, syncFail.Error.Message)
+		return grpckit.NewDetailedConnectError(
+			syncFail.GRPCCode,
+			grpckit.ToProtoPublicError(&syncFail.Error),
+			grpckit.ToProtoQuota(syncFail.Quota),
+		)
 	}
 	return nil
 }
 
-func (s *askGRPCServer) GetAskStatus(ctx context.Context, _ *ai_askv1.GetAskStatusRequest) (*ai_askv1.GetAskStatusResponse, error) {
-	if _, ok := grpckit.ClaimsFromContext(ctx); !ok {
-		return nil, status.Error(codes.Unauthenticated, "signed x-internal-auth metadata required")
+func (s *askConnectServer) Ask(
+	ctx context.Context,
+	req *connect.Request[ai_askv1.AskRequest],
+) (*connect.Response[ai_askv1.AskUnaryResponse], error) {
+	claims, ok := grpckit.ClaimsFromContext(ctx)
+	if !ok || claims == nil {
+		return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("signed x-internal-auth metadata required"))
 	}
+	corrID := resolveConnectCorrelationID(ctx)
+
+	out := executeUnaryAsk(ctx, unaryTurnDeps{
+		provider:    s.deps.provider,
+		vectorStore: s.deps.vectorStore,
+		store:       s.deps.store,
+		privacyCfg:  s.deps.privacyCfg,
+		syncWait:    s.syncWait,
+	}, unaryAskInput{
+		Mode:           req.Msg.GetMode(),
+		Question:       req.Msg.GetQuestion(),
+		JobDescription: req.Msg.GetJobDescription(),
+		AttemptID:      req.Msg.GetAttemptId(),
+		ConversationID: req.Msg.GetConversationId(),
+		VisitorLens:    req.Msg.GetVisitorLens(),
+		SessionID:      claims.Sub,
+		Role:           claims.Role,
+		CorrelationID:  corrID,
+	})
+	if out.Err != nil {
+		return nil, grpckit.NewDetailedConnectError(
+			out.ConnectCode,
+			grpckit.ToProtoPublicError(out.Err),
+			grpckit.ToProtoQuota(out.Quota),
+		)
+	}
+	if out.Response != nil {
+		return connect.NewResponse(&ai_askv1.AskUnaryResponse{
+			Outcome: &ai_askv1.AskUnaryResponse_Completed{
+				Completed: toProtoAskResponse(out.Response),
+			},
+		}), nil
+	}
+	if out.Pending != nil {
+		return connect.NewResponse(&ai_askv1.AskUnaryResponse{
+			Outcome: &ai_askv1.AskUnaryResponse_Pending{
+				Pending: toProtoAskTurnState(*out.Pending),
+			},
+		}), nil
+	}
+	return nil, grpckit.NewDetailedConnectError(
+		connect.CodeCanceled,
+		grpckit.ToProtoPublicError(&contracts.PublicAppError{
+			Code:          contracts.ErrCodeStreamAborted,
+			Status:        499,
+			Message:       "Request cancelled early.",
+			Action:        "Retry if you still need this view.",
+			CorrelationID: corrID,
+		}),
+		nil,
+	)
+}
+
+func (s *askConnectServer) GetAskStatus(
+	ctx context.Context,
+	_ *connect.Request[ai_askv1.GetAskStatusRequest],
+) (*connect.Response[ai_askv1.GetAskStatusResponse], error) {
+	if _, ok := grpckit.ClaimsFromContext(ctx); !ok {
+		return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("signed x-internal-auth metadata required"))
+	}
+	corrID := resolveConnectCorrelationID(ctx)
 	if err := s.deps.store.Ping(ctx); err != nil {
-		return nil, status.Error(codes.Unavailable, "database temporarily unavailable")
+		logAskEvent("ai_ask.status.pg_unavailable", map[string]any{
+			"correlationId": corrID,
+			"seam_type":     "BOUNDARY_FAULT",
+		})
+		return nil, grpckit.NewDetailedConnectError(
+			connect.CodeUnavailable,
+			grpckit.ToProtoPublicError(&contracts.PublicAppError{
+				Code:          contracts.ErrCodeDbUnavailable,
+				Status:        http.StatusServiceUnavailable,
+				Message:       "Database temporarily unavailable.",
+				Action:        "Retry shortly or share ID.",
+				CorrelationID: corrID,
+			}),
+			nil,
+		)
 	}
 	info, qErr := s.deps.vectorStore.CollectionInfo(ctx, portfolioCollection)
 	if qErr != nil {
-		return &ai_askv1.GetAskStatusResponse{
+		logAskEvent("ai_ask.status.qdrant_unavailable", map[string]any{
+			"correlationId": corrID,
+			"seam_type":     "BOUNDARY_FAULT",
+		})
+		return connect.NewResponse(&ai_askv1.GetAskStatusResponse{
 			Status:      "degraded",
 			Provider:    s.deps.provider.Name(),
 			PgConnected: s.deps.store.IsLivePG(),
@@ -192,9 +287,9 @@ func (s *askGRPCServer) GetAskStatus(ctx context.Context, _ *ai_askv1.GetAskStat
 				Status:      "unreachable",
 				PointsCount: 0,
 			},
-		}, nil
+		}), nil
 	}
-	return &ai_askv1.GetAskStatusResponse{
+	return connect.NewResponse(&ai_askv1.GetAskStatusResponse{
 		Status:      "ready",
 		Provider:    s.deps.provider.Name(),
 		PgConnected: s.deps.store.IsLivePG(),
@@ -204,59 +299,104 @@ func (s *askGRPCServer) GetAskStatus(ctx context.Context, _ *ai_askv1.GetAskStat
 			PointsCount: int32(info.PointsCount),
 			VectorSize:  int32(info.VectorSize),
 		},
-	}, nil
+	}), nil
 }
 
-func (s *askGRPCServer) GetTurn(ctx context.Context, req *ai_askv1.GetTurnRequest) (*ai_askv1.GetTurnResponse, error) {
+func (s *askConnectServer) GetTurn(
+	ctx context.Context,
+	req *connect.Request[ai_askv1.GetTurnRequest],
+) (*connect.Response[ai_askv1.GetTurnResponse], error) {
 	claims, ok := grpckit.ClaimsFromContext(ctx)
 	if !ok || claims == nil {
-		return nil, status.Error(codes.Unauthenticated, "signed x-internal-auth metadata required")
+		return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("signed x-internal-auth metadata required"))
 	}
-	attemptID := strings.TrimSpace(req.GetAttemptId())
+	corrID := resolveConnectCorrelationID(ctx)
+	attemptID := strings.TrimSpace(req.Msg.GetAttemptId())
 	if !contracts.ValidateUUID(attemptID) {
-		return nil, status.Error(codes.InvalidArgument, "invalid attemptId")
+		return nil, grpckit.NewDetailedConnectError(
+			connect.CodeInvalidArgument,
+			grpckit.ToProtoPublicError(&contracts.PublicAppError{
+				Code:          contracts.ErrCodeValidation,
+				Status:        http.StatusBadRequest,
+				Message:       "Invalid attempt identifier.",
+				Action:        "Refresh and submit again.",
+				CorrelationID: corrID,
+			}),
+			nil,
+		)
 	}
 	rec, quota, err := s.deps.store.GetTurnByAttemptID(ctx, attemptID, claims.Sub)
 	if errors.Is(err, pg.ErrTurnNotFound) {
-		return nil, status.Error(codes.NotFound, "turn not found")
+		return nil, grpckit.NewDetailedConnectError(
+			connect.CodeNotFound,
+			grpckit.ToProtoPublicError(&contracts.PublicAppError{
+				Code:          contracts.ErrCodeNotFound,
+				Status:        http.StatusNotFound,
+				Message:       "Resource could not be found.",
+				Action:        "Verify the URL or return home.",
+				CorrelationID: corrID,
+			}),
+			nil,
+		)
 	}
 	if err != nil {
-		return nil, status.Error(codes.Unavailable, "database temporarily unavailable")
+		return nil, grpckit.NewDetailedConnectError(
+			connect.CodeUnavailable,
+			grpckit.ToProtoPublicError(&contracts.PublicAppError{
+				Code:          contracts.ErrCodeDbUnavailable,
+				Status:        http.StatusServiceUnavailable,
+				Message:       "Database temporarily unavailable.",
+				Action:        "Retry shortly or share ID.",
+				CorrelationID: corrID,
+			}),
+			nil,
+		)
 	}
-	state := rec.ToState(&quota)
-	resp := &ai_askv1.GetTurnResponse{
-		AttemptId:      state.AttemptID,
-		Status:         state.Status,
-		Mode:           state.Mode,
-		CorrelationId:  state.CorrelationID,
-		LeaseExpiresAt: state.LeaseExpiresAt,
-		ExpiresAt:      state.ExpiresAt,
-		Quota:          toProtoQuota(state.Quota),
-		Error:          toProtoError(state.Error),
+	return connect.NewResponse(toProtoGetTurnResponse(rec.ToState(&quota))), nil
+}
+
+func (s *askConnectServer) Reindex(
+	ctx context.Context,
+	_ *connect.Request[ai_askv1.ReindexRequest],
+) (*connect.Response[ai_askv1.ReindexResponse], error) {
+	claims, ok := grpckit.ClaimsFromContext(ctx)
+	if !ok || claims == nil {
+		return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("signed x-internal-auth metadata required"))
 	}
-	if state.Response != nil {
-		var matchScore *int32
-		if state.Response.MatchScore != nil {
-			v := int32(*state.Response.MatchScore)
-			matchScore = &v
-		}
-		resp.Response = &ai_askv1.AskResponse{
-			AttemptId:     state.Response.AttemptID,
-			Grounded:      state.Response.Grounded,
-			Abstained:     state.Response.Abstained,
-			Mode:          state.Response.Mode,
-			Answer:        state.Response.Answer,
-			Sources:       toProtoSources(state.Response.Sources),
-			MatchScore:    matchScore,
-			Strengths:     state.Response.Strengths,
-			Gaps:          state.Response.Gaps,
-			Provider:      state.Response.Provider,
-			Model:         state.Response.Model,
-			TokensUsed:    int32(state.Response.TokensUsed),
-			LatencyMs:     int32(state.Response.LatencyMs),
-			CorrelationId: state.Response.CorrelationID,
-			Quota:         toProtoQuota(state.Response.Quota),
-		}
+	corrID := resolveConnectCorrelationID(ctx)
+	if claims.Role != internalauth.RoleAdmin {
+		logAskEvent("ai_ask.reindex.unauthorized_role", map[string]any{
+			"seam_type":     "UNSOUND_CONDITION",
+			"role":          claims.Role,
+			"correlationId": corrID,
+		})
+		return nil, grpckit.NewDetailedConnectError(
+			connect.CodePermissionDenied,
+			grpckit.ToProtoPublicError(&contracts.PublicAppError{
+				Code:          contracts.ErrCodeForbidden,
+				Status:        http.StatusForbidden,
+				Message:       "Permission denied for action.",
+				Action:        "Return home or sign in again.",
+				CorrelationID: corrID,
+			}),
+			nil,
+		)
 	}
-	return resp, nil
+
+	res, fail := executeReindex(ctx, s.deps.provider, s.deps.vectorStore, s.deps.store, corrID)
+	if fail != nil {
+		return nil, grpckit.NewDetailedConnectError(
+			fail.ConnectCode,
+			grpckit.ToProtoPublicError(&fail.Error),
+			nil,
+		)
+	}
+	return connect.NewResponse(&ai_askv1.ReindexResponse{
+		Indexed:       int32(res.Indexed),
+		Pruned:        int32(res.Pruned),
+		Collection:    res.Collection,
+		VectorSize:    int32(res.VectorSize),
+		Provider:      res.Provider,
+		CorrelationId: res.CorrelationID,
+	}), nil
 }
