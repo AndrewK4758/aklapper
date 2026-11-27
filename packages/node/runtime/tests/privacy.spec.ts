@@ -577,8 +577,12 @@ describe('@aklapper/node-runtime/privacy fail-closed sanitization', () => {
 
     for (const [payload, expectedRuleId] of [
       ['Marietta, GA\n30062', 'pii.us_postal_zip'],
+      ['Marietta, GA\n\n\n\n\n30062', 'pii.us_postal_zip'],
       ['ZIP\n30062', 'pii.us_postal_zip'],
       ['(555)\n010-1234', 'pii.us_phone'],
+      ['(555) \n010-1234', 'pii.us_phone'],
+      ['(555)\n 010-1234', 'pii.us_phone'],
+      ['(555)\n\n010-1234', 'pii.us_phone'],
     ] as const) {
       const findings = scanTextForPrivacyFindings(payload, 'description', emptyDenylist);
       expect(
@@ -593,7 +597,46 @@ describe('@aklapper/node-runtime/privacy fail-closed sanitization', () => {
           }),
         ]),
       );
+
+      for (const runSanitizer of [
+        () => sanitizePortalAboutSiteContent(payload, { description: 'Clean' }, ''),
+        () => sanitizePortalHomeSiteContent(payload, { heading: 'Clean' }, ''),
+      ]) {
+        let caught: unknown = null;
+        try {
+          runSanitizer();
+        } catch (error) {
+          caught = error;
+        }
+        expect(caught, `expected rejection for ${JSON.stringify(payload)}`).toBeInstanceOf(
+          PrivacySanitizationError,
+        );
+        expect((caught as PrivacySanitizationError).findings).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              ruleId: expectedRuleId,
+              location: 'multiline',
+            }),
+          ]),
+        );
+      }
     }
+
+    // Hygiene: andrew@andrew-k.us is rejected on portal-about and career dossiers, and mixed multiline emails fail on portal-home
+    expect(() =>
+      sanitizePortalAboutSiteContent('Contact andrew@andrew-k.us directly.', { description: 'OK' }),
+    ).toThrow(PrivacySanitizationError);
+    expect(() =>
+      sanitizeCareerDossierPayload({
+        ...CLEAN_DOSSIER,
+        summaryBody: 'Reach andrew@andrew-k.us for architecture details.',
+      }),
+    ).toThrow(PrivacySanitizationError);
+    expect(() =>
+      sanitizePortalHomeSiteContent('andrew@andrew-k.us\nreference.contact@example.com', {
+        heading: 'Clean',
+      }),
+    ).toThrow(PrivacySanitizationError);
 
     // Rule already matched on a single line MUST NOT emit a duplicate multiline finding
     const singleLinePlusMultiline = scanTextForPrivacyFindings(

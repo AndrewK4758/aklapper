@@ -78,6 +78,7 @@ describe('@aklapper/ui/terminal-portrait', () => {
       '/images/portrait.webp?x=1',
       '/images/portrait.webp#frag',
       'javascript:alert(1)',
+      'data:image/svg+xml,<svg/>',
       'https://evil.example/portrait.webp',
     ]) {
       const { container, unmount } = render(

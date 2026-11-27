@@ -68,7 +68,11 @@ export function TerminalPortrait({
         seam_type: 'BOUNDARY_FAULT',
         variant,
         size,
-        hasCustomSrc: Boolean(normalizedSrc && normalizedSrc !== DEFAULT_PORTRAIT_PATH),
+        hasCustomSrc: Boolean(
+          normalizedSrc &&
+          normalizedSrc !== DEFAULT_PORTRAIT_PATH &&
+          normalizedSrc !== DEFAULT_PORTRAIT_SRC,
+        ),
       }),
     );
   };
