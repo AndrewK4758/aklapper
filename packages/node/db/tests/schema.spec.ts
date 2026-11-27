@@ -91,9 +91,42 @@ describe('@aklapper/db', () => {
     expect(
       journal.entries.some(e => e.idx === 10 && e.tag === '0010_visitor_analytics_enrichment'),
     ).toBe(true);
+    expect(
+      journal.entries.some(e => e.idx === 11 && e.tag === '0011_portal_app_grants_and_rls'),
+    ).toBe(true);
     const drizzleFiles = readdirSync(resolve(import.meta.dirname, '../drizzle'));
     expect(drizzleFiles).toContain('0010_visitor_analytics_enrichment.sql');
     expect(drizzleFiles).toContain('0010_visitor_analytics_enrichment.down.sql');
+    expect(drizzleFiles).toContain('0011_portal_app_grants_and_rls.sql');
+    expect(drizzleFiles).toContain('0011_portal_app_grants_and_rls.down.sql');
+    const up0011Sql = readFileSync(
+      resolve(import.meta.dirname, '../drizzle/0011_portal_app_grants_and_rls.sql'),
+      'utf8',
+    );
+    const down0011Sql = readFileSync(
+      resolve(import.meta.dirname, '../drizzle/0011_portal_app_grants_and_rls.down.sql'),
+      'utf8',
+    );
+    expect(up0011Sql).not.toMatch(/\bPASSWORD\b/i);
+    expect(up0011Sql).not.toMatch(/\bFORCE\s+ROW\s+LEVEL\s+SECURITY\b/i);
+    expect(up0011Sql).not.toMatch(/\bDROP\s+(?:TABLE|COLUMN|POLICY|ROLE)\b/i);
+    expect(up0011Sql).toContain('NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION');
+    expect(up0011Sql).toContain("WHERE schema_name = 'drizzle'");
+    expect(up0011Sql).toContain(
+      'GRANT USAGE, SELECT ON SEQUENCE "public"."analytics_events_id_seq"',
+    );
+    expect(up0011Sql).toContain(
+      'GRANT INSERT ON TABLE "public"."contact_submissions" TO "portal_app"',
+    );
+    expect(up0011Sql).toContain('ENABLE ROW LEVEL SECURITY');
+    expect(up0011Sql).toContain('rate_limit_buckets_portal_select');
+    expect(up0011Sql).toContain('rate_limit_buckets_portal_insert');
+    expect(up0011Sql).toContain('rate_limit_buckets_portal_update');
+    expect(down0011Sql).toContain('DROP POLICY IF EXISTS "rate_limit_buckets_portal_select"');
+    expect(down0011Sql).toContain('DROP POLICY IF EXISTS "rate_limit_buckets_portal_insert"');
+    expect(down0011Sql).toContain('DROP POLICY IF EXISTS "rate_limit_buckets_portal_update"');
+    expect(down0011Sql).toContain('DISABLE ROW LEVEL SECURITY');
+    expect(down0011Sql).not.toMatch(/\bDROP\s+ROLE\b/i);
     const up0010Sql = readFileSync(
       resolve(import.meta.dirname, '../drizzle/0010_visitor_analytics_enrichment.sql'),
       'utf8',

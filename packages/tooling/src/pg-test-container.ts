@@ -13,6 +13,8 @@ const execFileAsync = promisify(execFile);
 const DEFAULT_PG_IMAGE = 'postgres:19-alpine';
 const DEFAULT_PG_USER = 'postgres';
 const DEFAULT_PG_PASSWORD = 'postgres';
+const DEFAULT_PORTAL_PG_USER = 'portal_app';
+const DEFAULT_PORTAL_PG_PASSWORD = 'portal_app_local_dev_password';
 const DEFAULT_STARTUP_TIMEOUT_MS = 45_000;
 
 export interface StartEphemeralPostgresOptions {
@@ -29,9 +31,47 @@ export interface StartEphemeralPostgresOptions {
 export interface EphemeralPostgresHandle {
   readonly containerName: string;
   readonly databaseUrl: string;
+  readonly portalDatabaseUrl: string;
   readonly dbName: string;
   readonly port: number;
   stop: () => Promise<void>;
+}
+
+/**
+ * Builds a least-privilege `PORTAL_DATABASE_URL` targeting the same PostgreSQL host, port,
+ * database, and query parameters as `databaseUrl`, substituting role `portal_app`.
+ */
+export function derivePortalDatabaseUrl(
+  databaseUrl: string,
+  password = DEFAULT_PORTAL_PG_PASSWORD,
+): string {
+  const trimmedUrl = databaseUrl.trim();
+  if (!trimmedUrl) {
+    throw new Error('DATABASE_URL is required to derive PORTAL_DATABASE_URL');
+  }
+  const trimmedPassword = password.trim();
+  if (!trimmedPassword) {
+    throw new Error('A non-empty password is required to derive PORTAL_DATABASE_URL');
+  }
+  const parsed = new URL(trimmedUrl);
+  parsed.username = DEFAULT_PORTAL_PG_USER;
+  parsed.password = trimmedPassword;
+  return parsed.toString();
+}
+
+export function resolvePortalDatabaseUrl(
+  env: Readonly<Record<string, string | undefined>> = process.env,
+): string | undefined {
+  const explicit = env['PORTAL_DATABASE_URL']?.trim();
+  if (explicit) {
+    return explicit;
+  }
+  const baseUrl = env['DATABASE_URL']?.trim();
+  if (!baseUrl) {
+    return undefined;
+  }
+  const password = env['PORTAL_APP_PASSWORD']?.trim() || DEFAULT_PORTAL_PG_PASSWORD;
+  return derivePortalDatabaseUrl(baseUrl, password);
 }
 
 function sanitizeIdentifier(value: string, fallback: string): string {
@@ -223,10 +263,13 @@ export async function startEphemeralPostgres(
   }
 
   const databaseUrl = `postgres://${DEFAULT_PG_USER}:${DEFAULT_PG_PASSWORD}@127.0.0.1:${port}/${dbName}?sslmode=disable`;
+  const portalPassword = randomBytes(16).toString('hex');
+  const portalDatabaseUrl = derivePortalDatabaseUrl(databaseUrl, portalPassword);
 
   return {
     containerName,
     databaseUrl,
+    portalDatabaseUrl,
     dbName,
     port,
     stop,
@@ -277,13 +320,16 @@ export function resolveWorkspaceRootOrThrow(startDir = import.meta.dirname): str
 export async function migrateAndSeedPostgres(
   databaseUrl: string,
   workspaceRoot = resolveWorkspaceRootOrThrow(),
+  portalDatabaseUrl = derivePortalDatabaseUrl(databaseUrl),
 ): Promise<void> {
   const dbDir = resolve(workspaceRoot, 'packages/node/db');
   const scriptEnv: NodeJS.ProcessEnv = {
     ...process.env,
     DATABASE_URL: databaseUrl,
+    PORTAL_DATABASE_URL: portalDatabaseUrl,
   };
 
+  await runNodeScript(resolve(dbDir, 'src/provision-portal-role.ts'), dbDir, scriptEnv);
   await runNodeScript(resolve(dbDir, 'src/migrate.ts'), dbDir, scriptEnv);
   await runNodeScript(resolve(dbDir, 'src/seed.ts'), dbDir, scriptEnv);
 }
