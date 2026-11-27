@@ -161,4 +161,70 @@ func TestExtendTurnLeaseAndDevUnlimitedAndErrorMappings(t *testing.T) {
 			t.Fatalf("expected boundary turn abstained, got rec=%+v err=%v", recAbs, err)
 		}
 	})
+
+	t.Run("PruneExpiredTerminalAskTurns retains recent expired turns for 90-day analytics while enforcing 15m recovery TTL", func(t *testing.T) {
+		store := NewMemoryStore()
+		ctx := context.Background()
+		now := time.Now().UTC()
+		convID := "44444444-4444-4444-8444-444444444499"
+		recentID := "44444444-4444-4444-8444-444444444401"
+		agedID := "44444444-4444-4444-8444-444444444402"
+		pendingAgedID := "44444444-4444-4444-8444-444444444403"
+
+		for _, tc := range []struct {
+			id   string
+			hash string
+		}{
+			{recentID, "h-recent"},
+			{agedID, "h-aged"},
+			{pendingAgedID, "h-pending-aged"},
+		} {
+			if _, ok, err := store.ReserveTurnTx(ctx, ReserveTurnInput{
+				AttemptID: tc.id, SessionID: "sess-ret", Role: contracts.RoleGuest,
+				Mode: "qa", ConversationID: convID, PromptText: "Prompt " + tc.id, PromptHash: tc.hash, CorrelationID: "c-" + tc.id,
+			}); err != nil || !ok {
+				t.Fatalf("reserve %s failed: ok=%v err=%v", tc.id, ok, err)
+			}
+		}
+		for _, id := range []string{recentID, agedID} {
+			if _, err := store.ReconcileTurnTx(ctx, id, contracts.AskResponse{
+				Grounded: true, Mode: "qa", Answer: "ok", Provider: "local", TokensUsed: 25,
+			}); err != nil {
+				t.Fatalf("reconcile %s failed: %v", id, err)
+			}
+		}
+
+		// Backdate timestamps: recentID expired 5m ago (created 20m ago); agedID & pendingAgedID created 91d ago
+		store.mu.Lock()
+		store.turns[recentID].CreatedAt = now.Add(-20 * time.Minute)
+		store.turns[recentID].ExpiresAt = now.Add(-5 * time.Minute)
+		store.turns[agedID].CreatedAt = now.AddDate(0, 0, -91)
+		store.turns[agedID].ExpiresAt = now.AddDate(0, 0, -90)
+		store.turns[pendingAgedID].CreatedAt = now.AddDate(0, 0, -91)
+		store.turns[pendingAgedID].ExpiresAt = now.AddDate(0, 0, -90)
+		store.mu.Unlock()
+
+		// 15-min recovery/recall strictly rejects expired recentID
+		if _, _, err := store.GetTurnByAttemptID(ctx, recentID, "sess-ret"); !errors.Is(err, ErrTurnNotFound) {
+			t.Fatalf("expected ErrTurnNotFound for expired recentID, got %v", err)
+		}
+		hist, err := store.ListConversationHistory(ctx, "sess-ret", convID, 6)
+		if err != nil || len(hist) != 0 {
+			t.Fatalf("expected 0 expired turns in ListConversationHistory, got %+v err=%v", hist, err)
+		}
+
+		// 90-day terminal retention prunes agedID only, retaining recentID and pendingAgedID
+		deleted, err := store.PruneExpiredTerminalAskTurns(ctx, 50)
+		if err != nil || deleted != 1 {
+			t.Fatalf("expected exactly 1 aged terminal turn pruned, got deleted=%d err=%v", deleted, err)
+		}
+		store.mu.Lock()
+		_, hasRecent := store.turns[recentID]
+		_, hasAged := store.turns[agedID]
+		_, hasPendingAged := store.turns[pendingAgedID]
+		store.mu.Unlock()
+		if !hasRecent || hasAged || !hasPendingAged {
+			t.Fatalf("unexpected retention state: hasRecent=%v hasAged=%v hasPendingAged=%v", hasRecent, hasAged, hasPendingAged)
+		}
+	})
 }

@@ -3,7 +3,9 @@ package pg
 import (
 	"context"
 	"errors"
+	"os"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -41,8 +43,22 @@ func resolveConversationTurnArgs(
 
 const (
 	DefaultExpiredTurnPruneLimit = 200
+	DefaultAskTurnRetentionDays  = 90
 	MaxPromptTextRunes           = 1000
 )
+
+// ResolveAskTurnRetentionDays parses ASK_TURN_RETENTION_DAYS (>= 1), defaulting to 90 days.
+func ResolveAskTurnRetentionDays() int {
+	raw := strings.TrimSpace(os.Getenv("ASK_TURN_RETENTION_DAYS"))
+	if raw == "" {
+		return DefaultAskTurnRetentionDays
+	}
+	parsed, err := strconv.Atoi(raw)
+	if err != nil || parsed < 1 {
+		return DefaultAskTurnRetentionDays
+	}
+	return parsed
+}
 
 type ConversationHistoryTurn struct {
 	AttemptID      string
@@ -54,9 +70,10 @@ type ConversationHistoryTurn struct {
 	CreatedAt      time.Time
 }
 
-// PruneExpiredTerminalAskTurns deletes a bounded batch of expired terminal ask_turns rows
-// outside the quota-lock transaction using FOR UPDATE SKIP LOCKED to avoid AB-BA deadlocks
-// and never delete active pending/running turns.
+// PruneExpiredTerminalAskTurns deletes a bounded batch of terminal ask_turns rows older than
+// the configured analytics retention window (default 90 days via ASK_TURN_RETENTION_DAYS)
+// outside the quota-lock transaction using FOR UPDATE SKIP LOCKED, while preserving the
+// 15-minute expires_at recovery/recall TTL enforced by GetTurnByAttemptID and ListConversationHistory.
 func (s *Store) PruneExpiredTerminalAskTurns(ctx context.Context, limit int) (int, error) {
 	if s == nil {
 		return 0, nil
@@ -64,8 +81,9 @@ func (s *Store) PruneExpiredTerminalAskTurns(ctx context.Context, limit int) (in
 	if limit <= 0 {
 		limit = DefaultExpiredTurnPruneLimit
 	}
+	retentionDays := ResolveAskTurnRetentionDays()
 	if s.pool == nil {
-		now := time.Now().UTC()
+		cutoff := time.Now().UTC().Add(-time.Duration(retentionDays) * 24 * time.Hour)
 		s.mu.Lock()
 		defer s.mu.Unlock()
 		deleted := 0
@@ -73,7 +91,7 @@ func (s *Store) PruneExpiredTerminalAskTurns(ctx context.Context, limit int) (in
 			if deleted >= limit {
 				break
 			}
-			if isTerminalTurnStatus(rec.Status) && !rec.ExpiresAt.After(now) {
+			if isTerminalTurnStatus(rec.Status) && rec.CreatedAt.Before(cutoff) {
 				delete(s.turns, id)
 				deleted++
 			}
@@ -87,12 +105,13 @@ func (s *Store) PruneExpiredTerminalAskTurns(ctx context.Context, limit int) (in
 		 WHERE attempt_id IN (
 		   SELECT attempt_id FROM ask_turns
 		   WHERE status IN ('completed', 'abstained', 'failed', 'expired')
-		     AND expires_at < NOW()
-		   ORDER BY expires_at ASC
+		     AND created_at < NOW() - make_interval(days => $2)
+		   ORDER BY created_at ASC
 		   LIMIT $1
 		   FOR UPDATE SKIP LOCKED
 		 )`,
 		limit,
+		retentionDays,
 	)
 	if err != nil {
 		return 0, err

@@ -150,10 +150,7 @@ func handleAskPostWithDeps(deps unaryTurnDeps) http.HandlerFunc {
 				"Invalid conversation identifier.", "Start a new conversation and retry.", corrID)
 			return
 		}
-		storedPrompt := ""
-		if mode == "qa" {
-			storedPrompt = privacy.RedactTextForStorage(privacyCfg, queryText, pg.MaxPromptTextRunes)
-		}
+		storedPrompt := privacy.RedactTextForStorage(privacyCfg, queryText, pg.MaxPromptTextRunes)
 
 		res, allowed, reserveErr := turnStore.ReserveTurnTx(r.Context(), pg.ReserveTurnInput{
 			AttemptID: attemptID, SessionID: sessionID, Role: role, Mode: mode,

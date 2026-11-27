@@ -870,3 +870,85 @@ func TestUnaryTurnWorkerBoundedCleanupContexts(t *testing.T) {
 		}
 	})
 }
+
+func TestJdMatchPersistsRedactedBoundedPromptExcerpt(t *testing.T) {
+	t.Setenv("INTERNAL_AUTH_SECRET", "unit-test-secret")
+	t.Setenv("AI_PRIVACY_DENYLIST", "SecretClientCorp")
+
+	qdrantSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost && r.URL.Path == "/collections/portfolio_docs/points/search" {
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"result": []map[string]any{{
+					"id":    qdrant.PortfolioPointID("curated:architecture", 0),
+					"score": 0.91,
+					"payload": map[string]any{
+						"docId": "curated:architecture", "title": "Portfolio Architecture",
+						"snippet": "Go microservices + React SSR.", "category": "architecture",
+					},
+				}},
+			})
+			return
+		}
+		http.NotFound(w, r)
+	}))
+	defer qdrantSrv.Close()
+
+	privCfg, err := privacy.LoadConfig(privacy.ConfigInput{
+		RawDenylist:    `["SecretClientCorp"]`,
+		DenylistAction: privacy.ActionRedact,
+		SecretAction:   privacy.ActionAbort,
+	})
+	if err != nil {
+		t.Fatalf("privacy.LoadConfig: %v", err)
+	}
+	store := pg.NewMemoryStore()
+	prov := &stubLLM{
+		name: "stub-llm",
+		chatFn: func([]llm.ChatMessage) (llm.Completion, error) {
+			return llm.Completion{
+				Text:       `{"answer":"Strong Go and PG19 fit.","matchScore":90,"strengths":["Go","PostgreSQL 19"],"gaps":[]}`,
+				Model:      "stub-jd",
+				TokensUsed: 75,
+			}, nil
+		},
+	}
+	h := handleAskPostWithDeps(unaryTurnDeps{
+		provider:       prov,
+		vectorStore:    &qdrant.Client{BaseURL: qdrantSrv.URL},
+		store:          store,
+		turnStore:      store,
+		privacyCfg:     privCfg,
+		syncWait:       2 * time.Second,
+		cleanupTimeout: 100 * time.Millisecond,
+	})
+
+	attemptID := "77777777-7777-4777-8777-777777777701"
+	longJD := "Principal Platform Engineer at SecretClientCorp (contact hiring@secretclient.com) leading Go and PostgreSQL 19 services. " +
+		strings.Repeat("Distributed systems reliability and Cloud Run architecture. ", 30)
+	body, _ := json.Marshal(map[string]any{
+		"mode":           "jd_match",
+		"attemptId":      attemptID,
+		"jobDescription": longJD,
+	})
+	req := httptest.NewRequest(http.MethodPost, "/v1/ask", bytes.NewReader(body))
+	req.Header.Set(internalauth.HeaderName, signHeader(t, internalauth.RoleGuest, "sess-jd-redact"))
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200 OK for jd_match, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	stored, _, err := store.GetTurnByAttemptID(context.Background(), attemptID, "sess-jd-redact")
+	if err != nil {
+		t.Fatalf("GetTurnByAttemptID: %v", err)
+	}
+	if stored.PromptText == "" {
+		t.Fatalf("expected non-empty redacted prompt_text for jd_match")
+	}
+	if strings.Contains(stored.PromptText, "SecretClientCorp") || strings.Contains(stored.PromptText, "hiring@secretclient.com") {
+		t.Fatalf("expected denylist term and email redacted from stored jd_match prompt_text, got %q", stored.PromptText)
+	}
+	if runeCount := utf8.RuneCountInString(stored.PromptText); runeCount > pg.MaxPromptTextRunes {
+		t.Fatalf("expected stored jd_match prompt_text <= %d runes, got %d", pg.MaxPromptTextRunes, runeCount)
+	}
+}

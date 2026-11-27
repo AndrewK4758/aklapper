@@ -314,21 +314,23 @@ func TestPostgresLiveQuotaTurnsAndLoadCorpusDocs(t *testing.T) {
 	}
 	_ = rel3(ctx)
 
-	// Concurrent multi-tab submits produce strictly monotonic turn_index + terminal-only purge skips pending rows
+	// Concurrent multi-tab submits produce strictly monotonic turn_index + 90-day terminal retention vs 15m recovery TTL
 	convSession := "pg_conv_" + newUUIDv4()
 	convID := newUUIDv4()
-	termExpiredID := newUUIDv4()
-	pendingExpiredID := newUUIDv4()
+	recentExpiredID := newUUIDv4()
+	agedTerminalID := newUUIDv4()
+	pendingAgedID := newUUIDv4()
 	t.Cleanup(func() {
-		_, _ = store.pool.Exec(context.Background(), `DELETE FROM ask_turns WHERE session_id = $1 OR attempt_id IN ($2, $3)`, convSession, termExpiredID, pendingExpiredID)
+		_, _ = store.pool.Exec(context.Background(), `DELETE FROM ask_turns WHERE session_id = $1 OR attempt_id IN ($2, $3, $4)`, convSession, recentExpiredID, agedTerminalID, pendingAgedID)
 		_, _ = store.pool.Exec(context.Background(), `DELETE FROM rate_limit_buckets WHERE scope_key IN ($1, $2)`, "session:"+convSession, todayKey)
 	})
 	if _, err := store.pool.Exec(ctx, `
-		INSERT INTO ask_turns (attempt_id, session_id, role, mode, prompt_hash, status, tokens_reserved, tokens_used, correlation_id, lease_expires_at, expires_at)
+		INSERT INTO ask_turns (attempt_id, session_id, role, mode, prompt_hash, status, tokens_reserved, tokens_used, correlation_id, created_at, lease_expires_at, expires_at)
 		VALUES
-		($1, 'purge_sess', 'guest', 'qa', 'h1', 'completed', 100, 100, 'c1', NOW() - interval '20 minutes', NOW() - interval '5 minutes'),
-		($2, 'purge_sess', 'guest', 'qa', 'h2', 'pending', 100, 0, 'c2', NOW() - interval '20 minutes', NOW() - interval '5 minutes')
-	`, termExpiredID, pendingExpiredID); err != nil {
+		($1, 'purge_sess', 'guest', 'qa', 'h1', 'completed', 100, 100, 'c1', NOW() - interval '20 minutes', NOW() - interval '20 minutes', NOW() - interval '5 minutes'),
+		($2, 'purge_sess', 'guest', 'qa', 'h2', 'completed', 100, 100, 'c2', NOW() - interval '91 days', NOW() - interval '91 days', NOW() - interval '90 days'),
+		($3, 'purge_sess', 'guest', 'qa', 'h3', 'pending', 100, 0, 'c3', NOW() - interval '91 days', NOW() - interval '91 days', NOW() - interval '90 days')
+	`, recentExpiredID, agedTerminalID, pendingAgedID); err != nil {
 		t.Fatalf("seed purge rows failed: %v", err)
 	}
 
@@ -367,12 +369,17 @@ func TestPostgresLiveQuotaTurnsAndLoadCorpusDocs(t *testing.T) {
 		t.Fatalf("expected 0 cross-session history rows, got %+v err=%v", crossHistory, err)
 	}
 
-	// Verify terminal expired row purged while pending expired row stayed untouched
-	var termExists, pendExists int
-	_ = store.pool.QueryRow(ctx, `SELECT COUNT(*) FROM ask_turns WHERE attempt_id = $1`, termExpiredID).Scan(&termExists)
-	_ = store.pool.QueryRow(ctx, `SELECT COUNT(*) FROM ask_turns WHERE attempt_id = $1`, pendingExpiredID).Scan(&pendExists)
-	if termExists != 0 || pendExists != 1 {
-		t.Fatalf("expected terminal expired row purged (0) and pending row preserved (1), got term=%d pend=%d", termExists, pendExists)
+	// Verify 90-day terminal retention preserves 20m-old expired row (while GetTurnByAttemptID rejects it),
+	// prunes 91-day-old terminal row, and keeps pending row untouched
+	if _, _, err := store.GetTurnByAttemptID(ctx, recentExpiredID, "purge_sess"); !errors.Is(err, ErrTurnNotFound) {
+		t.Fatalf("expected ErrTurnNotFound for 15m-expired recentExpiredID, got %v", err)
+	}
+	var recentExists, agedExists, pendExists int
+	_ = store.pool.QueryRow(ctx, `SELECT COUNT(*) FROM ask_turns WHERE attempt_id = $1`, recentExpiredID).Scan(&recentExists)
+	_ = store.pool.QueryRow(ctx, `SELECT COUNT(*) FROM ask_turns WHERE attempt_id = $1`, agedTerminalID).Scan(&agedExists)
+	_ = store.pool.QueryRow(ctx, `SELECT COUNT(*) FROM ask_turns WHERE attempt_id = $1`, pendingAgedID).Scan(&pendExists)
+	if recentExists != 1 || agedExists != 0 || pendExists != 1 {
+		t.Fatalf("expected recent retained (1), aged terminal purged (0), pending preserved (1), got recent=%d aged=%d pend=%d", recentExists, agedExists, pendExists)
 	}
 
 	// Verify partial abort reconciliation + 499 / 403 error mapping
