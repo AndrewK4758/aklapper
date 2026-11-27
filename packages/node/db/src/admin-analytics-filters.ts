@@ -63,7 +63,7 @@ export function resolveAnalyticsWindowCutoff(window: AdminAnalyticsWindow): Date
 export function buildAnalyticsSessionWhere(
   filter: AdminAnalyticsFilter,
   cutoff: Date | null,
-  alias = 's',
+  alias: 's' | 's2' = 's',
 ): SQL {
   const col = (name: string): SQL => sql.raw(`${alias}.${name}`);
   const predicates: SQL[] = [sql`${col('app')} = 'portal'`];
@@ -126,22 +126,27 @@ export async function loadAdminAnalyticsDailyTrend(
   sessionWhere: SQL,
 ): Promise<AnalyticsDailyTrendPoint[]> {
   const result = await db.execute(sql`
-    SELECT
-      to_char(s.started_at AT TIME ZONE 'UTC', 'YYYY-MM-DD') AS day_date,
-      COUNT(DISTINCT COALESCE(s.visitor_hash, s.ip_hash, s.session_id))::int AS unique_visitors,
-      COUNT(DISTINCT s.session_id)::int AS sessions,
-      COALESCE(SUM(COALESCE(pv.page_views, 0)), 0)::int AS page_views
-    FROM analytics_sessions s
-    LEFT JOIN LATERAL (
-      SELECT COUNT(*)::int AS page_views
-      FROM analytics_events e
-      WHERE e.session_id = s.session_id
-        AND e.type = 'page_view'
-    ) pv ON true
-    WHERE ${sessionWhere}
-    GROUP BY 1
-    ORDER BY 1 ASC
-    LIMIT 90
+    WITH latest_days AS (
+      SELECT
+        to_char(s.started_at AT TIME ZONE 'UTC', 'YYYY-MM-DD') AS day_date,
+        COUNT(DISTINCT COALESCE(s.visitor_hash, s.ip_hash, s.session_id))::int AS unique_visitors,
+        COUNT(DISTINCT s.session_id)::int AS sessions,
+        COALESCE(SUM(COALESCE(pv.page_views, 0)), 0)::int AS page_views
+      FROM analytics_sessions s
+      LEFT JOIN LATERAL (
+        SELECT COUNT(*)::int AS page_views
+        FROM analytics_events e
+        WHERE e.session_id = s.session_id
+          AND e.type = 'page_view'
+      ) pv ON true
+      WHERE ${sessionWhere}
+      GROUP BY 1
+      ORDER BY 1 DESC
+      LIMIT 90
+    )
+    SELECT day_date, unique_visitors, sessions, page_views
+    FROM latest_days
+    ORDER BY day_date ASC
   `);
 
   return result.rows.map(raw => {

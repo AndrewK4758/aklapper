@@ -479,6 +479,7 @@ export function extractPgConstraintViolation(error: unknown): ContactDbConstrain
 export interface InsertContactSubmissionLinkOptions {
   analyticsSessionId?: string | null;
   guestSessionId?: string | null;
+  onAnalyticsSessionFkFallback?: () => void;
 }
 
 function isAnalyticsSessionFkViolation(error: unknown): boolean {
@@ -543,6 +544,7 @@ export async function insertContactSubmission(
     if (analyticsSessionId && isAnalyticsSessionFkViolation(error)) {
       try {
         [inserted] = await insertWithSession(null);
+        linkOptions.onAnalyticsSessionFkFallback?.();
       } catch (retryError) {
         const mappedRetry = extractPgConstraintViolation(retryError);
         if (mappedRetry) {

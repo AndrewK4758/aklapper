@@ -62,8 +62,45 @@ function emitLinkBranch(
   );
 }
 
+type UpdateExecutor = Pick<AppDatabase, 'update'>;
+type QueryExecutor = Pick<AppDatabase, 'execute'>;
+
+async function findRecentPortalSessionByVisitorHash(
+  executor: QueryExecutor,
+  currentVisitorHash: string,
+  priorVisitorHash: string | null,
+  nowIso: string,
+): Promise<{ readonly sessionId: string; readonly guestSessionId: string | null } | null> {
+  const result = priorVisitorHash
+    ? await executor.execute(sql`
+        SELECT session_id, guest_session_id
+        FROM analytics_sessions
+        WHERE app = 'portal'
+          AND visitor_hash IN (${currentVisitorHash}, ${priorVisitorHash})
+          AND COALESCE(last_seen_at, started_at) >= ${nowIso}::timestamptz - (${SESSION_MATCH_WINDOW_MINUTES} * interval '1 minute')
+        ORDER BY COALESCE(last_seen_at, started_at) DESC, started_at DESC
+        LIMIT 1
+      `)
+    : await executor.execute(sql`
+        SELECT session_id, guest_session_id
+        FROM analytics_sessions
+        WHERE app = 'portal'
+          AND visitor_hash = ${currentVisitorHash}
+          AND started_at >= date_trunc('day', ${nowIso}::timestamptz AT TIME ZONE 'UTC') AT TIME ZONE 'UTC'
+          AND COALESCE(last_seen_at, started_at) >= ${nowIso}::timestamptz - (${SESSION_MATCH_WINDOW_MINUTES} * interval '1 minute')
+        ORDER BY COALESCE(last_seen_at, started_at) DESC, started_at DESC
+        LIMIT 1
+      `);
+  const row = result.rows[0] as Record<string, unknown> | undefined;
+  if (typeof row?.['session_id'] !== 'string') return null;
+  return {
+    sessionId: row['session_id'],
+    guestSessionId: typeof row['guest_session_id'] === 'string' ? row['guest_session_id'] : null,
+  };
+}
+
 async function stampGuestSessionOnAnalyticsSession(
-  db: AppDatabase,
+  db: UpdateExecutor,
   sessionId: string,
   guestSessionId: string | null,
   now: Date,
@@ -82,6 +119,7 @@ export async function recordContactSubmittedAnalyticsEvent(
   db: AppDatabase,
   analyticsSessionId: string | null | undefined,
   now = new Date(),
+  logger?: SsrStructuredLogger,
 ): Promise<void> {
   const sessionId = analyticsSessionId?.trim();
   if (!sessionId) return;
@@ -95,8 +133,16 @@ export async function recordContactSubmittedAnalyticsEvent(
       metadataJson: { app: 'portal' },
       createdAt: now,
     });
-  } catch {
-    // Fail-open: never block contact submission after commit.
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : 'contact_analytics_event_failed';
+    logger?.warn(
+      {
+        seam_type: 'BOUNDARY_FAULT',
+        event: 'portal.contact.analytics_event_insert_failed',
+        detail,
+      },
+      'Failed to record contact_submitted analytics event',
+    );
   }
 }
 
@@ -177,39 +223,18 @@ export async function resolveOrCreateContactAnalyticsSession(
     }
 
     const nowIso = now.toISOString();
-    const visitorHashMatch = priorVisitorHash
-      ? await db.execute(sql`
-          SELECT session_id, guest_session_id
-          FROM analytics_sessions
-          WHERE app = 'portal'
-            AND visitor_hash IN (${currentVisitorHash}, ${priorVisitorHash})
-            AND COALESCE(last_seen_at, started_at) >= ${nowIso}::timestamptz - (${SESSION_MATCH_WINDOW_MINUTES} * interval '1 minute')
-          ORDER BY COALESCE(last_seen_at, started_at) DESC, started_at DESC
-          LIMIT 1
-        `)
-      : await db.execute(sql`
-          SELECT session_id, guest_session_id
-          FROM analytics_sessions
-          WHERE app = 'portal'
-            AND visitor_hash = ${currentVisitorHash}
-            AND started_at >= date_trunc('day', ${nowIso}::timestamptz AT TIME ZONE 'UTC') AT TIME ZONE 'UTC'
-            AND COALESCE(last_seen_at, started_at) >= ${nowIso}::timestamptz - (${SESSION_MATCH_WINDOW_MINUTES} * interval '1 minute')
-          ORDER BY COALESCE(last_seen_at, started_at) DESC, started_at DESC
-          LIMIT 1
-        `);
-
-    const matchedVisitorRow = visitorHashMatch.rows[0] as Record<string, unknown> | undefined;
-    if (typeof matchedVisitorRow?.['session_id'] === 'string') {
-      const matchedId = matchedVisitorRow['session_id'];
-      await stampGuestSessionOnAnalyticsSession(db, matchedId, normalizedGuest, now);
+    const matchedVisitor = await findRecentPortalSessionByVisitorHash(
+      db,
+      currentVisitorHash,
+      priorVisitorHash,
+      nowIso,
+    );
+    if (matchedVisitor) {
+      await stampGuestSessionOnAnalyticsSession(db, matchedVisitor.sessionId, normalizedGuest, now);
       emitLinkBranch('visitor_hash_match', options.correlationId, options.logger);
       return {
-        analyticsSessionId: matchedId,
-        guestSessionId:
-          normalizedGuest ??
-          (typeof matchedVisitorRow['guest_session_id'] === 'string'
-            ? matchedVisitorRow['guest_session_id']
-            : null),
+        analyticsSessionId: matchedVisitor.sessionId,
+        guestSessionId: normalizedGuest ?? matchedVisitor.guestSessionId,
         linkMethod: 'visitor_hash_match',
         spoofRejected,
       };
@@ -245,18 +270,42 @@ export async function resolveOrCreateContactAnalyticsSession(
       ...(options.logger ? { logger: options.logger } : {}),
       now,
     });
-    const fallbackSessionId = `sess_${randomUUID()}`;
-    await db.transaction(async tx => {
+    const resolved = await db.transaction(async tx => {
       if (fallbackMeta.visitorHash) {
         await acquireAnalyticsVisitorLock(tx, 'portal', fallbackMeta.visitorHash);
+        const racedVisitor = await findRecentPortalSessionByVisitorHash(
+          tx,
+          currentVisitorHash,
+          priorVisitorHash,
+          nowIso,
+        );
+        if (racedVisitor) {
+          await stampGuestSessionOnAnalyticsSession(
+            tx,
+            racedVisitor.sessionId,
+            normalizedGuest,
+            now,
+          );
+          return {
+            analyticsSessionId: racedVisitor.sessionId,
+            guestSessionId: normalizedGuest ?? racedVisitor.guestSessionId,
+            linkMethod: 'visitor_hash_match' as const,
+          };
+        }
       }
+      const fallbackSessionId = `sess_${randomUUID()}`;
       await upsertAnalyticsSessionRow(tx, fallbackSessionId, fallbackMeta, now);
+      return {
+        analyticsSessionId: fallbackSessionId,
+        guestSessionId: normalizedGuest,
+        linkMethod: 'fallback_upserted' as const,
+      };
     });
-    emitLinkBranch('fallback_upserted', options.correlationId, options.logger);
+    emitLinkBranch(resolved.linkMethod, options.correlationId, options.logger);
     return {
-      analyticsSessionId: fallbackSessionId,
-      guestSessionId: normalizedGuest,
-      linkMethod: 'fallback_upserted',
+      analyticsSessionId: resolved.analyticsSessionId,
+      guestSessionId: resolved.guestSessionId,
+      linkMethod: resolved.linkMethod,
       spoofRejected,
     };
   } catch (error) {

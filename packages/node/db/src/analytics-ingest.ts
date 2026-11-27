@@ -79,6 +79,52 @@ type DbExecutor = Pick<AppDatabase, 'execute' | 'insert' | 'select' | 'update'>;
 
 const SESSION_IDLE_MINUTES = 30;
 const INITIAL_PAGE_VIEW_DEDUP_SECONDS = 15;
+const HEADER_GEO_MAX_LEN = 64;
+const EVENT_CLOCK_SKEW_MAX_MS = 5_000;
+
+function stripNul(value: string): string {
+  return value.replaceAll('\0', '');
+}
+
+function sanitizeHeaderGeo(raw: string | null): string | null {
+  if (!raw) return null;
+  let cleaned = '';
+  for (let i = 0; i < raw.length; i += 1) {
+    const code = raw.charCodeAt(i);
+    if (code > 0x1f && code !== 0x7f) {
+      cleaned += raw[i];
+    }
+  }
+  const trimmed = cleaned.trim();
+  return trimmed ? trimmed.slice(0, HEADER_GEO_MAX_LEN) : null;
+}
+
+function sanitizeEventMetadata(
+  metadata: Record<string, string | number | boolean> | undefined,
+): Record<string, unknown> {
+  if (!metadata) return {};
+  const cleaned: Record<string, unknown> = {};
+  for (const [key, val] of Object.entries(metadata)) {
+    const cleanKey = stripNul(key).trim();
+    if (!cleanKey) continue;
+    cleaned[cleanKey] = typeof val === 'string' ? stripNul(val) : val;
+  }
+  return cleaned;
+}
+
+function clampEventTimestamp(rawTimestamp: string, serverNow: Date): Date {
+  const serverMs = serverNow.getTime();
+  const parsed = new Date(rawTimestamp);
+  const parsedMs = parsed.getTime();
+  if (Number.isNaN(parsedMs)) return serverNow;
+  if (parsedMs < serverMs - EVENT_CLOCK_SKEW_MAX_MS) {
+    return new Date(serverMs - EVENT_CLOCK_SKEW_MAX_MS);
+  }
+  if (parsedMs > serverMs + EVENT_CLOCK_SKEW_MAX_MS) {
+    return new Date(serverMs + EVENT_CLOCK_SKEW_MAX_MS);
+  }
+  return parsed;
+}
 
 export async function acquireAnalyticsVisitorLock(
   tx: DbExecutor,
@@ -116,29 +162,29 @@ export async function upsertAnalyticsSessionRow(
   sessionId: string,
   meta: IngestAnalyticsMeta,
   now: Date,
-): Promise<void> {
+): Promise<boolean> {
   const app: AnalyticsApp = meta.app ?? 'portal';
   const isBot = Boolean(meta.isBot);
-  await tx
+  const rows = await tx
     .insert(schema.analyticsSessions)
     .values({
-      sessionId,
+      sessionId: stripNul(sessionId),
       ipHash: meta.ipHash,
-      referrer: meta.referrer ?? null,
-      country: meta.country?.trim() || null,
-      region: meta.region?.trim() || null,
+      referrer: meta.referrer ? stripNul(meta.referrer) : null,
+      country: meta.country ? stripNul(meta.country).trim() || null : null,
+      region: meta.region ? stripNul(meta.region).trim() || null : null,
       startedAt: now,
       app,
       isBot,
       visitorHash: meta.visitorHash ?? null,
-      guestSessionId: meta.guestSessionId?.trim() || null,
+      guestSessionId: meta.guestSessionId ? stripNul(meta.guestSessionId).trim() || null : null,
       city: meta.city?.trim() || null,
       timezone: meta.timezone?.trim() || null,
       asn: meta.asn ?? null,
       asnOrg: meta.asnOrg?.trim() || null,
       referrerHost: meta.referrerHost?.trim() || null,
       referrerCategory: meta.referrerCategory ?? null,
-      landingPath: meta.landingPath?.trim() || null,
+      landingPath: meta.landingPath ? normalizeLandingPath(meta.landingPath) : null,
       refParam: meta.refParam?.trim() || null,
       utmSource: meta.utmSource?.trim() || null,
       utmMedium: meta.utmMedium?.trim() || null,
@@ -175,7 +221,10 @@ export async function upsertAnalyticsSessionRow(
         osName: sql`COALESCE(${schema.analyticsSessions.osName}, EXCLUDED.os_name)`,
         browserName: sql`COALESCE(${schema.analyticsSessions.browserName}, EXCLUDED.browser_name)`,
       },
-    });
+      setWhere: sql`${schema.analyticsSessions.app} = EXCLUDED.app AND ${schema.analyticsSessions.visitorHash} IS NOT DISTINCT FROM EXCLUDED.visitor_hash`,
+    })
+    .returning({ sessionId: schema.analyticsSessions.sessionId });
+  return rows.length > 0;
 }
 
 export async function enrichAnalyticsRequestMetadata(
@@ -207,8 +256,8 @@ export async function enrichAnalyticsRequestMetadata(
     ...(options.geoIpDir ? { dbDir: options.geoIpDir } : {}),
     ...(options.logger ? { logger: options.logger } : {}),
   });
-  const headerCountry = request.headers.get('x-cloud-country')?.trim() || null;
-  const headerRegion = request.headers.get('x-cloud-region')?.trim() || null;
+  const headerCountry = sanitizeHeaderGeo(request.headers.get('x-cloud-country'));
+  const headerRegion = sanitizeHeaderGeo(request.headers.get('x-cloud-region'));
 
   const ownHosts = [
     request.headers.get('host') ?? '',
@@ -279,19 +328,24 @@ export async function ingestAnalyticsBatch(
       await acquireAnalyticsVisitorLock(tx, app, visitorHash);
     }
 
-    let canonicalSessionId = parsed.sessionId.trim() || `sess_${randomUUID()}`;
+    let canonicalSessionId: string;
     if (app === 'portal' && visitorHash) {
       const existingSessionId = await findActiveSameUtcDaySessionId(tx, 'portal', visitorHash, now);
-      if (existingSessionId) {
-        canonicalSessionId = existingSessionId;
-      }
+      canonicalSessionId = existingSessionId ?? `sess_${randomUUID()}`;
+    } else {
+      canonicalSessionId = parsed.sessionId.trim() || `sess_${randomUUID()}`;
     }
 
-    await upsertAnalyticsSessionRow(tx, canonicalSessionId, normalizedMeta, now);
+    const upserted = await upsertAnalyticsSessionRow(tx, canonicalSessionId, normalizedMeta, now);
+    if (!upserted) {
+      canonicalSessionId = `sess_${randomUUID()}`;
+      await upsertAnalyticsSessionRow(tx, canonicalSessionId, normalizedMeta, now);
+    }
 
     const nowIso = now.toISOString();
     const eventsToInsert = [];
     for (const event of parsed.events) {
+      const normalizedPath = normalizeLandingPath(event.path);
       const nav = event.metadata?.['navigation'];
       const counterpartNav =
         event.type === 'page_view' && nav === 'initial'
@@ -305,7 +359,7 @@ export async function ingestAnalyticsBatch(
           FROM analytics_events
           WHERE session_id = ${canonicalSessionId}
             AND type = 'page_view'
-            AND path = ${event.path}
+            AND path = ${normalizedPath}
             AND metadata_json->>'navigation' = ${counterpartNav}
             AND created_at >= ${nowIso}::timestamptz - (${INITIAL_PAGE_VIEW_DEDUP_SECONDS} * interval '1 second')
             AND created_at <= ${nowIso}::timestamptz + (${INITIAL_PAGE_VIEW_DEDUP_SECONDS} * interval '1 second')
@@ -318,11 +372,11 @@ export async function ingestAnalyticsBatch(
       eventsToInsert.push({
         sessionId: canonicalSessionId,
         type: event.type,
-        name: event.name,
-        path: event.path,
+        name: stripNul(event.name),
+        path: normalizedPath,
         value: event.value ?? null,
-        metadataJson: (event.metadata ?? {}) as Record<string, unknown>,
-        createdAt: new Date(event.timestamp),
+        metadataJson: sanitizeEventMetadata(event.metadata),
+        createdAt: clampEventTimestamp(event.timestamp, now),
       });
     }
 

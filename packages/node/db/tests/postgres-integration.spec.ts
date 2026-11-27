@@ -21,6 +21,7 @@ import {
   hashPasswordArgon2id,
 } from '@aklapper/node-runtime/auth';
 import { PrivacySanitizationError } from '@aklapper/node-runtime/privacy';
+import type { SsrStructuredLogger } from '@aklapper/node-runtime/ssr/stream';
 import { eq, sql } from 'drizzle-orm';
 import type { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
@@ -2919,6 +2920,473 @@ describe('@aklapper/db PostgreSQL 19 integration (ephemeral container)', () => {
       expect(visitorAfterDelete?.contactId).toBeNull();
     } finally {
       await db.delete(askTurns).where(eq(askTurns.attemptId, attemptId));
+      for (const cid of createdContactIds) {
+        await db.delete(contactSubmissions).where(eq(contactSubmissions.id, cid));
+      }
+      for (const sid of createdSessionIds) {
+        await db.delete(analyticsEvents).where(eq(analyticsEvents.sessionId, sid));
+        await db.delete(analyticsSessions).where(eq(analyticsSessions.sessionId, sid));
+      }
+    }
+  });
+
+  it('prevents cross-visitor sessionId hijacking, enforces idle/midnight rollover, bounds headers/hostnames/NULs, handles contact race, verifies seams, and keeps latest 90 trend days', async () => {
+    if (!db) throw new Error('Expected ephemeral PostgreSQL database');
+    const env = { ANALYTICS_DAILY_SALT: 'cycle2-hardening-salt' };
+    const createdSessionIds: string[] = [];
+    const createdContactIds: string[] = [];
+    const infoLogs: Record<string, unknown>[] = [];
+    const warnLogs: Record<string, unknown>[] = [];
+    const logger: SsrStructuredLogger = {
+      info: obj => {
+        infoLogs.push(obj);
+      },
+      warn: obj => {
+        warnLogs.push(obj);
+      },
+      error: () => undefined,
+    };
+    const humanUa =
+      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/131.0.0.0 Safari/537.36';
+
+    try {
+      // 1a. Victim opens a portal session; attacker sends victim's sessionId with attacker guestSessionId & bot UA
+      const t0 = new Date('2026-11-27T12:00:00.000Z');
+      const victimSsr = await capturePortalSsrHit(
+        db,
+        new Request('https://andrew-k.us/about/?ref=victim_ref', {
+          headers: {
+            host: 'andrew-k.us',
+            'x-forwarded-for': '198.51.100.201',
+            'user-agent': humanUa,
+          },
+        }),
+        { pathname: '/about/', env, now: t0, logger },
+      );
+      expect(victimSsr).not.toBeNull();
+      const victimSessionId = victimSsr!.sessionId;
+      createdSessionIds.push(victimSessionId);
+
+      // Trailing slash dedup: client initial page_view for /about/ deduplicates cleanly to 1 /about row
+      const victimClientRes = await handleAnalyticsIngestRequest(
+        new Request('https://andrew-k.us/api/analytics/ingest', {
+          method: 'POST',
+          headers: {
+            host: 'andrew-k.us',
+            'content-type': 'application/json',
+            'x-forwarded-for': '198.51.100.201',
+            'user-agent': humanUa,
+          },
+          body: JSON.stringify({
+            sessionId: 'client-ephemeral-id',
+            landingPath: '/about/',
+            events: [
+              {
+                type: 'page_view',
+                name: 'portal_page_view',
+                path: '/about/',
+                metadata: { app: 'portal', navigation: 'initial' },
+                timestamp: new Date('2026-11-27T12:00:04.000Z').toISOString(),
+              },
+            ],
+          }),
+        }),
+        { db, app: 'portal', env, now: new Date('2026-11-27T12:00:04.000Z'), logger },
+      );
+      expect(victimClientRes.status).toBe(202);
+      const victimClientJson = (await victimClientRes.json()) as {
+        accepted: number;
+        sessionId: string;
+      };
+      expect(victimClientJson.sessionId).toBe(victimSessionId);
+      expect(victimClientJson.accepted).toBe(0);
+
+      const victimPvRows = await db
+        .select({ path: analyticsEvents.path })
+        .from(analyticsEvents)
+        .where(eq(analyticsEvents.sessionId, victimSessionId));
+      expect(victimPvRows).toEqual([{ path: '/about' }]);
+
+      // Attacker attempts session hijack + is_bot sabotage + guest_session stamping on victimSessionId
+      const attackerIngestRes = await handleAnalyticsIngestRequest(
+        new Request('https://andrew-k.us/api/analytics/ingest', {
+          method: 'POST',
+          headers: {
+            host: 'andrew-k.us',
+            'content-type': 'application/json',
+            'x-forwarded-for': '203.0.113.202',
+            'user-agent': 'Googlebot/2.1 (+http://www.google.com/bot.html)',
+          },
+          body: JSON.stringify({
+            sessionId: victimSessionId,
+            events: [
+              {
+                type: 'interaction',
+                name: 'hijack_attempt',
+                path: '/about',
+                timestamp: t0.toISOString(),
+              },
+            ],
+          }),
+        }),
+        { db, app: 'portal', guestSessionId: 'guest_attacker_99', env, now: t0, logger },
+      );
+      expect(attackerIngestRes.status).toBe(202);
+      const attackerIngestJson = (await attackerIngestRes.json()) as { sessionId: string };
+      expect(attackerIngestJson.sessionId).not.toBe(victimSessionId);
+      createdSessionIds.push(attackerIngestJson.sessionId);
+
+      // Victim row remains untouched: is_bot still false, guest_session_id still null, zero hijack events
+      const [victimRowAfterAttack] = await db
+        .select()
+        .from(analyticsSessions)
+        .where(eq(analyticsSessions.sessionId, victimSessionId));
+      expect(victimRowAfterAttack?.isBot).toBe(false);
+      expect(victimRowAfterAttack?.guestSessionId).toBeNull();
+
+      // Attacker submitting /contact with victimSessionId + attacker guestSessionId is STILL rejected
+      const attackerContactLink = await resolveOrCreateContactAnalyticsSession(
+        db,
+        new Request('https://andrew-k.us/contact', {
+          method: 'POST',
+          headers: {
+            host: 'andrew-k.us',
+            'x-forwarded-for': '203.0.113.202',
+            'user-agent': humanUa,
+          },
+        }),
+        {
+          candidateSessionId: victimSessionId,
+          guestSessionId: 'guest_attacker_99',
+          env,
+          now: t0,
+          logger,
+        },
+      );
+      expect(attackerContactLink.spoofRejected).toBe(true);
+      expect(attackerContactLink.analyticsSessionId).not.toBe(victimSessionId);
+      if (attackerContactLink.analyticsSessionId) {
+        createdSessionIds.push(attackerContactLink.analyticsSessionId);
+      }
+
+      // 1b. Cross-app isolation: admin ingest reusing a portal sessionId mints a fresh admin session
+      const adminCollisionRes = await handleAnalyticsIngestRequest(
+        new Request('https://admin.andrew-k.us/api/analytics/ingest', {
+          method: 'POST',
+          headers: {
+            host: 'admin.andrew-k.us',
+            'content-type': 'application/json',
+            'x-forwarded-for': '198.51.100.201',
+            'user-agent': humanUa,
+          },
+          body: JSON.stringify({
+            sessionId: victimSessionId,
+            events: [
+              {
+                type: 'page_view',
+                name: 'admin_page_view',
+                path: '/analytics',
+                timestamp: t0.toISOString(),
+              },
+            ],
+          }),
+        }),
+        { db, app: 'admin', env, now: t0, logger },
+      );
+      expect(adminCollisionRes.status).toBe(202);
+      const adminCollisionJson = (await adminCollisionRes.json()) as { sessionId: string };
+      expect(adminCollisionJson.sessionId).not.toBe(victimSessionId);
+      createdSessionIds.push(adminCollisionJson.sessionId);
+
+      // 1c. >30m idle rollover mints a fresh session even if client sends previous sessionId
+      const tAfterIdle = new Date('2026-11-27T12:45:00.000Z');
+      const rolloverRes = await handleAnalyticsIngestRequest(
+        new Request('https://andrew-k.us/api/analytics/ingest', {
+          method: 'POST',
+          headers: {
+            host: 'andrew-k.us',
+            'content-type': 'application/json',
+            'x-forwarded-for': '198.51.100.201',
+            'user-agent': humanUa,
+          },
+          body: JSON.stringify({
+            sessionId: victimSessionId,
+            events: [
+              {
+                type: 'page_view',
+                name: 'portal_page_view',
+                path: '/agensi',
+                timestamp: tAfterIdle.toISOString(),
+              },
+            ],
+          }),
+        }),
+        { db, app: 'portal', env, now: tAfterIdle, logger },
+      );
+      expect(rolloverRes.status).toBe(202);
+      const rolloverJson = (await rolloverRes.json()) as { sessionId: string };
+      expect(rolloverJson.sessionId).not.toBe(victimSessionId);
+      createdSessionIds.push(rolloverJson.sessionId);
+
+      // 1d & 12b. >128-char sessionId and NUL bytes return HTTP 400 (never PG 54000 / 22021)
+      const oversizedSidRes = await handleAnalyticsIngestRequest(
+        new Request('https://andrew-k.us/api/analytics/ingest', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            sessionId: 'x'.repeat(129),
+            events: [
+              {
+                type: 'page_view',
+                name: 'portal_page_view',
+                path: '/',
+                timestamp: t0.toISOString(),
+              },
+            ],
+          }),
+        }),
+        { db, app: 'portal', env, now: t0 },
+      );
+      expect(oversizedSidRes.status).toBe(400);
+
+      const nulRes = await handleAnalyticsIngestRequest(
+        new Request('https://andrew-k.us/api/analytics/ingest', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            sessionId: 'sess_nul',
+            events: [
+              {
+                type: 'interaction',
+                name: 'bad\u0000event',
+                path: '/',
+                timestamp: t0.toISOString(),
+              },
+            ],
+          }),
+        }),
+        { db, app: 'portal', env, now: t0 },
+      );
+      expect(nulRes.status).toBe(400);
+
+      // 2. Concurrent SSR hit vs /contact fallback race converges to exactly 1 session row
+      const raceIp = '198.51.100.205';
+      const raceTime = new Date('2026-11-27T14:00:00.000Z');
+      const [raceSsr, raceContact] = await Promise.all([
+        capturePortalSsrHit(
+          db,
+          new Request('https://andrew-k.us/?ref=race_ref&utm_campaign=race_camp', {
+            headers: {
+              host: 'andrew-k.us',
+              referer: 'https://www.linkedin.com/feed/race',
+              'x-forwarded-for': raceIp,
+              'user-agent': humanUa,
+            },
+          }),
+          { pathname: '/', env, now: raceTime, logger },
+        ),
+        resolveOrCreateContactAnalyticsSession(
+          db,
+          new Request('https://andrew-k.us/contact', {
+            method: 'POST',
+            headers: {
+              host: 'andrew-k.us',
+              'x-forwarded-for': raceIp,
+              'user-agent': humanUa,
+            },
+          }),
+          { env, now: raceTime, logger },
+        ),
+      ]);
+      expect(raceSsr).not.toBeNull();
+      expect(raceContact.analyticsSessionId).toBe(raceSsr!.sessionId);
+      createdSessionIds.push(raceSsr!.sessionId);
+
+      // 3b. Oversized 3,000-char Referer hostname and x-cloud-country/region never cause PG 54000
+      const hugeHost = `${'sub.'.repeat(750)}example.com`;
+      const hugeGeoRes = await handleAnalyticsIngestRequest(
+        new Request('https://andrew-k.us/api/analytics/ingest', {
+          method: 'POST',
+          headers: {
+            host: 'andrew-k.us',
+            'content-type': 'application/json',
+            'x-forwarded-for': '198.51.100.206',
+            'user-agent': humanUa,
+            referer: `https://${hugeHost}/landing`,
+            'x-cloud-country': 'U'.repeat(3000),
+            'x-cloud-region': 'G'.repeat(3000),
+          },
+          body: JSON.stringify({
+            sessionId: 'sess_huge_headers',
+            events: [
+              {
+                type: 'page_view',
+                name: 'portal_page_view',
+                path: '/',
+                timestamp: t0.toISOString(),
+              },
+            ],
+          }),
+        }),
+        { db, app: 'portal', env, now: t0 },
+      );
+      expect(hugeGeoRes.status).toBe(202);
+      const hugeGeoJson = (await hugeGeoRes.json()) as { sessionId: string };
+      createdSessionIds.push(hugeGeoJson.sessionId);
+      const [hugeGeoRow] = await db
+        .select()
+        .from(analyticsSessions)
+        .where(eq(analyticsSessions.sessionId, hugeGeoJson.sessionId));
+      expect(hugeGeoRow?.referrerHost).toBeNull();
+      expect(hugeGeoRow?.referrerCategory).toBe('direct');
+      expect((hugeGeoRow?.country ?? '').length).toBeLessThanOrEqual(64);
+      expect((hugeGeoRow?.region ?? '').length).toBeLessThanOrEqual(64);
+
+      // 5. Observability seams: SSR timeout/rejection, contact link DB fault, bot & link branches
+      const stalledDb = {
+        transaction: () => new Promise(() => undefined),
+      } as unknown as AppDatabase;
+      const timedOutSsr = await capturePortalSsrHit(
+        stalledDb,
+        new Request('https://andrew-k.us/', { headers: { 'user-agent': humanUa } }),
+        { timeoutMs: 20, correlationId: 'corr-ssr-timeout', logger },
+      );
+      expect(timedOutSsr).toBeNull();
+
+      const failingDb = {
+        transaction: async () => {
+          throw new Error('simulated pg disconnect');
+        },
+        select: () => {
+          throw new Error('simulated pg disconnect');
+        },
+        execute: async () => {
+          throw new Error('simulated pg disconnect');
+        },
+      } as unknown as AppDatabase;
+      const failedSsr = await capturePortalSsrHit(
+        failingDb,
+        new Request('https://andrew-k.us/', { headers: { 'user-agent': humanUa } }),
+        { correlationId: 'corr-ssr-err', logger },
+      );
+      expect(failedSsr).toBeNull();
+
+      const failedLink = await resolveOrCreateContactAnalyticsSession(
+        failingDb,
+        new Request('https://andrew-k.us/contact', {
+          method: 'POST',
+          headers: { 'user-agent': humanUa },
+        }),
+        { correlationId: 'corr-link-err', logger },
+      );
+      expect(failedLink.linkMethod).toBe('fail_open_null');
+      expect(failedLink.analyticsSessionId).toBeNull();
+
+      expect(
+        warnLogs.some(
+          l =>
+            l['seam_type'] === 'BOUNDARY_FAULT' &&
+            l['event'] === 'portal.analytics.ssr_capture_failed' &&
+            l['correlationId'] === 'corr-ssr-timeout',
+        ),
+      ).toBe(true);
+      expect(
+        warnLogs.some(
+          l =>
+            l['seam_type'] === 'BOUNDARY_FAULT' &&
+            l['event'] === 'portal.analytics.ssr_capture_failed' &&
+            l['correlationId'] === 'corr-ssr-err',
+        ),
+      ).toBe(true);
+      expect(
+        warnLogs.some(
+          l =>
+            l['seam_type'] === 'BOUNDARY_FAULT' &&
+            l['event'] === 'portal.contact.analytics_link_failed' &&
+            l['correlationId'] === 'corr-link-err',
+        ),
+      ).toBe(true);
+      expect(
+        infoLogs.some(
+          l =>
+            l['seam_type'] === 'RULE_DIVERGENCE' &&
+            l['event'] === 'analytics.ingest.bot_classification_branch' &&
+            l['branch'] === 'human',
+        ),
+      ).toBe(true);
+      expect(
+        infoLogs.some(
+          l =>
+            l['seam_type'] === 'RULE_DIVERGENCE' &&
+            l['event'] === 'analytics.ingest.bot_classification_branch' &&
+            l['branch'] === 'bot_isbot',
+        ),
+      ).toBe(true);
+      expect(
+        infoLogs.some(
+          l =>
+            l['seam_type'] === 'RULE_DIVERGENCE' &&
+            l['event'] === 'analytics.contact.link_method_branch' &&
+            l['branch'] === 'fail_open_null',
+        ),
+      ).toBe(true);
+
+      // 6a. insertContactSubmission triggers onAnalyticsSessionFkFallback on PG 23503 retry
+      let fkFallbackFired = false;
+      const fkContact = await insertContactSubmission(
+        db,
+        {
+          name: 'Katherine Johnson',
+          email: 'katherine@example.com',
+          phone: null,
+          message: 'Verifying FK fallback callback notification for truthful commit audit.',
+          attachment: null,
+        },
+        {
+          analyticsSessionId: 'missing-fk-session-id',
+          guestSessionId: null,
+          onAnalyticsSessionFkFallback: () => {
+            fkFallbackFired = true;
+          },
+        },
+      );
+      createdContactIds.push(fkContact.id);
+      expect(fkFallbackFired).toBe(true);
+
+      // 9. Daily trend on window='all' across 100 distinct UTC days returns latest 90 days ascending including today
+      const todayUtc = new Date();
+      todayUtc.setUTCHours(12, 0, 0, 0);
+      const trendBatchValues = Array.from({ length: 100 }, (_, i) => {
+        const day = new Date(todayUtc.getTime() - i * 24 * 60 * 60 * 1000);
+        const sid = `sess_trend_100d_${i}`;
+        createdSessionIds.push(sid);
+        return {
+          sessionId: sid,
+          ipHash: `trend_ip_${i}`,
+          visitorHash: `trend_vis_${i}`,
+          app: 'portal' as const,
+          isBot: false,
+          country: 'ZZ',
+          startedAt: day,
+          lastSeenAt: day,
+        };
+      });
+      await db.insert(analyticsSessions).values(trendBatchValues);
+
+      const allSummary = await loadAdminAnalyticsSummary(db, {
+        window: 'all',
+        country: 'ZZ',
+        bots: 'exclude',
+      });
+      expect(allSummary.dailyTrend).toHaveLength(90);
+      const dates = (allSummary.dailyTrend ?? []).map(p => p.date);
+      expect(dates[dates.length - 1]).toBe(todayUtc.toISOString().slice(0, 10));
+      const oldestExpected = new Date(todayUtc.getTime() - 89 * 24 * 60 * 60 * 1000)
+        .toISOString()
+        .slice(0, 10);
+      expect(dates[0]).toBe(oldestExpected);
+      expect([...dates].sort()).toEqual(dates);
+    } finally {
       for (const cid of createdContactIds) {
         await db.delete(contactSubmissions).where(eq(contactSubmissions.id, cid));
       }

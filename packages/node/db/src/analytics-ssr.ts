@@ -99,6 +99,7 @@ export async function bindGuestSessionToAnalyticsSession(
   request: Request,
   guestSessionId: string | null | undefined,
   options: {
+    readonly landingPath?: string;
     readonly env?: Record<string, string | undefined>;
     readonly geoIpDir?: string;
     readonly logger?: SsrStructuredLogger;
@@ -113,6 +114,7 @@ export async function bindGuestSessionToAnalyticsSession(
     const meta = await enrichAnalyticsRequestMetadata(request, {
       app: 'portal',
       guestSessionId: normalizedGuest,
+      ...(options.landingPath ? { landingPath: options.landingPath } : {}),
       ...(options.env ? { env: options.env } : {}),
       ...(options.geoIpDir ? { geoIpDir: options.geoIpDir } : {}),
       ...(options.logger ? { logger: options.logger } : {}),
@@ -124,11 +126,24 @@ export async function bindGuestSessionToAnalyticsSession(
     return await db.transaction(async tx => {
       await acquireAnalyticsVisitorLock(tx, 'portal', visitorHash);
       const existingSessionId = await findActiveSameUtcDaySessionId(tx, 'portal', visitorHash, now);
-      const targetSessionId = existingSessionId ?? `sess_${randomUUID()}`;
-      await upsertAnalyticsSessionRow(tx, targetSessionId, meta, now);
+      let targetSessionId = existingSessionId ?? `sess_${randomUUID()}`;
+      const upserted = await upsertAnalyticsSessionRow(tx, targetSessionId, meta, now);
+      if (!upserted) {
+        targetSessionId = `sess_${randomUUID()}`;
+        await upsertAnalyticsSessionRow(tx, targetSessionId, meta, now);
+      }
       return targetSessionId;
     });
-  } catch {
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : 'guest_session_binding_failed';
+    options.logger?.warn(
+      {
+        seam_type: 'BOUNDARY_FAULT',
+        event: 'portal.analytics.guest_binding_failed',
+        detail,
+      },
+      'Non-blocking guest analytics binding failed',
+    );
     return null;
   }
 }
