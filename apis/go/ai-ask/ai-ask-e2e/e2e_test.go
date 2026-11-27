@@ -2,6 +2,8 @@ package aiask_e2e_test
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -37,6 +39,26 @@ func make768Vec(val float32) []float32 {
 		v[i] = val
 	}
 	return v
+}
+
+func randomUUIDv4(t *testing.T) string {
+	t.Helper()
+	var b [16]byte
+	if _, err := rand.Read(b[:]); err != nil {
+		t.Fatalf("generate random uuid: %v", err)
+	}
+	b[6] = (b[6] & 0x0f) | 0x40
+	b[8] = (b[8] & 0x3f) | 0x80
+	return fmt.Sprintf("%08x-%04x-%04x-%04x-%012x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:16])
+}
+
+func randomRunSuffix(t *testing.T) string {
+	t.Helper()
+	var b [6]byte
+	if _, err := rand.Read(b[:]); err != nil {
+		t.Fatalf("generate run suffix: %v", err)
+	}
+	return hex.EncodeToString(b[:])
 }
 
 func guestHeaders(t *testing.T, sub, secret string) map[string]string {
@@ -191,14 +213,19 @@ func TestAiAskEndToEnd(t *testing.T) {
 	t.Cleanup(qdrantServer.Close)
 
 	const secret = "e2e-ai-ask-secret"
+	runSuffix := randomRunSuffix(t)
 	grpcPort := e2etest.ReservePort(t)
 	baseURL := e2etest.StartBinary(
 		t,
 		"../ai-ask",
 		"APP_ENV=production",
+		"AI_PROVIDER=local",
 		"INTERNAL_AUTH_SECRET="+secret,
 		"GRPC_PORT="+strconv.Itoa(grpcPort),
 		"AI_PRIVACY_DENYLIST=[\"Project-Mercury-NDA\"]",
+		"DOSSIER_PRIVACY_DENYLIST=",
+		"VERTEX_THINKING_LEVEL=",
+		"VERTEX_THINKING_BUDGET=",
 		"AI_DEV_UNLIMITED=true",
 		"LOCAL_LLM_BASE_URL="+llmServer.URL+"/v1",
 		"LOCAL_LLM_CHAT_MODEL=e2e-chat",
@@ -207,16 +234,15 @@ func TestAiAskEndToEnd(t *testing.T) {
 	)
 
 	t.Run("Binary fails closed on empty DATABASE_URL or production missing INTERNAL_AUTH_SECRET", func(t *testing.T) {
-		absDir, _ := filepath.Abs("../ai-ask")
+		absDir, err := filepath.Abs("../ai-ask")
+		if err != nil {
+			t.Fatalf("resolve ../ai-ask: %v", err)
+		}
 		binPath := filepath.Join(t.TempDir(), "ai-ask-strict-check")
-		out, buildErr := exec.Command("go", "build", "-o", binPath, ".").CombinedOutput()
-		if buildErr != nil {
-			// Build from explicit dir
-			c := exec.Command("go", "build", "-o", binPath, ".")
-			c.Dir = absDir
-			if o, err := c.CombinedOutput(); err != nil {
-				t.Fatalf("build strict binary: %v\n%s\n%s", err, string(out), string(o))
-			}
+		c := exec.Command("go", "build", "-o", binPath, ".")
+		c.Dir = absDir
+		if o, buildErr := c.CombinedOutput(); buildErr != nil {
+			t.Fatalf("build strict binary: %v\n%s", buildErr, string(o))
 		}
 
 		noDB := exec.Command(binPath)
@@ -288,8 +314,8 @@ func TestAiAskEndToEnd(t *testing.T) {
 			t.Fatalf("expected 401 without X-Internal-Auth, got %d", resUnauth.StatusCode)
 		}
 
-		attemptQA := "11111111-1111-4111-8111-111111111121"
-		headers := guestHeaders(t, "e2e-qa-guest", secret)
+		attemptQA := randomUUIDv4(t)
+		headers := guestHeaders(t, "e2e-qa-guest-"+runSuffix, secret)
 		resQA, outQA := e2etest.DoJSON[contracts.AskResponse](
 			t, http.MethodPost, baseURL+"/v1/ask",
 			map[string]string{"mode": "qa", "attemptId": attemptQA, "question": "What stack powers this portfolio?"},
@@ -313,7 +339,7 @@ func TestAiAskEndToEnd(t *testing.T) {
 		resJD, outJD := e2etest.DoJSON[contracts.AskResponse](
 			t, http.MethodPost, baseURL+"/v1/ask",
 			map[string]string{"mode": "jd_match", "jobDescription": "Principal engineer building Go microservices on GKE with React SSR and PostgreSQL."},
-			guestHeaders(t, "e2e-jd-guest", secret),
+			guestHeaders(t, "e2e-jd-guest-"+runSuffix, secret),
 		)
 		if resJD.StatusCode != http.StatusOK || !outJD.Grounded || outJD.MatchScore == nil || *outJD.MatchScore != 88 {
 			t.Fatalf("unexpected JD response (%d): %+v", resJD.StatusCode, outJD)
@@ -321,7 +347,7 @@ func TestAiAskEndToEnd(t *testing.T) {
 
 		// Upstream failure -> HTTP 502 (not 200 abstention) + quota refund
 		embedFail.Store(true)
-		failHeaders := guestHeaders(t, "e2e-fail-guest", secret)
+		failHeaders := guestHeaders(t, "e2e-fail-guest-"+runSuffix, secret)
 		resFail, failErr := e2etest.DoJSON[contracts.PublicAppError](
 			t, http.MethodPost, baseURL+"/v1/ask",
 			map[string]string{"mode": "qa", "question": "Should fail closed 502"},
@@ -335,7 +361,7 @@ func TestAiAskEndToEnd(t *testing.T) {
 	})
 
 	t.Run("POST /v1/ask enforces guest session 10-turn quota with HTTP 429", func(t *testing.T) {
-		headers := guestHeaders(t, "e2e-quota-guest", secret)
+		headers := guestHeaders(t, "e2e-quota-guest-"+runSuffix, secret)
 		for i := range 10 {
 			res, _ := e2etest.DoJSON[contracts.AskResponse](
 				t, http.MethodPost, baseURL+"/v1/ask",
@@ -357,7 +383,7 @@ func TestAiAskEndToEnd(t *testing.T) {
 	})
 
 	t.Run("POST /v1/ask/stream SSE redacts split denylist and live gRPC StreamAsk + health work over GRPC_PORT", func(t *testing.T) {
-		headers := guestHeaders(t, "e2e-stream-guest", secret)
+		headers := guestHeaders(t, "e2e-stream-guest-"+runSuffix, secret)
 		headers["Content-Type"] = "application/json"
 		resSSE, rawSSE := e2etest.DoRequest(
 			t, http.MethodPost, baseURL+"/v1/ask/stream",
@@ -372,7 +398,7 @@ func TestAiAskEndToEnd(t *testing.T) {
 			t.Fatalf("expected redacted SSE stream with done event, got:\n%s", sseText)
 		}
 
-		cfg := grpckit.ClientAuthConfig{Role: internalauth.RoleGuest, Subject: "e2e-grpc-guest", Secret: secret, TTL: time.Minute}
+		cfg := grpckit.ClientAuthConfig{Role: internalauth.RoleGuest, Subject: "e2e-grpc-guest-" + runSuffix, Secret: secret, TTL: time.Minute}
 		conn, err := grpc.NewClient(
 			fmt.Sprintf("127.0.0.1:%d", grpcPort),
 			grpc.WithTransportCredentials(insecure.NewCredentials()),
@@ -424,8 +450,12 @@ func TestAiAskEndToEnd(t *testing.T) {
 			t,
 			"../ai-ask",
 			"APP_ENV=production",
+			"AI_PROVIDER=local",
 			"INTERNAL_AUTH_SECRET="+secret,
 			"GRPC_PORT=",
+			"DOSSIER_PRIVACY_DENYLIST=",
+			"VERTEX_THINKING_LEVEL=",
+			"VERTEX_THINKING_BUDGET=",
 			"LOCAL_LLM_BASE_URL="+llmServer.URL+"/v1",
 			"QDRANT_URL="+qdrantServer.URL,
 		)
