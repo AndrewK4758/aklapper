@@ -1,0 +1,25 @@
+{
+  "name": "go-portal-api-e2e",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "library",
+  "sourceRoot": "apis/go/portal-api/portal-api-e2e",
+  "implicitDependencies": ["go-portal-api"],
+  "tags": ["scope:go", "scope:e2e", "type:e2e"],
+  "targets": {
+    "e2e": {
+      "executor": "nx:run-commands",
+      "cache": true,
+      "dependsOn": ["go-portal-api:build"],
+      "inputs": [
+        "default",
+        "{workspaceRoot}/apis/go/portal-api/portal-api/**/*.go",
+        "{workspaceRoot}/apis/go/portal-api/portal-api/go.mod",
+        "{workspaceRoot}/packages/go/**/*.go"
+      ],
+      "options": {
+        "cwd": "apis/go/portal-api/portal-api-e2e",
+        "command": "go test -v -count=1 ./..."
+      }
+    }
+  }
+}

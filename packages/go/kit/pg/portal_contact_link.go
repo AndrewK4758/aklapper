@@ -173,8 +173,7 @@ func (s *Store) ResolveOrCreateContactSession(ctx context.Context, p ContactLink
 			return failOpen(err)
 		}
 		found := err == nil
-		ownerMatch := found && rowApp == "portal" && (
-			(rowVisitorHash != nil && (*rowVisitorHash == p.CurrentVisitorHash || (p.PriorVisitorHash != "" && *rowVisitorHash == p.PriorVisitorHash))) ||
+		ownerMatch := found && rowApp == "portal" && ((rowVisitorHash != nil && (*rowVisitorHash == p.CurrentVisitorHash || (p.PriorVisitorHash != "" && *rowVisitorHash == p.PriorVisitorHash))) ||
 			rowIPHash == p.CurrentIPHash ||
 			(p.PriorIPHash != "" && rowIPHash == p.PriorIPHash) ||
 			(normGuest != nil && rowGuestID != nil && *rowGuestID == *normGuest))

@@ -19,10 +19,10 @@ const (
 	CityDBFilename = "GeoLite2-City.mmdb"
 	ASNDBFilename  = "GeoLite2-ASN.mmdb"
 
-	BranchHit              = "mmdb_hit"
-	BranchPrivateOrUnmap   = "mmdb_private_or_unmapped"
-	BranchAbsentFallback   = "mmdb_absent_fallback"
-	BranchCorruptDegraded  = "mmdb_corrupt_degraded"
+	BranchHit             = "mmdb_hit"
+	BranchPrivateOrUnmap  = "mmdb_private_or_unmapped"
+	BranchAbsentFallback  = "mmdb_absent_fallback"
+	BranchCorruptDegraded = "mmdb_corrupt_degraded"
 )
 
 // Enrichment holds resolved MaxMind GeoLite2 City + ASN metadata and the branch taken.

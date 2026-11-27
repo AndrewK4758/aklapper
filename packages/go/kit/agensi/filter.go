@@ -176,7 +176,7 @@ func FilterCreatorPublishedSkills(
 			out.RejectedUnpublishedCount++
 			EmitSeamLog("UNSOUND_CONDITION", "agensi.catalog.unpublished_item_rejected", map[string]any{
 				"correlationId": ctx.CorrelationID,
-				"slug":            slug,
+				"slug":          slug,
 			})
 			continue
 		}

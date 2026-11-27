@@ -13,9 +13,9 @@ import (
 )
 
 const (
-	DefaultPortalMaxConns       = 2
-	DefaultPortalMaxConnIdle    = 30 * time.Second
-	DefaultServiceLazyMaxConns  = 2
+	DefaultPortalMaxConns      = 2
+	DefaultPortalMaxConnIdle   = 30 * time.Second
+	DefaultServiceLazyMaxConns = 2
 )
 
 var (
