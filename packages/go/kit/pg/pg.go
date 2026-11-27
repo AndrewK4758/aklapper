@@ -912,26 +912,6 @@ func (s *Store) loadTurnsForRun(ctx context.Context, runID string) ([]contracts.
 	return out, rows.Err()
 }
 
-func isValidUUIDString(value string) bool {
-	if len(value) != 36 {
-		return false
-	}
-	for i := 0; i < len(value); i++ {
-		c := value[i]
-		if i == 8 || i == 13 || i == 18 || i == 23 {
-			if c != '-' {
-				return false
-			}
-			continue
-		}
-		isHex := (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')
-		if !isHex {
-			return false
-		}
-	}
-	return true
-}
-
 func (s *Store) GetSandboxRunSummary(ctx context.Context) (int, int, error) {
 	if s == nil || s.pool == nil {
 		if s == nil {
@@ -993,7 +973,7 @@ func (s *Store) setSandboxGateVerdict(ctx context.Context, runID, verdict string
 		return &copied, nil
 	}
 
-	if !isValidUUIDString(runID) {
+	if !contracts.ValidateUUID(runID) {
 		return nil, ErrRunNotFound
 	}
 

@@ -12,6 +12,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/AndrewK4758/aklapper/packages/go/kit/contracts"
 )
 
 // PortfolioNamespace is a stable RFC 4122 UUIDv5 namespace shared across corpus indexers.
@@ -124,20 +126,8 @@ func (c *Client) newRequest(ctx context.Context, method, path string, body any) 
 }
 
 func isValidRFC4122UUID(value string) bool {
-	if len(value) != 36 {
+	if !contracts.ValidateUUID(value) {
 		return false
-	}
-	for i := 0; i < len(value); i++ {
-		c := value[i]
-		if i == 8 || i == 13 || i == 18 || i == 23 {
-			if c != '-' {
-				return false
-			}
-			continue
-		}
-		if !((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')) {
-			return false
-		}
 	}
 	if value[14] < '1' || value[14] > '8' {
 		return false
