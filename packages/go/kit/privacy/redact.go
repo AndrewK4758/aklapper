@@ -10,8 +10,6 @@ import (
 	"strings"
 	"unicode"
 	"unicode/utf8"
-
-	"golang.org/x/text/unicode/norm"
 )
 
 const DefaultStorageMaxRunes = 1000
@@ -22,9 +20,7 @@ var storageExtraRedactPatterns = []*regexp.Regexp{
 	regexp.MustCompile(`\b(?:sk|rk)_(?:live|test)_[A-Za-z0-9]{16,}\b`),
 	regexp.MustCompile(`\b(?:gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,})\b`),
 	regexp.MustCompile(`\bxox[baprs]-[A-Za-z0-9-]{10,}\b`),
-	regexp.MustCompile(`[A-Za-z0-9._%+-]{1,64}@(?:[A-Za-z0-9-]{1,63}\.)+[A-Za-z]{2,24}\b`),
 	regexp.MustCompile(`\b\d{3}-\d{2}-\d{4}\b`),
-	regexp.MustCompile(`(?:\+?1[-.\s])?(?:\(\d{3}\)[-.\s]?|\d{3}[-.\s])\d{3}[-.\s]\d{4}\b`),
 	regexp.MustCompile(`(?i)(?:~|/home/[A-Za-z0-9._-]+|/Users/[A-Za-z0-9._-]+)/projects/[A-Za-z0-9._/-]+`),
 	regexp.MustCompile(`(?i)\baklapper[-_/]cadence\b`),
 	regexp.MustCompile(`(?i)\b(?:AKL|DEC|II|PROD|OQ)-\d+\b`),
@@ -32,44 +28,35 @@ var storageExtraRedactPatterns = []*regexp.Regexp{
 
 var storageTrackerKeyRe = regexp.MustCompile(`\b([A-Z]{2,8})-(\d{1,8})\b`)
 
-var storageAllowedTechPrefixes = map[string]struct{}{
-	"AES": {}, "AMD": {}, "ANSI": {}, "AWS": {}, "BASE": {}, "CI": {}, "CVE": {}, "CWE": {},
-	"DDR": {}, "ECMA": {}, "ES": {}, "EU": {}, "FIPS": {}, "GCP": {}, "GO": {}, "GPT": {},
-	"GRPC": {}, "HMAC": {}, "HTML": {}, "HTTP": {}, "HTTPS": {}, "IEEE": {}, "IPV": {}, "ISO": {},
-	"JS": {}, "JSON": {}, "JWT": {}, "K8S": {}, "MD": {}, "NIST": {}, "NODE": {}, "OAUTH": {},
-	"OIDC": {}, "OS": {}, "OWASP": {}, "PBKDF": {}, "PCI": {}, "PG": {}, "PKCS": {}, "POSIX": {},
-	"RFC": {}, "RSA": {}, "SAML": {}, "SHA": {}, "SOC": {}, "SQL": {}, "SSL": {}, "TCP": {},
-	"TIER": {}, "TLS": {}, "TS": {}, "UDP": {}, "US": {}, "UTF": {}, "UUID": {}, "WCAG": {}, "XML": {},
-}
-
-// StripInvisibleAndNormalize applies NFKC normalization and strips NUL and invisible Unicode format (Cf) runes.
-func StripInvisibleAndNormalize(raw string) string {
-	nfkc := norm.NFKC.String(raw)
-	var b strings.Builder
-	b.Grow(len(nfkc))
-	for _, r := range nfkc {
-		if r == 0 || unicode.Is(unicode.Cf, r) {
-			continue
+func collectByteSpanMatches(
+	dst []matchInterval,
+	byteSpans [][2]int,
+	viewStr string,
+	spans []normRuneSpan,
+	category string,
+	fingerprint string,
+	ruleOrder int,
+) []matchInterval {
+	for _, loc := range byteSpans {
+		startRune := utf8.RuneCountInString(viewStr[:loc[0]])
+		endRune := startRune + utf8.RuneCountInString(viewStr[loc[0]:loc[1]])
+		if spans != nil {
+			if startRune < 0 || endRune <= startRune || endRune > len(spans) {
+				continue
+			}
+			startRune = spans[startRune].rawStart
+			endRune = spans[endRune-1].rawEnd
 		}
-		b.WriteRune(r)
+		dst = append(dst, matchInterval{
+			start:       startRune,
+			end:         endRune,
+			category:    category,
+			fingerprint: fingerprint,
+			isSecret:    true,
+			ruleOrder:   ruleOrder,
+		})
 	}
-	return b.String()
-}
-
-// FoldDiacriticsAndInvisible decomposes via NFKD, strips NUL, invisible format (Cf), and
-// non-spacing combining mark (Mn) runes, and recomposes canonical NFKC (preserving
-// Hangul syllables and Indic clusters) for whole-document and storage confidentiality gates.
-func FoldDiacriticsAndInvisible(raw string) string {
-	nfkd := norm.NFKD.String(raw)
-	var b strings.Builder
-	b.Grow(len(nfkd))
-	for _, r := range nfkd {
-		if r == 0 || unicode.Is(unicode.Cf, r) || unicode.Is(unicode.Mn, r) {
-			continue
-		}
-		b.WriteRune(r)
-	}
-	return norm.NFKC.String(b.String())
+	return dst
 }
 
 func isHangulSyllableStart(r rune) bool {
@@ -167,7 +154,7 @@ func collectTrackerMatches(
 		if len(loc) < 4 {
 			continue
 		}
-		if _, allowed := storageAllowedTechPrefixes[viewStr[loc[2]:loc[3]]]; allowed {
+		if _, allowed := AllowedTechPrefixes[viewStr[loc[2]:loc[3]]]; allowed {
 			continue
 		}
 		startRune := utf8.RuneCountInString(viewStr[:loc[0]])
@@ -340,6 +327,12 @@ func RedactTextForStorage(cfg *Config, raw string, maxRunes int) string {
 		intervals = collectMappedRegexMatches(intervals, re, foldedStr, foldedSpans, "storage_secret", "storage_extra", true, order)
 		order++
 	}
+	intervals = collectByteSpanMatches(intervals, FindEmailSpans(normalized), normalized, nil, "storage_pii", "email", order)
+	intervals = collectByteSpanMatches(intervals, FindEmailSpans(foldedStr), foldedStr, foldedSpans, "storage_pii", "email", order)
+	order++
+	intervals = collectByteSpanMatches(intervals, FindUSPhoneSpans(normalized), normalized, nil, "storage_pii", "us_phone", order)
+	intervals = collectByteSpanMatches(intervals, FindUSPhoneSpans(foldedStr), foldedStr, foldedSpans, "storage_pii", "us_phone", order)
+	order++
 	intervals = collectTrackerMatches(intervals, normalized, nil, order)
 	intervals = collectTrackerMatches(intervals, foldedStr, foldedSpans, order)
 

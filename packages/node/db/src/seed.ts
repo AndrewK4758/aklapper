@@ -4,6 +4,7 @@ import {
   type AdminChromeContent,
   type AdminHomeContent,
   type MenuItem,
+  SITE_CONTENT_KEYS,
   type TerminalProfileData,
 } from '@aklapper/core';
 import {
@@ -30,15 +31,12 @@ import { resolveAgensiCreatorHandle } from '@aklapper/node-runtime/agensi';
 import { loadWorkspaceEnv } from '@aklapper/node-runtime/env';
 import {
   isProductionPrivacyEnv,
-  sanitizeCareerDossierPayload,
-  sanitizePortalAboutSiteContent,
-  sanitizePortalAskSiteContent,
-  sanitizePortalHomeSiteContent,
-} from '@aklapper/node-runtime/privacy';
+  sanitizeCareerDossierViaGoCli,
+  sanitizeSiteContentViaGoCli,
+} from '@aklapper/node-runtime/go-privacy-check';
 import { and, eq, inArray, sql } from 'drizzle-orm';
 
 import { type AppDatabase, createDb, createDbPool } from './client.ts';
-import { SITE_CONTENT_KEYS } from './queries.ts';
 import {
   agensiSkills,
   cadencePresets,
@@ -368,30 +366,16 @@ export async function seedDatabase(
 
   // Pre-write fail-closed privacy sanitization executes BEFORE any database mutation.
   for (const content of siteContentSeeds) {
-    if (content.key === SITE_CONTENT_KEYS.portalAbout) {
-      sanitizePortalAboutSiteContent(
-        content.markdownBody,
-        content.metadataJson,
-        rawDenylist,
-        undefined,
+    if (
+      content.key === SITE_CONTENT_KEYS.portalAbout ||
+      content.key === SITE_CONTENT_KEYS.portalHome ||
+      content.key === SITE_CONTENT_KEYS.portalAsk
+    ) {
+      sanitizeSiteContentViaGoCli(content.key, content.markdownBody, content.metadataJson, {
         env,
-      );
-    } else if (content.key === SITE_CONTENT_KEYS.portalHome) {
-      sanitizePortalHomeSiteContent(
-        content.markdownBody,
-        content.metadataJson,
         rawDenylist,
-        undefined,
-        env,
-      );
-    } else if (content.key === SITE_CONTENT_KEYS.portalAsk) {
-      sanitizePortalAskSiteContent(
-        content.markdownBody,
-        content.metadataJson,
-        rawDenylist,
-        undefined,
-        env,
-      );
+        requireConfiguredDenylist,
+      });
     }
   }
 
@@ -400,7 +384,7 @@ export async function seedDatabase(
       heading: section.heading,
       body: section.body,
     }));
-    const verification = sanitizeCareerDossierPayload(
+    const verification = sanitizeCareerDossierViaGoCli(
       {
         slug: dossier.slug,
         kind: dossier.kind,

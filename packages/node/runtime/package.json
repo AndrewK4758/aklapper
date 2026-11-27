@@ -72,6 +72,12 @@
       "import": "./dist/privacy.js",
       "default": "./dist/privacy.js"
     },
+    "./go-privacy-check": {
+      "@aklapper/source": "./src/cli/go-privacy-check.ts",
+      "types": "./dist/cli/go-privacy-check.d.ts",
+      "import": "./dist/cli/go-privacy-check.js",
+      "default": "./dist/cli/go-privacy-check.js"
+    },
     "./runtime-health": {
       "@aklapper/source": "./src/runtime-health.ts",
       "types": "./dist/runtime-health.d.ts",

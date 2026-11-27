@@ -11,6 +11,9 @@
   "exclude": ["vitest.config.ts", "tests/**/*.ts"],
   "references": [
     {
+      "path": "../shared/core/tsconfig.lib.json"
+    },
+    {
       "path": "../node/runtime/tsconfig.lib.json"
     }
   ]

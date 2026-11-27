@@ -2,17 +2,22 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 import {
-  parseDenylistFileContent,
-  parseDossierPrivacyDenylist,
-  scanTextForPrivacyFindings,
-  type ParsedDenylist,
+  PrivacySanitizationError,
   type PrivacySanitizationFinding,
-} from '@aklapper/node-runtime/privacy';
+  runGoPrivacyCheck,
+} from '@aklapper/node-runtime/go-privacy-check';
 
 export interface ParsedDossierCheckArgs {
   readonly denylistPath: string | null;
   readonly files: readonly string[];
   readonly jsonOutput: boolean;
+}
+
+export interface LoadedDossierDenylist {
+  readonly rawDenylist?: string;
+  readonly denylistFileContent?: string;
+  readonly denylistHash: string;
+  readonly configured: boolean;
 }
 
 export interface DossierFileCheckReport {
@@ -61,17 +66,32 @@ export function loadDossierCheckDenylist(
   denylistPath: string | null,
   envDenylist?: string,
   cwd = process.cwd(),
-): ParsedDenylist {
-  if (denylistPath) {
-    const resolved = resolve(cwd, denylistPath);
-    return parseDenylistFileContent(readFileSync(resolved, 'utf8'));
+): LoadedDossierDenylist {
+  const denylistFileContent = denylistPath
+    ? readFileSync(resolve(cwd, denylistPath), 'utf8')
+    : undefined;
+  const rawDenylist = denylistPath ? undefined : (envDenylist ?? '');
+
+  const parsed = runGoPrivacyCheck(
+    {
+      mode: 'parse_denylist',
+      ...(denylistFileContent !== undefined ? { denylistFileContent } : { rawDenylist }),
+    },
+    { cwd },
+  );
+  if (!parsed.passed) {
+    throw new PrivacySanitizationError(parsed.findings);
   }
-  return parseDossierPrivacyDenylist(envDenylist);
+  return {
+    ...(denylistFileContent !== undefined ? { denylistFileContent } : { rawDenylist }),
+    denylistHash: parsed.denylistHash,
+    configured: parsed.denylistConfigured,
+  };
 }
 
 export function checkDossierFiles(
   files: readonly string[],
-  denylist: ParsedDenylist,
+  denylist: LoadedDossierDenylist,
   cwd = process.cwd(),
 ): DossierCheckRunResult {
   const reports: DossierFileCheckReport[] = [];
@@ -80,9 +100,19 @@ export function checkDossierFiles(
   for (const file of files) {
     const resolved = resolve(cwd, file);
     const content = readFileSync(resolved, 'utf8');
-    const findings = scanTextForPrivacyFindings(content, 'markdown', denylist);
-    totalFindings += findings.length;
-    reports.push({ file, findings });
+    const result = runGoPrivacyCheck(
+      {
+        mode: 'text',
+        surface: 'dossier_check',
+        fields: [{ field: 'markdown', text: content }],
+        ...(denylist.denylistFileContent !== undefined
+          ? { denylistFileContent: denylist.denylistFileContent }
+          : { rawDenylist: denylist.rawDenylist ?? '' }),
+      },
+      { cwd },
+    );
+    totalFindings += result.findings.length;
+    reports.push({ file, findings: result.findings });
   }
 
   return {
