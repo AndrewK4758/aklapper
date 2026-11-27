@@ -1,5 +1,68 @@
 export { Code, ConnectError } from '@connectrpc/connect';
 export {
+  getAdminAnalyticsBreakdownsViaGrpc,
+  getAdminAnalyticsSummaryViaGrpc,
+  getAdminOverviewDataViaGrpc,
+  ingestAdminAnalyticsViaGrpc,
+} from './grpc/admin-analytics-client.ts';
+export { handleAdminAuthGrpcBffRequest } from './grpc/admin-auth-bff.ts';
+export {
+  extractAdminSessionCookieId,
+  resolveAdminSessionViaGrpc,
+} from './grpc/admin-auth-client.ts';
+export {
+  deleteAdminCadencePresetViaGrpc,
+  deleteAdminMenuItemViaGrpc,
+  getAdminChromeViaGrpc,
+  getAdminCmsDataViaGrpc,
+  getAdminWorkspaceBootstrapViaGrpc,
+  syncAdminAgensiCatalogViaGrpc,
+  upsertAdminCadencePresetViaGrpc,
+  upsertAdminMenuItemViaGrpc,
+  upsertAdminSiteContentViaGrpc,
+} from './grpc/admin-cms-client.ts';
+export {
+  deleteAdminCareerDossierViaGrpc,
+  importAdminCareerDossiersBatchViaGrpc,
+  listAdminCareerDossiersViaGrpc,
+  publishAdminCareerDossierViaGrpc,
+  unpublishAdminCareerDossierViaGrpc,
+  upsertAdminCareerDossierViaGrpc,
+} from './grpc/admin-cms-dossiers-client.ts';
+export {
+  deleteAdminTerminalCommandViaGrpc,
+  deleteAdminTerminalDirectoryEntryViaGrpc,
+  deleteAdminTerminalInitialEntryViaGrpc,
+  upsertAdminTerminalCommandViaGrpc,
+  upsertAdminTerminalDirectoryEntryViaGrpc,
+  upsertAdminTerminalInitialEntryViaGrpc,
+  upsertAdminTerminalProfileViaGrpc,
+} from './grpc/admin-cms-terminal-client.ts';
+export {
+  ADMIN_CHROME_SUBJECT,
+  ADMIN_SESSION_HEADER,
+  buildAdminGrpcCallMeta,
+  resolveAdminApiBaseUrl,
+  resolveRequestClientIp,
+  type AdminGrpcCallContext,
+} from './grpc/admin-common.ts';
+export {
+  deleteAdminContactSubmissionViaGrpc,
+  deleteAdminContactSubmissionsViaGrpc,
+  listAdminContactSubmissionsViaGrpc,
+  openAdminContactAttachmentStreamViaGrpc,
+  type StreamedContactAttachment,
+} from './grpc/admin-inbox-client.ts';
+export {
+  getAdminQdrantStatusViaGrpc,
+  listAdminQuotasAndBucketsViaGrpc,
+  listAdminSandboxRunsViaGrpc,
+  overrideAdminSandboxGateVerdictViaGrpc,
+  purgeAdminStaleRateLimitBucketsViaGrpc,
+  resetAdminRateLimitBucketViaGrpc,
+  updateAdminQuotaPolicyViaGrpc,
+} from './grpc/admin-quotas-ops-client.ts';
+export {
   callAsk,
   getAskStatus,
   getAskTurn,
@@ -45,11 +108,13 @@ export {
   mapProtoPayloadValueToDomain,
 } from './grpc/cadence-mappers.ts';
 export {
+  classifyAdminGrpcError,
   classifyGrpcError,
   GrpcPayloadContractError,
   isFallbackTransportError,
   mapProtoFieldErrorsToDomain,
   mapProtoQuotaToDomain,
+  mapProtoSanitizationFindingsToDomain,
   type ClassifiedGrpcFailure,
   type ClassifyGrpcErrorContext,
 } from './grpc/errors.ts';
