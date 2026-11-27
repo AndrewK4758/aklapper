@@ -1,0 +1,221 @@
+syntax = "proto3";
+
+package admin.v1;
+
+import "admin/v1/cms.proto";
+import "portal/v1/analytics.proto";
+
+option go_package = "github.com/AndrewK4758/aklapper/packages/go/kit/gen/admin/v1;adminv1";
+
+service AdminAnalyticsService {
+  rpc GetOverviewData(GetOverviewDataRequest) returns (GetOverviewDataResponse);
+  rpc GetAnalyticsSummary(GetAnalyticsSummaryRequest) returns (GetAnalyticsSummaryResponse);
+  rpc GetAnalyticsBreakdowns(GetAnalyticsBreakdownsRequest) returns (GetAnalyticsBreakdownsResponse);
+  rpc IngestAdminAnalytics(IngestAdminAnalyticsRequest) returns (IngestAdminAnalyticsResponse);
+}
+
+message AdminServiceHealth {
+  string name = 1;
+  string status = 2;
+  string detail = 3;
+}
+
+message AdminOverviewMetrics {
+  int32 contact_count = 1;
+  int32 sessions_24h = 2;
+  int32 events_24h = 3;
+  int64 daily_tokens_used = 4;
+  int64 daily_token_cap = 5;
+  int32 total_sandbox_runs = 6;
+  int32 pending_gates = 7;
+}
+
+message AdminSecuritySummary {
+  string handle = 1;
+  int32 passkey_count = 2;
+  bool totp_enabled = 3;
+}
+
+message GetOverviewDataRequest {
+  string session_id = 1;
+  optional string handle = 2;
+  optional int32 passkey_count = 3;
+  optional bool totp_enabled = 4;
+}
+
+message GetOverviewDataResponse {
+  string content_json = 1;
+  repeated MenuItem menu_items = 2;
+  AdminServiceHealth postgres_health = 3;
+  AdminOverviewMetrics metrics = 4;
+  AdminSecuritySummary security = 5;
+}
+
+message AdminAnalyticsFilter {
+  string window = 1;
+  optional string source = 2;
+  optional string country = 3;
+  optional string path = 4;
+  optional string campaign = 5;
+  string bots = 6;
+  string identified = 7;
+}
+
+message AnalyticsDailyTrendPoint {
+  string date = 1;
+  int32 unique_visitors = 2;
+  int32 sessions = 3;
+  int32 page_views = 4;
+}
+
+message CwvPercentileRow {
+  string metric = 1;
+  int32 sample_count = 2;
+  optional double p50 = 3;
+  optional double p75 = 4;
+  optional double p95 = 5;
+}
+
+message AdminAiMetrics {
+  int32 total_runs = 1;
+  int64 total_tokens_in = 2;
+  int64 total_tokens_out = 3;
+  int32 approved_gates = 4;
+  int32 rejected_gates = 5;
+  int32 pending_gates = 6;
+  int32 abstention_events = 7;
+}
+
+message GetAnalyticsSummaryRequest {
+  AdminAnalyticsFilter filter = 1;
+}
+
+message GetAnalyticsSummaryResponse {
+  string content_json = 1;
+  string window = 2;
+  AdminAnalyticsFilter filters = 3;
+  int32 total_sessions = 4;
+  int32 total_events = 5;
+  int32 unique_visitors = 6;
+  int32 returning_visitors = 7;
+  int32 total_page_views = 8;
+  int32 profile_views = 9;
+  int32 high_intent_actions = 10;
+  int32 identified_leads = 11;
+  int32 bot_sessions_excluded = 12;
+  repeated AnalyticsDailyTrendPoint daily_trend = 13;
+  repeated CwvPercentileRow cwv = 14;
+  AdminAiMetrics ai_metrics = 15;
+}
+
+message AnalyticsBreakdownRow {
+  string label = 1;
+  int32 count = 2;
+  optional string secondary_label = 3;
+  optional int32 unique_visitors = 4;
+  optional string filter_value = 5;
+}
+
+message AgensiConversionRow {
+  string slug = 1;
+  int32 clicks = 2;
+}
+
+message AnalyticsFunnelStep {
+  string step = 1;
+  string label = 2;
+  int32 sessions = 3;
+  double conversion_rate = 4;
+}
+
+message AnalyticsTrailEvent {
+  string type = 1;
+  string name = 2;
+  string path = 3;
+  optional string detail = 4;
+  string created_at = 5;
+}
+
+message AnalyticsRecentVisitor {
+  string session_id = 1;
+  string started_at = 2;
+  string last_seen_at = 3;
+  bool is_bot = 4;
+  optional string country = 5;
+  optional string region = 6;
+  optional string city = 7;
+  optional string asn_org = 8;
+  optional string referrer_host = 9;
+  optional string referrer_category = 10;
+  optional string landing_path = 11;
+  optional string ref_param = 12;
+  optional string utm_source = 13;
+  optional string utm_medium = 14;
+  optional string utm_campaign = 15;
+  optional string device_type = 16;
+  optional string os_name = 17;
+  optional string browser_name = 18;
+  int32 page_view_count = 19;
+  int32 event_count = 20;
+  int32 ask_turn_count = 21;
+  optional string contact_id = 22;
+  optional string contact_name = 23;
+  optional string contact_email = 24;
+  repeated AnalyticsTrailEvent trail = 25;
+}
+
+message AnalyticsAskTurnItem {
+  string attempt_id = 1;
+  string guest_session_id = 2;
+  optional string analytics_session_id = 3;
+  string mode = 4;
+  string status = 5;
+  optional string prompt_excerpt = 6;
+  int32 tokens_used = 7;
+  optional string country = 8;
+  optional string region = 9;
+  optional string city = 10;
+  optional string asn_org = 11;
+  optional string contact_id = 12;
+  optional string contact_name = 13;
+  string created_at = 14;
+}
+
+message GetAnalyticsBreakdownsRequest {
+  AdminAnalyticsFilter filter = 1;
+}
+
+message GetAnalyticsBreakdownsResponse {
+  repeated AnalyticsBreakdownRow top_paths = 1;
+  repeated AnalyticsBreakdownRow top_referrers = 2;
+  repeated AnalyticsBreakdownRow geo_breakdown = 3;
+  repeated AgensiConversionRow agensi_conversions = 4;
+  repeated AnalyticsBreakdownRow org_breakdown = 5;
+  repeated AnalyticsBreakdownRow campaign_breakdown = 6;
+  repeated AnalyticsBreakdownRow device_breakdown = 7;
+  repeated AnalyticsBreakdownRow os_breakdown = 8;
+  repeated AnalyticsBreakdownRow browser_breakdown = 9;
+  repeated AnalyticsFunnelStep conversion_funnel = 10;
+  repeated AnalyticsRecentVisitor recent_visitors = 11;
+  repeated AnalyticsAskTurnItem ask_turns_feed = 12;
+}
+
+message IngestAdminAnalyticsRequest {
+  string session_id = 1;
+  optional string referrer = 2;
+  optional string landing_path = 3;
+  optional string ref_param = 4;
+  optional string utm_source = 5;
+  optional string utm_medium = 6;
+  optional string utm_campaign = 7;
+  optional string utm_content = 8;
+  repeated portal.v1.AnalyticsEvent events = 9;
+  portal.v1.ClientRequestContext client_context = 10;
+  string admin_session_id = 11;
+}
+
+message IngestAdminAnalyticsResponse {
+  int32 accepted = 1;
+  string session_id = 2;
+  string ip_hash = 3;
+}

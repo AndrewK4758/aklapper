@@ -1,0 +1,63 @@
+syntax = "proto3";
+
+package admin.v1;
+
+import "cadence/v1/cadence.proto";
+
+option go_package = "github.com/AndrewK4758/aklapper/packages/go/kit/gen/admin/v1;adminv1";
+
+service AdminOpsService {
+  rpc ListSandboxRuns(ListSandboxRunsRequest) returns (ListSandboxRunsResponse);
+  rpc OverrideSandboxGateVerdict(OverrideSandboxGateVerdictRequest) returns (OverrideSandboxGateVerdictResponse);
+  rpc GetQdrantStatus(GetQdrantStatusRequest) returns (GetQdrantStatusResponse);
+}
+
+message AdminSandboxRun {
+  string run_id = 1;
+  string session_id = 2;
+  string menu_slug = 3;
+  string run_status = 4;
+  string prompt = 5;
+  string gate_verdict = 6;
+  repeated cadence.v1.CadenceTurn turns = 7;
+  string artifact_html = 8;
+  int32 tokens_in = 9;
+  int32 tokens_out = 10;
+  string created_at = 11;
+}
+
+message QdrantCollectionHealth {
+  string name = 1;
+  bool online = 2;
+  string status = 3;
+  int32 points_count = 4;
+}
+
+message ListSandboxRunsRequest {
+  int32 limit = 1;
+}
+
+message ListSandboxRunsResponse {
+  repeated AdminSandboxRun runs = 1;
+}
+
+message OverrideSandboxGateVerdictRequest {
+  string run_id = 1;
+  string gate_verdict = 2;
+}
+
+message OverrideSandboxGateVerdictResponse {
+  AdminSandboxRun run = 1;
+}
+
+message GetQdrantStatusRequest {}
+
+message GetQdrantStatusResponse {
+  bool online = 1;
+  string collection = 2;
+  string status = 3;
+  int32 points_count = 4;
+  string provider = 5;
+  optional string detail = 6;
+  repeated QdrantCollectionHealth collections = 7;
+}

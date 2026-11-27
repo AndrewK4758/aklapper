@@ -1,0 +1,337 @@
+syntax = "proto3";
+
+package admin.v1;
+
+import "portal/v1/agensi.proto";
+import "portal/v1/content.proto";
+
+option go_package = "github.com/AndrewK4758/aklapper/packages/go/kit/gen/admin/v1;adminv1";
+
+service AdminCmsService {
+  rpc GetAdminChrome(GetAdminChromeRequest) returns (GetAdminChromeResponse);
+  rpc GetAdminWorkspaceBootstrap(GetAdminWorkspaceBootstrapRequest) returns (GetAdminWorkspaceBootstrapResponse);
+  rpc GetCmsData(GetCmsDataRequest) returns (GetCmsDataResponse);
+  rpc UpsertSiteContent(UpsertSiteContentRequest) returns (UpsertSiteContentResponse);
+  rpc UpsertMenuItem(UpsertMenuItemRequest) returns (UpsertMenuItemResponse);
+  rpc DeleteMenuItem(DeleteMenuItemRequest) returns (DeleteMenuItemResponse);
+  rpc UpsertTerminalProfile(UpsertTerminalProfileRequest) returns (UpsertTerminalProfileResponse);
+  rpc UpsertTerminalCommand(UpsertTerminalCommandRequest) returns (UpsertTerminalCommandResponse);
+  rpc DeleteTerminalCommand(DeleteTerminalCommandRequest) returns (DeleteTerminalCommandResponse);
+  rpc UpsertTerminalInitialEntry(UpsertTerminalInitialEntryRequest) returns (UpsertTerminalInitialEntryResponse);
+  rpc DeleteTerminalInitialEntry(DeleteTerminalInitialEntryRequest) returns (DeleteTerminalInitialEntryResponse);
+  rpc UpsertTerminalDirectoryEntry(UpsertTerminalDirectoryEntryRequest) returns (UpsertTerminalDirectoryEntryResponse);
+  rpc DeleteTerminalDirectoryEntry(DeleteTerminalDirectoryEntryRequest) returns (DeleteTerminalDirectoryEntryResponse);
+  rpc UpsertCadencePreset(UpsertCadencePresetRequest) returns (UpsertCadencePresetResponse);
+  rpc DeleteCadencePreset(DeleteCadencePresetRequest) returns (DeleteCadencePresetResponse);
+  rpc SyncAgensiCatalog(SyncAgensiCatalogRequest) returns (SyncAgensiCatalogResponse);
+  rpc ListCareerDossiers(ListCareerDossiersRequest) returns (ListCareerDossiersResponse);
+  rpc UpsertCareerDossier(UpsertCareerDossierRequest) returns (UpsertCareerDossierResponse);
+  rpc PublishCareerDossier(PublishCareerDossierRequest) returns (PublishCareerDossierResponse);
+  rpc UnpublishCareerDossier(UnpublishCareerDossierRequest) returns (UnpublishCareerDossierResponse);
+  rpc DeleteCareerDossier(DeleteCareerDossierRequest) returns (DeleteCareerDossierResponse);
+  rpc ImportCareerDossiersBatch(ImportCareerDossiersBatchRequest) returns (ImportCareerDossiersBatchResponse);
+}
+
+message SiteContentRow {
+  string key = 1;
+  string markdown_body = 2;
+  string metadata_json = 3;
+  string updated_at = 4;
+}
+
+message MenuItem {
+  string slug = 1;
+  string key_shortcut = 2;
+  string title = 3;
+  string description = 4;
+  bool admin_only = 5;
+  int32 sort_order = 6;
+  bool enabled = 7;
+}
+
+message AdminTerminalProfileRow {
+  string slug = 1;
+  string banner_title = 2;
+  string banner_meta = 3;
+  string os_label = 4;
+  string directory = 5;
+  string vcs_branch = 6;
+  string vcs_state = 7;
+  string context_label = 8;
+  string placeholder = 9;
+  repeated string quick_commands = 10;
+}
+
+message AdminTerminalCommandRow {
+  int32 id = 1;
+  string profile_slug = 2;
+  string name = 3;
+  string description = 4;
+  string kind = 5;
+  string output = 6;
+  optional string target_route = 7;
+  repeated string allowed_routes = 8;
+  optional string error_template = 9;
+  int32 sort_order = 10;
+}
+
+message AdminTerminalInitialEntryRow {
+  int32 id = 1;
+  string profile_slug = 2;
+  string command = 3;
+  string output = 4;
+  string status = 5;
+  string duration_label = 6;
+  string timestamp_label = 7;
+  int32 sort_order = 8;
+}
+
+message AdminTerminalDirectoryEntryRow {
+  int32 id = 1;
+  string profile_slug = 2;
+  string name = 3;
+  string description = 4;
+  int32 sort_order = 5;
+  bool enabled = 6;
+}
+
+message CareerDossierUpsertInput {
+  string slug = 1;
+  string kind = 2;
+  string title = 3;
+  string domain_label = 4;
+  string role_title = 5;
+  string timeframe = 6;
+  repeated string skills = 7;
+  string summary_body = 8;
+  repeated portal.v1.CareerDossierSection sections = 9;
+  int32 sort_order = 10;
+}
+
+message GetAdminChromeRequest {}
+
+message GetAdminChromeResponse {
+  string chrome_json = 1;
+}
+
+message GetAdminWorkspaceBootstrapRequest {
+  string session_id = 1;
+}
+
+message GetAdminWorkspaceBootstrapResponse {
+  string chrome_json = 1;
+  portal.v1.TerminalProfileData terminal = 2;
+}
+
+message GetCmsDataRequest {
+  optional string creator_handle = 1;
+}
+
+message GetCmsDataResponse {
+  repeated SiteContentRow site_contents = 1;
+  repeated MenuItem menu_items = 2;
+  repeated AdminTerminalProfileRow terminal_profiles = 3;
+  repeated AdminTerminalCommandRow terminal_commands = 4;
+  repeated AdminTerminalInitialEntryRow terminal_initial_entries = 5;
+  repeated AdminTerminalDirectoryEntryRow terminal_directory_entries = 6;
+  repeated portal.v1.AgensiSkill agensi_skills = 7;
+  portal.v1.AgensiSyncState agensi_sync_state = 8;
+  repeated portal.v1.CadencePreset cadence_presets = 9;
+  repeated portal.v1.CareerDossier career_dossiers = 10;
+}
+
+message UpsertSiteContentRequest {
+  string key = 1;
+  string markdown_body = 2;
+  string metadata_json = 3;
+}
+
+message UpsertSiteContentResponse {
+  SiteContentRow row = 1;
+}
+
+message UpsertMenuItemRequest {
+  string slug = 1;
+  string key_shortcut = 2;
+  string title = 3;
+  string description = 4;
+  bool admin_only = 5;
+  int32 sort_order = 6;
+  bool enabled = 7;
+}
+
+message UpsertMenuItemResponse {
+  MenuItem item = 1;
+}
+
+message DeleteMenuItemRequest {
+  string slug = 1;
+}
+
+message DeleteMenuItemResponse {
+  bool deleted = 1;
+}
+
+message UpsertTerminalProfileRequest {
+  string slug = 1;
+  string banner_title = 2;
+  string banner_meta = 3;
+  string os_label = 4;
+  string directory = 5;
+  string vcs_branch = 6;
+  string vcs_state = 7;
+  string context_label = 8;
+  string placeholder = 9;
+  repeated string quick_commands = 10;
+}
+
+message UpsertTerminalProfileResponse {
+  AdminTerminalProfileRow profile = 1;
+}
+
+message UpsertTerminalCommandRequest {
+  optional int32 id = 1;
+  string profile_slug = 2;
+  string name = 3;
+  string description = 4;
+  string kind = 5;
+  string output = 6;
+  optional string target_route = 7;
+  repeated string allowed_routes = 8;
+  optional string error_template = 9;
+  int32 sort_order = 10;
+}
+
+message UpsertTerminalCommandResponse {
+  AdminTerminalCommandRow command = 1;
+}
+
+message DeleteTerminalCommandRequest {
+  int32 id = 1;
+}
+
+message DeleteTerminalCommandResponse {
+  bool deleted = 1;
+}
+
+message UpsertTerminalInitialEntryRequest {
+  optional int32 id = 1;
+  string profile_slug = 2;
+  string command = 3;
+  string output = 4;
+  string status = 5;
+  string duration_label = 6;
+  string timestamp_label = 7;
+  int32 sort_order = 8;
+}
+
+message UpsertTerminalInitialEntryResponse {
+  AdminTerminalInitialEntryRow entry = 1;
+}
+
+message DeleteTerminalInitialEntryRequest {
+  int32 id = 1;
+}
+
+message DeleteTerminalInitialEntryResponse {
+  bool deleted = 1;
+}
+
+message UpsertTerminalDirectoryEntryRequest {
+  optional int32 id = 1;
+  string profile_slug = 2;
+  string name = 3;
+  string description = 4;
+  int32 sort_order = 5;
+  bool enabled = 6;
+}
+
+message UpsertTerminalDirectoryEntryResponse {
+  AdminTerminalDirectoryEntryRow entry = 1;
+}
+
+message DeleteTerminalDirectoryEntryRequest {
+  int32 id = 1;
+}
+
+message DeleteTerminalDirectoryEntryResponse {
+  bool deleted = 1;
+}
+
+message UpsertCadencePresetRequest {
+  string slug = 1;
+  string title = 2;
+  string starter_prompt = 3;
+  string expected_kind = 4;
+  string starter_artifact_html = 5;
+  int32 sort_order = 6;
+}
+
+message UpsertCadencePresetResponse {
+  portal.v1.CadencePreset preset = 1;
+}
+
+message DeleteCadencePresetRequest {
+  string slug = 1;
+}
+
+message DeleteCadencePresetResponse {
+  bool deleted = 1;
+}
+
+message SyncAgensiCatalogRequest {
+  bool force_refresh = 1;
+  optional string creator_handle = 2;
+}
+
+message SyncAgensiCatalogResponse {
+  string creator_handle = 1;
+  repeated portal.v1.AgensiSkill skills = 2;
+  portal.v1.AgensiSyncState sync_state = 3;
+}
+
+message ListCareerDossiersRequest {}
+
+message ListCareerDossiersResponse {
+  repeated portal.v1.CareerDossier dossiers = 1;
+}
+
+message UpsertCareerDossierRequest {
+  CareerDossierUpsertInput dossier = 1;
+}
+
+message UpsertCareerDossierResponse {
+  portal.v1.CareerDossier dossier = 1;
+}
+
+message PublishCareerDossierRequest {
+  string slug = 1;
+}
+
+message PublishCareerDossierResponse {
+  portal.v1.CareerDossier dossier = 1;
+}
+
+message UnpublishCareerDossierRequest {
+  string slug = 1;
+}
+
+message UnpublishCareerDossierResponse {
+  portal.v1.CareerDossier dossier = 1;
+}
+
+message DeleteCareerDossierRequest {
+  string slug = 1;
+}
+
+message DeleteCareerDossierResponse {
+  bool deleted = 1;
+}
+
+message ImportCareerDossiersBatchRequest {
+  repeated CareerDossierUpsertInput dossiers = 1;
+}
+
+message ImportCareerDossiersBatchResponse {
+  repeated portal.v1.CareerDossier dossiers = 1;
+}

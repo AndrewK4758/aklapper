@@ -25,8 +25,16 @@ message QuotaStatus {
   int32 max_tokens = 5;
 }
 
+message PrivacySanitizationFinding {
+  string rule_id = 1;
+  string category = 2;
+  string field = 3;
+  string location = 4;
+}
+
 message ErrorDetailEnvelope {
   PublicAppError error = 1;
   QuotaStatus quota = 2;
   optional int32 retry_after_seconds = 3;
+  repeated PrivacySanitizationFinding sanitization_findings = 4;
 }

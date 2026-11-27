@@ -10,7 +10,7 @@ import { fileDesc, messageDesc } from '@bufbuild/protobuf/codegenv2';
 export const file_common_v1_error: GenFile =
   /*@__PURE__*/
   fileDesc(
-    'ChVjb21tb24vdjEvZXJyb3IucHJvdG8SCWNvbW1vbi52MSIiCg5GaWVsZEVycm9yTGlzdBIQCghtZXNzYWdlcxgBIAMoCSL4AQoOUHVibGljQXBwRXJyb3ISDAoEY29kZRgBIAEoCRIOCgZzdGF0dXMYAiABKAUSDwoHbWVzc2FnZRgDIAEoCRIOCgZhY3Rpb24YBCABKAkSFgoOY29ycmVsYXRpb25faWQYBSABKAkSQAoMZmllbGRfZXJyb3JzGAYgAygLMiouY29tbW9uLnYxLlB1YmxpY0FwcEVycm9yLkZpZWxkRXJyb3JzRW50cnkaTQoQRmllbGRFcnJvcnNFbnRyeRILCgNrZXkYASABKAkSKAoFdmFsdWUYAiABKAsyGS5jb21tb24udjEuRmllbGRFcnJvckxpc3Q6AjgBImsKC1F1b3RhU3RhdHVzEgwKBHJvbGUYASABKAkSEgoKdHVybnNfdXNlZBgCIAEoBRIRCgltYXhfdHVybnMYAyABKAUSEwoLdG9rZW5zX3VzZWQYBCABKAUSEgoKbWF4X3Rva2VucxgFIAEoBSKgAQoTRXJyb3JEZXRhaWxFbnZlbG9wZRIoCgVlcnJvchgBIAEoCzIZLmNvbW1vbi52MS5QdWJsaWNBcHBFcnJvchIlCgVxdW90YRgCIAEoCzIWLmNvbW1vbi52MS5RdW90YVN0YXR1cxIgChNyZXRyeV9hZnRlcl9zZWNvbmRzGAMgASgFSACIAQFCFgoUX3JldHJ5X2FmdGVyX3NlY29uZHNCqAEKDWNvbS5jb21tb24udjFCCkVycm9yUHJvdG9QAVpGZ2l0aHViLmNvbS9BbmRyZXdLNDc1OC9ha2xhcHBlci9wYWNrYWdlcy9nby9raXQvZ2VuL2NvbW1vbi92MTtjb21tb252MaICA0NYWKoCCUNvbW1vbi5WMcoCCUNvbW1vblxWMeICFUNvbW1vblxWMVxHUEJNZXRhZGF0YeoCCkNvbW1vbjo6VjFiBnByb3RvMw',
+    'ChVjb21tb24vdjEvZXJyb3IucHJvdG8SCWNvbW1vbi52MSIiCg5GaWVsZEVycm9yTGlzdBIQCghtZXNzYWdlcxgBIAMoCSL4AQoOUHVibGljQXBwRXJyb3ISDAoEY29kZRgBIAEoCRIOCgZzdGF0dXMYAiABKAUSDwoHbWVzc2FnZRgDIAEoCRIOCgZhY3Rpb24YBCABKAkSFgoOY29ycmVsYXRpb25faWQYBSABKAkSQAoMZmllbGRfZXJyb3JzGAYgAygLMiouY29tbW9uLnYxLlB1YmxpY0FwcEVycm9yLkZpZWxkRXJyb3JzRW50cnkaTQoQRmllbGRFcnJvcnNFbnRyeRILCgNrZXkYASABKAkSKAoFdmFsdWUYAiABKAsyGS5jb21tb24udjEuRmllbGRFcnJvckxpc3Q6AjgBImsKC1F1b3RhU3RhdHVzEgwKBHJvbGUYASABKAkSEgoKdHVybnNfdXNlZBgCIAEoBRIRCgltYXhfdHVybnMYAyABKAUSEwoLdG9rZW5zX3VzZWQYBCABKAUSEgoKbWF4X3Rva2VucxgFIAEoBSJgChpQcml2YWN5U2FuaXRpemF0aW9uRmluZGluZxIPCgdydWxlX2lkGAEgASgJEhAKCGNhdGVnb3J5GAIgASgJEg0KBWZpZWxkGAMgASgJEhAKCGxvY2F0aW9uGAQgASgJIuYBChNFcnJvckRldGFpbEVudmVsb3BlEigKBWVycm9yGAEgASgLMhkuY29tbW9uLnYxLlB1YmxpY0FwcEVycm9yEiUKBXF1b3RhGAIgASgLMhYuY29tbW9uLnYxLlF1b3RhU3RhdHVzEiAKE3JldHJ5X2FmdGVyX3NlY29uZHMYAyABKAVIAIgBARJEChVzYW5pdGl6YXRpb25fZmluZGluZ3MYBCADKAsyJS5jb21tb24udjEuUHJpdmFjeVNhbml0aXphdGlvbkZpbmRpbmdCFgoUX3JldHJ5X2FmdGVyX3NlY29uZHNCqAEKDWNvbS5jb21tb24udjFCCkVycm9yUHJvdG9QAVpGZ2l0aHViLmNvbS9BbmRyZXdLNDc1OC9ha2xhcHBlci9wYWNrYWdlcy9nby9raXQvZ2VuL2NvbW1vbi92MTtjb21tb252MaICA0NYWKoCCUNvbW1vbi5WMcoCCUNvbW1vblxWMeICFUNvbW1vblxWMVxHUEJNZXRhZGF0YeoCCkNvbW1vbjo6VjFiBnByb3RvMw',
   );
 
 /** @generated from message common.v1.FieldErrorList */
@@ -82,6 +82,29 @@ export const QuotaStatusSchema: GenMessage<QuotaStatus> =
   /*@__PURE__*/
   messageDesc(file_common_v1_error, 2);
 
+/** @generated from message common.v1.PrivacySanitizationFinding */
+export type PrivacySanitizationFinding = Message<'common.v1.PrivacySanitizationFinding'> & {
+  /** @generated from field: string rule_id = 1; */
+  ruleId: string;
+
+  /** @generated from field: string category = 2; */
+  category: string;
+
+  /** @generated from field: string field = 3; */
+  field: string;
+
+  /** @generated from field: string location = 4; */
+  location: string;
+};
+
+/**
+ * Describes the message common.v1.PrivacySanitizationFinding. Use
+ * `create(PrivacySanitizationFindingSchema)` to create a new message.
+ */
+export const PrivacySanitizationFindingSchema: GenMessage<PrivacySanitizationFinding> =
+  /*@__PURE__*/
+  messageDesc(file_common_v1_error, 3);
+
 /** @generated from message common.v1.ErrorDetailEnvelope */
 export type ErrorDetailEnvelope = Message<'common.v1.ErrorDetailEnvelope'> & {
   /** @generated from field: common.v1.PublicAppError error = 1; */
@@ -92,6 +115,9 @@ export type ErrorDetailEnvelope = Message<'common.v1.ErrorDetailEnvelope'> & {
 
   /** @generated from field: optional int32 retry_after_seconds = 3; */
   retryAfterSeconds?: number | undefined;
+
+  /** @generated from field: repeated common.v1.PrivacySanitizationFinding sanitization_findings = 4; */
+  sanitizationFindings: PrivacySanitizationFinding[];
 };
 
 /**
@@ -100,4 +126,4 @@ export type ErrorDetailEnvelope = Message<'common.v1.ErrorDetailEnvelope'> & {
  */
 export const ErrorDetailEnvelopeSchema: GenMessage<ErrorDetailEnvelope> =
   /*@__PURE__*/
-  messageDesc(file_common_v1_error, 3);
+  messageDesc(file_common_v1_error, 4);

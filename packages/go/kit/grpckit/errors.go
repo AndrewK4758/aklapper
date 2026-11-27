@@ -71,16 +71,37 @@ func NewDetailedConnectErrorWithRetryAfter(
 	quota *commonv1.QuotaStatus,
 	retryAfterSeconds *int32,
 ) *connect.Error {
+	return newDetailedConnectErrorEnvelope(code, pubErr, quota, retryAfterSeconds, nil)
+}
+
+// NewDetailedConnectErrorWithFindings attaches structured PrivacySanitizationFinding details
+// alongside PublicAppError in ErrorDetailEnvelope field 4.
+func NewDetailedConnectErrorWithFindings(
+	code connect.Code,
+	pubErr *commonv1.PublicAppError,
+	findings []*commonv1.PrivacySanitizationFinding,
+) *connect.Error {
+	return newDetailedConnectErrorEnvelope(code, pubErr, nil, nil, findings)
+}
+
+func newDetailedConnectErrorEnvelope(
+	code connect.Code,
+	pubErr *commonv1.PublicAppError,
+	quota *commonv1.QuotaStatus,
+	retryAfterSeconds *int32,
+	findings []*commonv1.PrivacySanitizationFinding,
+) *connect.Error {
 	msg := "request failed"
 	if pubErr != nil && strings.TrimSpace(pubErr.GetMessage()) != "" {
 		msg = strings.TrimSpace(pubErr.GetMessage())
 	}
 	connectErr := connect.NewError(code, errors.New(msg))
-	if pubErr != nil || quota != nil || retryAfterSeconds != nil {
+	if pubErr != nil || quota != nil || retryAfterSeconds != nil || len(findings) > 0 {
 		envelope := &commonv1.ErrorDetailEnvelope{
-			Error:             pubErr,
-			Quota:             quota,
-			RetryAfterSeconds: retryAfterSeconds,
+			Error:                pubErr,
+			Quota:                quota,
+			RetryAfterSeconds:    retryAfterSeconds,
+			SanitizationFindings: findings,
 		}
 		if detail, err := connect.NewErrorDetail(envelope); err == nil {
 			connectErr.AddDetail(detail)
