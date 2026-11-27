@@ -31,7 +31,10 @@ func TestCadenceDemoEndToEnd(t *testing.T) {
 	baseURL := e2etest.StartBinary(
 		t,
 		"../cadence-demo",
+		"AI_PROVIDER=local",
 		"PG_DISABLE_LIVE=true",
+		"VERTEX_THINKING_LEVEL=",
+		"VERTEX_THINKING_BUDGET=",
 		"LOCAL_LLM_BASE_URL=http://127.0.0.1:1/v1",
 		"QDRANT_URL=http://127.0.0.1:1",
 	)

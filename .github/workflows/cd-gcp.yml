@@ -220,7 +220,8 @@ jobs:
       always() &&
       needs.resolve-plan.result == 'success' &&
       (needs.ci-gate.result == 'success' || needs.ci-gate.result == 'skipped') &&
-      needs.resolve-plan.outputs.has_docker == 'true'
+      needs.resolve-plan.outputs.has_docker == 'true' &&
+      (needs.resolve-plan.outputs.deploy_cloud_run == 'true' || needs.resolve-plan.outputs.migrate_db == 'true')
     runs-on: ubuntu-latest
     environment: production
     timeout-minutes: 25
@@ -293,6 +294,11 @@ jobs:
     timeout-minutes: 15
 
     steps:
+      - name: Checkout workflow metadata
+        uses: actions/checkout@v7
+        with:
+          sparse-checkout: .github/workflows
+
       - name: Validate GCP deployment variables
         shell: bash
         run: |
@@ -437,6 +443,11 @@ jobs:
       cadence_demo_service_url: ${{ steps.resolve-wave1-urls.outputs.cadence_demo_service_url }}
 
     steps:
+      - name: Checkout workflow metadata
+        uses: actions/checkout@v7
+        with:
+          sparse-checkout: .github/workflows
+
       - name: Authenticate to Google Cloud (WIF)
         uses: google-github-actions/auth@v3
         with:
@@ -759,10 +770,22 @@ jobs:
     name: Live E2E & IAP smoke (${{ matrix.engine }})
     needs:
       - resolve-plan
+      - ci-gate
+      - build-and-push
+      - migrate-db
       - deploy-cloud-run
     if: >-
+      always() &&
+      needs.resolve-plan.result == 'success' &&
+      (needs.ci-gate.result == 'success' || needs.ci-gate.result == 'skipped') &&
+      (needs.build-and-push.result == 'success' || needs.build-and-push.result == 'skipped') &&
+      (needs.migrate-db.result == 'success' || needs.migrate-db.result == 'skipped') &&
+      (needs.deploy-cloud-run.result == 'success' || needs.deploy-cloud-run.result == 'skipped') &&
       needs.resolve-plan.outputs.run_smoke_e2e == 'true' &&
-      needs.deploy-cloud-run.outputs.portal_url != ''
+      (
+        needs.deploy-cloud-run.outputs.portal_url != '' ||
+        needs.resolve-plan.outputs.deploy_cloud_run == 'false'
+      )
     runs-on: ubuntu-latest
     environment: production
     timeout-minutes: 15
@@ -784,17 +807,116 @@ jobs:
       - name: Setup gcloud CLI
         uses: google-github-actions/setup-gcloud@v3
 
+      - name: Resolve live Cloud Run URLs for post-deploy smoke
+        id: resolve-smoke-urls
+        shell: bash
+        env:
+          GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+          GCP_REGION: ${{ vars.GCP_REGION || 'us-central1' }}
+          DEPLOYED_PORTAL_URL: ${{ needs.deploy-cloud-run.outputs.portal_url }}
+          DEPLOYED_ADMIN_URL: ${{ needs.deploy-cloud-run.outputs.admin_url }}
+          DEPLOYED_PORTAL_SERVICE_URL: ${{ needs.deploy-cloud-run.outputs.portal_service_url }}
+          DEPLOYED_ADMIN_SERVICE_URL: ${{ needs.deploy-cloud-run.outputs.admin_service_url }}
+          DEPLOYED_AI_ASK_SERVICE_URL: ${{ needs.deploy-cloud-run.outputs.ai_ask_service_url }}
+          DEPLOYED_CADENCE_DEMO_SERVICE_URL: ${{ needs.deploy-cloud-run.outputs.cadence_demo_service_url }}
+          PUBLIC_PORTAL_URL: ${{ vars.PUBLIC_PORTAL_URL || '' }}
+          PUBLIC_ADMIN_URL: ${{ vars.PUBLIC_ADMIN_URL || '' }}
+        run: |
+          set -euo pipefail
+          describe_url() {
+            local svc="$1"
+            local existing="$2"
+            if [ -n "$existing" ]; then
+              echo "${existing%/}"
+              return
+            fi
+            local resolved
+            resolved="$(gcloud run services describe "$svc" --project="$GCP_PROJECT_ID" --region="$GCP_REGION" --format='value(status.url)' 2>/dev/null || true)"
+            echo "${resolved%/}"
+          }
+
+          PORTAL_SERVICE_URL="$(describe_url portal "$DEPLOYED_PORTAL_SERVICE_URL")"
+          ADMIN_SERVICE_URL="$(describe_url admin "$DEPLOYED_ADMIN_SERVICE_URL")"
+          AI_ASK_SERVICE_URL="$(describe_url ai-ask "$DEPLOYED_AI_ASK_SERVICE_URL")"
+          CADENCE_DEMO_SERVICE_URL="$(describe_url cadence-demo "$DEPLOYED_CADENCE_DEMO_SERVICE_URL")"
+
+          PORTAL_URL="${DEPLOYED_PORTAL_URL:-${PUBLIC_PORTAL_URL:-$PORTAL_SERVICE_URL}}"
+          ADMIN_URL="${DEPLOYED_ADMIN_URL:-${PUBLIC_ADMIN_URL:-$ADMIN_SERVICE_URL}}"
+
+          echo "portal_url=${PORTAL_URL%/}" >> "$GITHUB_OUTPUT"
+          echo "admin_url=${ADMIN_URL%/}" >> "$GITHUB_OUTPUT"
+          echo "portal_service_url=${PORTAL_SERVICE_URL}" >> "$GITHUB_OUTPUT"
+          echo "admin_service_url=${ADMIN_SERVICE_URL}" >> "$GITHUB_OUTPUT"
+          echo "ai_ask_service_url=${AI_ASK_SERVICE_URL}" >> "$GITHUB_OUTPUT"
+          echo "cadence_demo_service_url=${CADENCE_DEMO_SERVICE_URL}" >> "$GITHUB_OUTPUT"
+
+      - name: Mint WIF OIDC ID token (portal)
+        id: id-token-portal
+        if: matrix.engine == 'chromium' && steps.resolve-smoke-urls.outputs.portal_service_url != ''
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_WIF_SERVICE_ACCOUNT }}
+          token_format: 'id_token'
+          id_token_audience: ${{ steps.resolve-smoke-urls.outputs.portal_service_url }}
+          id_token_include_email: true
+          create_credentials_file: false
+          export_environment_variables: false
+
+      - name: Mint WIF OIDC ID token (ai-ask)
+        id: id-token-ai-ask
+        if: matrix.engine == 'chromium' && steps.resolve-smoke-urls.outputs.ai_ask_service_url != ''
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_WIF_SERVICE_ACCOUNT }}
+          token_format: 'id_token'
+          id_token_audience: ${{ steps.resolve-smoke-urls.outputs.ai_ask_service_url }}
+          id_token_include_email: true
+          create_credentials_file: false
+          export_environment_variables: false
+
+      - name: Mint WIF OIDC ID token (cadence-demo)
+        id: id-token-cadence-demo
+        if: matrix.engine == 'chromium' && steps.resolve-smoke-urls.outputs.cadence_demo_service_url != ''
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_WIF_SERVICE_ACCOUNT }}
+          token_format: 'id_token'
+          id_token_audience: ${{ steps.resolve-smoke-urls.outputs.cadence_demo_service_url }}
+          id_token_include_email: true
+          create_credentials_file: false
+          export_environment_variables: false
+
+      - name: Mint WIF OIDC ID token (admin)
+        id: id-token-admin
+        if: matrix.engine == 'chromium' && steps.resolve-smoke-urls.outputs.admin_service_url != ''
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_WIF_SERVICE_ACCOUNT }}
+          token_format: 'id_token'
+          id_token_audience: ${{ steps.resolve-smoke-urls.outputs.admin_service_url }}
+          id_token_include_email: true
+          create_credentials_file: false
+          export_environment_variables: false
+
       - name: Verify Direct IAP edge protection on admin & WIF /healthz across all 4 services
         if: matrix.engine == 'chromium'
         shell: bash
         env:
           GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
           GCP_REGION: ${{ vars.GCP_REGION || 'us-central1' }}
-          PORTAL_SERVICE_URL: ${{ needs.deploy-cloud-run.outputs.portal_service_url }}
-          ADMIN_SERVICE_URL: ${{ needs.deploy-cloud-run.outputs.admin_service_url }}
-          ADMIN_PUBLIC_URL: ${{ needs.deploy-cloud-run.outputs.admin_url }}
-          AI_ASK_SERVICE_URL: ${{ needs.deploy-cloud-run.outputs.ai_ask_service_url }}
-          CADENCE_DEMO_SERVICE_URL: ${{ needs.deploy-cloud-run.outputs.cadence_demo_service_url }}
+          PORTAL_SERVICE_URL: ${{ steps.resolve-smoke-urls.outputs.portal_service_url }}
+          ADMIN_SERVICE_URL: ${{ steps.resolve-smoke-urls.outputs.admin_service_url }}
+          ADMIN_PUBLIC_URL: ${{ steps.resolve-smoke-urls.outputs.admin_url }}
+          AI_ASK_SERVICE_URL: ${{ steps.resolve-smoke-urls.outputs.ai_ask_service_url }}
+          CADENCE_DEMO_SERVICE_URL: ${{ steps.resolve-smoke-urls.outputs.cadence_demo_service_url }}
+          PORTAL_ID_TOKEN: ${{ steps.id-token-portal.outputs.id_token }}
+          AI_ASK_ID_TOKEN: ${{ steps.id-token-ai-ask.outputs.id_token }}
+          CADENCE_DEMO_ID_TOKEN: ${{ steps.id-token-cadence-demo.outputs.id_token }}
+          ADMIN_ID_TOKEN: ${{ steps.id-token-admin.outputs.id_token }}
         run: |
           set -euo pipefail
 
@@ -815,42 +937,44 @@ jobs:
           fi
 
           # 2. Verify WIF-authenticated /healthz on all 4 Cloud Run services.
-          for entry in \
-            "portal:${PORTAL_SERVICE_URL}" \
-            "ai-ask:${AI_ASK_SERVICE_URL}" \
-            "cadence-demo:${CADENCE_DEMO_SERVICE_URL}" \
-            "admin:${ADMIN_SERVICE_URL}"; do
-            svc="${entry%%:*}"
-            url="${entry#*:}"
+          probe_service() {
+            local svc="$1"
+            local url="$2"
+            local token="$3"
             if [ -z "$url" ]; then
-              continue
+              return
             fi
             if [[ ! "${url%/}" =~ ^https://[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*\.run\.app$ ]]; then
               echo "::error::Expected canonical *.run.app URL for ${svc}, got ${url}"
               exit 1
             fi
-            token="$(gcloud auth print-identity-token --audiences="${url%/}")"
             if [ -z "$token" ]; then
               echo "::error::Failed to obtain WIF OIDC identity token for ${svc}"
               exit 1
             fi
+            local status
             status="$(curl -sS -o /dev/null -w '%{http_code}' -H "Authorization: Bearer ${token}" "${url%/}/healthz" || echo '000')"
-            unset token
             if [ "$status" != "200" ]; then
               if [ "$svc" = "admin" ] && { [ "$status" = "302" ] || [ "$status" = "401" ] || [ "$status" = "403" ]; }; then
+                local ready
                 ready="$(gcloud run services describe admin --project="$GCP_PROJECT_ID" --region="$GCP_REGION" --format='value(status.conditions[0].status)')"
                 if [ "$ready" != "True" ]; then
                   echo "::error::Admin Cloud Run service Ready condition is ${ready} (expected True)"
                   exit 1
                 fi
                 echo "{\"event\":\"cd.post_deploy_smoke.verified\",\"seam\":\"DELTA_AUDIT_GAP\",\"service\":\"admin\",\"mode\":\"iap_ready_fallback\",\"httpStatus\":${status}}"
-                continue
+                return
               fi
               echo "::error::Health check failed for ${svc} (${url%/}/healthz) with HTTP ${status}"
               exit 1
             fi
             echo "{\"event\":\"cd.post_deploy_smoke.verified\",\"seam\":\"DELTA_AUDIT_GAP\",\"service\":\"${svc}\",\"httpStatus\":${status}}"
-          done
+          }
+
+          probe_service "portal" "$PORTAL_SERVICE_URL" "$PORTAL_ID_TOKEN"
+          probe_service "ai-ask" "$AI_ASK_SERVICE_URL" "$AI_ASK_ID_TOKEN"
+          probe_service "cadence-demo" "$CADENCE_DEMO_SERVICE_URL" "$CADENCE_DEMO_ID_TOKEN"
+          probe_service "admin" "$ADMIN_SERVICE_URL" "$ADMIN_ID_TOKEN"
 
       - name: Setup workspace
         uses: ./.github/actions/setup-workspace
@@ -883,7 +1007,7 @@ jobs:
 
       - name: Run live Playwright @smoke suite against deployed portal
         env:
-          PORTAL_BASE_URL: ${{ needs.deploy-cloud-run.outputs.portal_url }}
+          PORTAL_BASE_URL: ${{ steps.resolve-smoke-urls.outputs.portal_url }}
         shell: bash
         run: |
           if [ "${{ matrix.engine }}" = "chromium" ]; then

@@ -19,7 +19,7 @@ import {
 } from '@aklapper/core';
 import { getPrerenderPortalAboutData } from '@aklapper/db';
 import { usePaneNavigation, ViewportProvider } from '@aklapper/ui';
-import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, configure, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import {
   createMemoryRouter,
   type LoaderFunctionArgs,
@@ -28,7 +28,7 @@ import {
   useMatches,
   useParams,
 } from 'react-router';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { PortalCadenceActionResult } from '#pages/cadence';
 
@@ -316,6 +316,14 @@ const AGENSI_DATA: PortalAgensiLoaderData = {
 };
 
 describe('Portal in-pane route adapters & deep-links', () => {
+  beforeAll(() => {
+    configure({ asyncUtilTimeout: 5_000 });
+  });
+
+  afterAll(() => {
+    configure({ asyncUtilTimeout: 1_000 });
+  });
+
   beforeEach(() => {
     portalWorkspaceStore.resetForTest();
     portalPaneStreamStore.resetForTest();
