@@ -1,3 +1,6 @@
+import http2 from 'node:http2';
+import type { AddressInfo } from 'node:net';
+
 import {
   type AdminAnalyticsBreakdownsData,
   type AdminAnalyticsSummaryData,
@@ -9,6 +12,7 @@ import {
   type StreamResult,
 } from '@aklapper/core';
 import { ADMIN_OPS_TERMINAL_PROFILE, closeSharedDb } from '@aklapper/db';
+import { clearGoGrpcTransportCacheForTest } from '@aklapper/node-runtime/grpc';
 import { INTERNAL_AUTH_HEADER, verifyInternalAuthToken } from '@aklapper/node-runtime/http';
 import { requestContextKey } from '@aklapper/node-runtime/ssr/stream';
 import { fireEvent, render, screen } from '@testing-library/react';
@@ -464,15 +468,66 @@ describe('Admin streaming routes, auth guards & SEO', () => {
     expect(await screen.findByRole('heading', { name: 'Admin Passkey Gate' })).toBeTruthy();
   });
 
-  it('forwards api-key on direct Qdrant probe, honors 90s reindex timeout, and renders multi-collection breakdown', async () => {
+  function frameGrpcProto(payload: Buffer): Buffer {
+    const frame = Buffer.alloc(5 + payload.length);
+    frame.writeUInt8(0, 0);
+    frame.writeUInt32BE(payload.length, 1);
+    payload.copy(frame, 5);
+    return frame;
+  }
+
+  function encodeProtoString(fieldNum: number, value: string): Buffer {
+    const bytes = Buffer.from(value, 'utf8');
+    return Buffer.concat([Buffer.from([(fieldNum << 3) | 2, bytes.length]), bytes]);
+  }
+
+  function encodeProtoVarint(fieldNum: number, value: number): Buffer {
+    return Buffer.from([(fieldNum << 3) | 0, value]);
+  }
+
+  function encodeProtoMessage(fieldNum: number, inner: Buffer): Buffer {
+    return Buffer.concat([Buffer.from([(fieldNum << 3) | 2, inner.length]), inner]);
+  }
+
+  async function startAskAdminH2CServer(
+    onCall: (
+      path: string,
+      headers: http2.IncomingHttpHeaders,
+    ) => { readonly frame: Buffer; readonly grpcStatus?: string },
+  ): Promise<{ readonly baseUrl: string; readonly close: () => Promise<void> }> {
+    const server = http2.createServer();
+    server.on('stream', (stream: http2.ServerHttp2Stream, headers) => {
+      const path = String(headers[':path'] ?? '');
+      stream.on('data', () => undefined);
+      stream.on('end', () => {
+        const reply = onCall(path, headers);
+        stream.respond(
+          { ':status': 200, 'content-type': 'application/grpc+proto' },
+          { waitForTrailers: true },
+        );
+        stream.on('wantTrailers', () => {
+          stream.sendTrailers({ 'grpc-status': reply.grpcStatus ?? '0' });
+        });
+        stream.end(reply.frame);
+      });
+    });
+    await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
+    const addr = server.address() as AddressInfo;
+    return {
+      baseUrl: `http://127.0.0.1:${addr.port}`,
+      close: () => new Promise<void>(resolve => server.close(() => resolve())),
+    };
+  }
+
+  it('forwards api-key on direct Qdrant probe, honors 90s gRPC reindex timeout, and renders multi-collection breakdown', async () => {
     const prevAiAsk = process.env['AI_ASK_URL'];
     const prevQdrantUrl = process.env['QDRANT_URL'];
     const prevQdrantKey = process.env['QDRANT_API_KEY'];
 
     const seenHeaders: Array<string | null> = [];
     const seenUrls: string[] = [];
-    const timeoutSpy = vi.spyOn(AbortSignal, 'timeout');
-    let reindexHasSignal = false;
+    let reindexGrpcTimeout: string | undefined;
+    let reindexPath = '';
     const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
       const url =
         typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
@@ -484,11 +539,18 @@ describe('Admin streaming routes, auth guards & SEO', () => {
       if (url.endsWith('/collections/cadence_patterns')) {
         return Response.json({ result: { status: 'green', points_count: 8 } });
       }
-      if (url.endsWith('/v1/ask/reindex')) {
-        reindexHasSignal = Boolean(init?.signal);
-        return Response.json({ indexed: 11, collection: 'portfolio_docs', provider: 'local' });
-      }
       return new Response('not found', { status: 404 });
+    });
+
+    const askSrv = await startAskAdminH2CServer((path, headers) => {
+      reindexPath = path;
+      reindexGrpcTimeout = String(headers['grpc-timeout'] ?? '');
+      const payload = Buffer.concat([
+        encodeProtoVarint(1, 11),
+        encodeProtoString(3, 'portfolio_docs'),
+        encodeProtoString(5, 'local'),
+      ]);
+      return { frame: frameGrpcProto(payload) };
     });
 
     try {
@@ -509,10 +571,11 @@ describe('Admin streaming routes, auth guards & SEO', () => {
       ]);
       expect(seenHeaders).toEqual(['qdrant-secret-api-key', 'qdrant-secret-api-key']);
 
-      process.env['AI_ASK_URL'] = 'http://ai-ask.local:8083';
-      const reindex = await triggerQdrantReindex();
-      expect(reindexHasSignal).toBe(true);
-      expect(timeoutSpy).toHaveBeenCalledWith(QDRANT_REINDEX_TIMEOUT_MS);
+      process.env['AI_ASK_URL'] = askSrv.baseUrl;
+      expect(QDRANT_REINDEX_TIMEOUT_MS).toBe(90_000);
+      const reindex = await triggerQdrantReindex('corr-admin-reindex-h2c');
+      expect(reindexPath).toBe('/ai_ask.v1.AskService/Reindex');
+      expect(reindexGrpcTimeout).toBe('90000m');
       expect(reindex).toEqual({
         ok: true,
         indexed: 11,
@@ -543,7 +606,8 @@ describe('Admin streaming routes, auth guards & SEO', () => {
       expect(await screen.findByText('8 pts (green)')).toBeTruthy();
       expect(screen.getByText('11 pts (green)')).toBeTruthy();
     } finally {
-      timeoutSpy.mockRestore();
+      await askSrv.close();
+      clearGoGrpcTransportCacheForTest();
       fetchSpy.mockRestore();
       if (prevAiAsk === undefined) delete process.env['AI_ASK_URL'];
       else process.env['AI_ASK_URL'] = prevAiAsk;
@@ -611,38 +675,48 @@ describe('Admin streaming routes, auth guards & SEO', () => {
     }
   });
 
-  it('signs X-Internal-Auth admin token when probing AI_ASK_URL /v1/ask/status', async () => {
+  it('signs X-Internal-Auth admin token and forwards X-Correlation-Id when probing AI_ASK_URL GetAskStatus over gRPC', async () => {
     const origAiAsk = process.env['AI_ASK_URL'];
     const origQdrantUrl = process.env['QDRANT_URL'];
     const origSecret = process.env['INTERNAL_AUTH_SECRET'];
     let capturedInternalAuth: string | null = null;
-    let capturedUrl = '';
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
-      capturedUrl =
-        typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
-      capturedInternalAuth = new Headers(init?.headers).get(INTERNAL_AUTH_HEADER);
-      return Response.json({
-        status: 'ready',
-        provider: 'vertex',
-        pgConnected: true,
-        collection: { name: 'portfolio_docs', status: 'green', pointsCount: 9 },
-      });
+    let capturedCorrelationId: string | null = null;
+    let capturedPath = '';
+
+    const askSrv = await startAskAdminH2CServer((path, headers) => {
+      capturedPath = path;
+      capturedInternalAuth = String(headers[INTERNAL_AUTH_HEADER.toLowerCase()] ?? '') || null;
+      capturedCorrelationId = String(headers['x-correlation-id'] ?? '') || null;
+      const col = Buffer.concat([
+        encodeProtoString(1, 'portfolio_docs'),
+        encodeProtoString(2, 'green'),
+        encodeProtoVarint(3, 9),
+      ]);
+      const payload = Buffer.concat([
+        encodeProtoString(1, 'ready'),
+        encodeProtoString(2, 'vertex'),
+        encodeProtoVarint(3, 1),
+        encodeProtoMessage(4, col),
+      ]);
+      return { frame: frameGrpcProto(payload) };
     });
 
     try {
       delete process.env['QDRANT_URL'];
-      process.env['AI_ASK_URL'] = 'http://127.0.0.1:8083';
+      process.env['AI_ASK_URL'] = askSrv.baseUrl;
       process.env['INTERNAL_AUTH_SECRET'] = 'admin-ops-test-secret';
 
-      const status = await fetchQdrantStatus();
+      const status = await fetchQdrantStatus('corr-admin-status-h2c');
       expect(status.online).toBe(true);
       expect(status.pointsCount).toBe(9);
-      expect(capturedUrl).toBe('http://127.0.0.1:8083/v1/ask/status');
+      expect(capturedPath).toBe('/ai_ask.v1.AskService/GetAskStatus');
+      expect(capturedCorrelationId).toBe('corr-admin-status-h2c');
       const claims = verifyInternalAuthToken(capturedInternalAuth, 'admin-ops-test-secret');
       expect(claims?.role).toBe('admin');
       expect(claims?.sub).toBe('admin-console-status');
     } finally {
-      fetchSpy.mockRestore();
+      await askSrv.close();
+      clearGoGrpcTransportCacheForTest();
       if (origAiAsk === undefined) delete process.env['AI_ASK_URL'];
       else process.env['AI_ASK_URL'] = origAiAsk;
       if (origQdrantUrl === undefined) delete process.env['QDRANT_URL'];

@@ -1,4 +1,26 @@
+import {
+  type AskUpstreamStatusResult,
+  Code,
+  ConnectError,
+  type GrpcCallMetadata,
+  type ReindexResult as GrpcReindexResult,
+} from '@aklapper/node-runtime/grpc';
+import { clearRuntimeHealthCacheForTest } from '@aklapper/node-runtime/runtime-health';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+
+const grpcMocks = vi.hoisted(() => ({
+  getAskStatus: vi.fn<(meta: GrpcCallMetadata) => Promise<AskUpstreamStatusResult>>(),
+  triggerReindex: vi.fn<(meta: GrpcCallMetadata) => Promise<GrpcReindexResult>>(),
+}));
+
+vi.mock('@aklapper/node-runtime/grpc', async importOriginal => {
+  const actual = await importOriginal<typeof import('@aklapper/node-runtime/grpc')>();
+  return {
+    ...actual,
+    getAskStatus: grpcMocks.getAskStatus,
+    triggerReindex: grpcMocks.triggerReindex,
+  };
+});
 
 import {
   buildOverviewHealthSummary,
@@ -13,6 +35,9 @@ describe('admin-ops.server Qdrant diagnostics and reindex timeout', () => {
   const originalQdrantApiKey = process.env['QDRANT_API_KEY'];
 
   afterEach(() => {
+    clearRuntimeHealthCacheForTest();
+    grpcMocks.getAskStatus.mockReset();
+    grpcMocks.triggerReindex.mockReset();
     vi.useRealTimers();
     vi.restoreAllMocks();
     if (originalAiAskUrl === undefined) delete process.env['AI_ASK_URL'];
@@ -91,42 +116,37 @@ describe('admin-ops.server Qdrant diagnostics and reindex timeout', () => {
     });
   });
 
-  it('supports AI_ASK_URL primary probe and waits up to 90000ms during triggerQdrantReindex', async () => {
+  it('uses gRPC AskService for AI_ASK_URL primary probe and 90000ms triggerQdrantReindex with admin auth and correlationId', async () => {
     expect(QDRANT_REINDEX_TIMEOUT_MS).toBe(90_000);
     process.env['AI_ASK_URL'] = 'https://ask.bgdkapis.us';
     delete process.env['QDRANT_URL'];
 
     vi.useFakeTimers();
-    const fetchSpy = vi
-      .spyOn(globalThis, 'fetch')
-      .mockResolvedValueOnce(
-        Response.json({
-          status: 'ready',
-          provider: 'vertex-ai-gemini',
-          pgConnected: true,
-          collection: { name: 'portfolio_docs', status: 'green', pointsCount: 12 },
-        }),
-      )
-      .mockImplementationOnce((_input, init) => {
-        return new Promise((resolve, reject) => {
-          const sig = init?.signal;
-          const timer = setTimeout(() => {
-            resolve(
-              Response.json({
-                indexed: 18,
-                collection: 'portfolio_docs',
-                provider: 'vertex-ai-gemini',
-              }),
-            );
-          }, 25_000);
-          sig?.addEventListener('abort', () => {
-            clearTimeout(timer);
-            reject(sig.reason);
+    grpcMocks.getAskStatus.mockResolvedValueOnce({
+      status: 'ready',
+      provider: 'vertex-ai-gemini',
+      pgConnected: true,
+      collection: { name: 'portfolio_docs', status: 'green', pointsCount: 12 },
+    });
+    grpcMocks.triggerReindex.mockImplementationOnce(meta => {
+      expect(meta.timeoutMs).toBe(90_000);
+      expect(meta.internalAuth).toEqual({ role: 'admin', subject: 'admin-console-reindex' });
+      expect(meta.correlationId).toBe('corr-admin-reindex-1');
+      return new Promise(resolve => {
+        setTimeout(() => {
+          resolve({
+            indexed: 18,
+            pruned: 2,
+            collection: 'portfolio_docs',
+            vectorSize: 768,
+            provider: 'vertex-ai-gemini',
+            correlationId: 'corr-admin-reindex-1',
           });
-        });
+        }, 25_000);
       });
+    });
 
-    const status = await fetchQdrantStatus();
+    const status = await fetchQdrantStatus('corr-admin-status-1');
     expect(status).toMatchObject({
       online: true,
       collection: 'portfolio_docs',
@@ -135,8 +155,16 @@ describe('admin-ops.server Qdrant diagnostics and reindex timeout', () => {
       provider: 'vertex-ai-gemini',
       collections: [{ name: 'portfolio_docs', online: true, status: 'green', pointsCount: 12 }],
     });
+    expect(grpcMocks.getAskStatus).toHaveBeenCalledWith(
+      expect.objectContaining({
+        baseUrl: 'https://ask.bgdkapis.us',
+        correlationId: 'corr-admin-status-1',
+        internalAuth: { role: 'admin', subject: 'admin-console-status' },
+        timeoutMs: 2_500,
+      }),
+    );
 
-    const reindexPromise = triggerQdrantReindex();
+    const reindexPromise = triggerQdrantReindex('corr-admin-reindex-1');
     await vi.advanceTimersByTimeAsync(25_500);
     const reindex = await reindexPromise;
 
@@ -146,36 +174,55 @@ describe('admin-ops.server Qdrant diagnostics and reindex timeout', () => {
       collection: 'portfolio_docs',
       message: 'Re-indexed 18 documents into portfolio_docs.',
     });
-    const reindexHeaders = new Headers(fetchSpy.mock.calls[1]?.[1]?.headers);
-    expect(reindexHeaders.get('x-internal-auth')).toBeTruthy();
   });
 
-  it('reports Qdrant offline/degraded when ai-ask /v1/ask/status returns status=degraded with collection=unreachable', async () => {
+  it('reflects OK(degraded) without masking via direct QDRANT_URL fallback, and falls back only on gRPC Unavailable/DeadlineExceeded', async () => {
     process.env['AI_ASK_URL'] = 'http://ai-ask.local:8083';
     process.env['QDRANT_URL'] = 'http://qdrant.local:6333';
 
-    vi.spyOn(globalThis, 'fetch').mockImplementation(async input => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async input => {
       const url =
         typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
-      if (url.endsWith('/v1/ask/status')) {
-        return Response.json({
-          status: 'degraded',
-          provider: 'local-llama-swap',
-          collection: { name: 'portfolio_docs', status: 'unreachable', pointsCount: 0 },
-        });
+      if (url.endsWith('/collections/portfolio_docs')) {
+        return Response.json({ result: { status: 'green', points_count: 25 } });
+      }
+      if (url.endsWith('/collections/cadence_patterns')) {
+        return new Response('not found', { status: 404 });
       }
       return new Response('not found', { status: 404 });
     });
 
-    const status = await fetchQdrantStatus();
+    // 1. OK(degraded) from ai-ask must NOT fall back portfolio_docs to direct QDRANT_URL.
+    grpcMocks.getAskStatus.mockResolvedValue({
+      status: 'degraded',
+      provider: 'local-llama-swap',
+      pgConnected: true,
+      collection: { name: 'portfolio_docs', status: 'unreachable', pointsCount: 0 },
+    });
+
+    const status = await fetchQdrantStatus('corr-degraded-1');
     expect(status.online).toBe(false);
     expect(status.status).toBe('unreachable');
+    expect(status.detail).toContain('ai-ask reported Qdrant unreachable');
     expect(status.collections).toEqual([
       { name: 'portfolio_docs', online: false, status: 'unreachable', pointsCount: 0 },
       { name: 'cadence_patterns', online: false, status: 'offline', pointsCount: 0 },
     ]);
+    // Only cadence_patterns was probed directly; portfolio_docs was never masked.
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
 
-    const summary = await buildOverviewHealthSummary();
+    const summary = await buildOverviewHealthSummary('corr-degraded-2');
     expect(summary.qdrantHealth.status).toBe('offline');
+
+    // 2. Transport Unavailable falls back cleanly to direct QDRANT_URL HTTP probing.
+    fetchSpy.mockClear();
+    grpcMocks.getAskStatus.mockRejectedValueOnce(
+      new ConnectError('dial tcp 127.0.0.1:8083: connection refused', Code.Unavailable),
+    );
+    const fallbackStatus = await fetchQdrantStatus('corr-fallback-1');
+    expect(fallbackStatus.online).toBe(true);
+    expect(fallbackStatus.provider).toBe('qdrant-direct');
+    expect(fallbackStatus.pointsCount).toBe(25);
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
   });
 });

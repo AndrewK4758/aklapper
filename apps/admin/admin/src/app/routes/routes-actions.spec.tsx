@@ -5,6 +5,12 @@ import {
   SITE_CONTENT_KEYS,
 } from '@aklapper/core';
 import { PORTAL_ABOUT_SEED } from '@aklapper/db';
+import {
+  Code,
+  ConnectError,
+  type GrpcCallMetadata,
+  type ReindexResult as GrpcReindexResult,
+} from '@aklapper/node-runtime/grpc';
 import { requestContextKey } from '@aklapper/node-runtime/ssr/stream';
 import { RouterContextProvider } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -26,7 +32,16 @@ const mocks = vi.hoisted(() => ({
   overrideSandboxGateVerdict: vi.fn<AsyncUnknownFn>(),
   handleAnalyticsIngestRequest:
     vi.fn<(request: Request, options?: Record<string, unknown>) => Promise<Response>>(),
+  triggerReindex: vi.fn<(meta: GrpcCallMetadata) => Promise<GrpcReindexResult>>(),
 }));
+
+vi.mock('@aklapper/node-runtime/grpc', async importOriginal => {
+  const actual = await importOriginal<typeof import('@aklapper/node-runtime/grpc')>();
+  return {
+    ...actual,
+    triggerReindex: mocks.triggerReindex,
+  };
+});
 
 vi.mock('@aklapper/db/auth', () => ({
   resolveAdminSessionFromRequest: mocks.resolveAdminSessionFromRequest,
@@ -785,6 +800,92 @@ describe('Admin mutation actions & classified HTTP status semantics', () => {
       reindexFailCall.args as never,
     )) as unknown as DataWithStatus;
     expectUpstream503(reindexFailRes, reindexFailCall.logger, 'corr-ops-reindex-503');
+
+    // Both /ops and /cms preserve 409 lock contention and 422 confidentiality responses and propagate X-Correlation-Id
+    process.env['AI_ASK_URL'] = 'http://127.0.0.1:8083';
+    mocks.triggerReindex.mockRejectedValueOnce(
+      new ConnectError('reindex already in progress', Code.FailedPrecondition),
+    );
+    const ops409Call = makeActionArgs(
+      'http://localhost:4301/ops',
+      '/ops',
+      { intent: 'reindex-qdrant' },
+      'corr-ops-reindex-409',
+    );
+    const ops409Res = (await opsAction(ops409Call.args as never)) as unknown as DataWithStatus;
+    expect(ops409Res.init?.status).toBe(409);
+    expect(ops409Res.data).toMatchObject({
+      ok: false,
+      code: 'ERR_CONSTRAINT',
+      correlationId: 'corr-ops-reindex-409',
+    });
+    expect(mocks.triggerReindex).toHaveBeenCalledWith(
+      expect.objectContaining({
+        correlationId: 'corr-ops-reindex-409',
+        internalAuth: { role: 'admin', subject: 'admin-console-reindex' },
+      }),
+    );
+
+    mocks.triggerReindex.mockRejectedValueOnce(
+      new ConnectError('reindex already in progress', Code.FailedPrecondition),
+    );
+    const cms409Call = makeActionArgs(
+      'http://localhost:4301/cms',
+      '/cms',
+      { intent: 'reindex-qdrant' },
+      'corr-cms-reindex-409',
+    );
+    const cms409Res = (await cmsAction(cms409Call.args as never)) as unknown as DataWithStatus;
+    expect(cms409Res.init?.status).toBe(409);
+    expect(cms409Res.data).toMatchObject({
+      ok: false,
+      code: 'ERR_CONSTRAINT',
+      correlationId: 'corr-cms-reindex-409',
+    });
+
+    // Both /ops and /cms preserve 422 confidentiality policy errors (Code.FailedPrecondition + ErrorDetailEnvelope status=422)
+    const errInner = Buffer.concat([
+      Buffer.from([0x0a, 14]),
+      Buffer.from('ERR_CONSTRAINT', 'utf8'),
+      Buffer.from([0x10, 0xa6, 0x03]), // field 2 varint 422
+    ]);
+    const env422 = Buffer.concat([Buffer.from([0x0a, errInner.length]), errInner]);
+    const make422Err = () => {
+      const err = new ConnectError('origin confidentiality violation', Code.FailedPrecondition);
+      err.details.push({ type: 'common.v1.ErrorDetailEnvelope', value: new Uint8Array(env422) });
+      return err;
+    };
+
+    mocks.triggerReindex.mockRejectedValueOnce(make422Err());
+    const ops422Call = makeActionArgs(
+      'http://localhost:4301/ops',
+      '/ops',
+      { intent: 'reindex-qdrant' },
+      'corr-ops-reindex-422',
+    );
+    const ops422Res = (await opsAction(ops422Call.args as never)) as unknown as DataWithStatus;
+    expect(ops422Res.init?.status).toBe(422);
+    expect(ops422Res.data).toMatchObject({
+      ok: false,
+      code: 'ERR_CONSTRAINT',
+      correlationId: 'corr-ops-reindex-422',
+    });
+
+    mocks.triggerReindex.mockRejectedValueOnce(make422Err());
+    const cms422Call = makeActionArgs(
+      'http://localhost:4301/cms',
+      '/cms',
+      { intent: 'reindex-qdrant' },
+      'corr-cms-reindex-422',
+    );
+    const cms422Res = (await cmsAction(cms422Call.args as never)) as unknown as DataWithStatus;
+    expect(cms422Res.init?.status).toBe(422);
+    expect(cms422Res.data).toMatchObject({
+      ok: false,
+      code: 'ERR_CONSTRAINT',
+      correlationId: 'corr-cms-reindex-422',
+    });
+    delete process.env['AI_ASK_URL'];
 
     mocks.overrideSandboxGateVerdict.mockResolvedValueOnce({
       runId: '11111111-1111-4111-8111-111111111111',

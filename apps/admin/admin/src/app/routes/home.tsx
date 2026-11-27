@@ -28,7 +28,7 @@ export async function loader({ request, context }: Route.LoaderArgs): Promise<Ad
     correlationId,
     payload: deferStreamResult(
       (async () => {
-        const health = await buildOverviewHealthSummary();
+        const health = await buildOverviewHealthSummary(correlationId);
         const db = getSharedDb();
         return loadAdminOverviewData(db, {
           handle: session.handle,

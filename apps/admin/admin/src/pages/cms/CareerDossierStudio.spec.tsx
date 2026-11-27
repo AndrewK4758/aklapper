@@ -1,7 +1,25 @@
 import { SITE_CONTENT_KEYS, type QdrantHealthStatus } from '@aklapper/core';
+import {
+  Code,
+  ConnectError,
+  type GrpcCallMetadata,
+  type ReindexResult as GrpcReindexResult,
+} from '@aklapper/node-runtime/grpc';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { createRoutesStub } from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+
+const { triggerReindexMock } = vi.hoisted(() => ({
+  triggerReindexMock: vi.fn<(meta: GrpcCallMetadata) => Promise<GrpcReindexResult>>(),
+}));
+
+vi.mock('@aklapper/node-runtime/grpc', async importOriginal => {
+  const actual = await importOriginal<typeof import('@aklapper/node-runtime/grpc')>();
+  return {
+    ...actual,
+    triggerReindex: triggerReindexMock,
+  };
+});
 
 import { handleCareerDossierIntent } from '../../app/career-dossier-actions.server';
 import { dispatchAdminCmsIntent } from '../../app/cms-actions.server';
@@ -138,14 +156,8 @@ describe('Admin CMS Career Dossier Studio, VisitorLensListEditor & 409/400 actio
     };
 
     process.env['AI_ASK_URL'] = 'http://127.0.0.1:18083';
-    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      new Response(
-        JSON.stringify({
-          code: 'ERR_CONSTRAINT',
-          message: 'A portfolio reindex is already in progress.',
-        }),
-        { status: 409, headers: { 'content-type': 'application/json' } },
-      ),
+    triggerReindexMock.mockRejectedValueOnce(
+      new ConnectError('A portfolio reindex is already in progress.', Code.FailedPrecondition),
     );
 
     const reindexForm = new FormData();

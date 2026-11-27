@@ -44,7 +44,7 @@ export async function loader({ request, context }: Route.LoaderArgs): Promise<Ad
       })(),
       { request, context, source: 'admin.cms.loader' },
     ),
-    qdrantPayload: deferStreamResult(fetchQdrantStatus(), {
+    qdrantPayload: deferStreamResult(fetchQdrantStatus(correlationId), {
       request,
       context,
       source: 'admin.cms.qdrant',
