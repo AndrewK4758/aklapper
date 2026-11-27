@@ -112,7 +112,7 @@ describe('Proto3-to-Zod zero-value & optional presence mappers', () => {
   it('preserves CadenceRunResult progress=0, tokensIn/Out=0, unset turn.id, and heterogeneous payload values', () => {
     const turn = create(ProtoCadenceTurnSchema, {
       phase: 'triage',
-      agentName: 'cadence-triage-agent',
+      agentName: 'chord-triage',
       status: 'completed',
       summary: 'Triaged custom widget prompt',
       latencyMs: 12,

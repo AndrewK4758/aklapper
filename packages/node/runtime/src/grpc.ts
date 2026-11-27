@@ -3,11 +3,6 @@ export {
   callAsk,
   getAskStatus,
   getAskTurn,
-  mapProtoAskChunkToSse,
-  mapProtoAskResponseToDomain,
-  mapProtoAskSourceToDomain,
-  mapProtoAskTurnStateToDomain,
-  mapProtoPublicErrorToDomain,
   streamAsk,
   triggerReindex,
   type AskUpstreamStatusResult,
@@ -17,13 +12,16 @@ export {
   type StreamAskInput,
 } from './grpc/ask-client.ts';
 export {
+  mapProtoAskChunkToSse,
+  mapProtoAskResponseToDomain,
+  mapProtoAskSourceToDomain,
+  mapProtoAskTurnStateToDomain,
+  mapProtoPublicErrorToDomain,
+} from './grpc/ask-mappers.ts';
+export {
   approveCadenceSpecGate,
   createCadenceRun,
   listCadenceRuns,
-  mapProtoCadenceChunkToSse,
-  mapProtoCadenceRunToDomain,
-  mapProtoCadenceTurnToDomain,
-  mapProtoPayloadValueToDomain,
   streamCadenceRun,
   submitCadenceGateVerdict,
   type ApproveSpecGateResult,
@@ -33,6 +31,12 @@ export {
   type ListCadenceRunsResult,
   type SubmitGateVerdictResult,
 } from './grpc/cadence-client.ts';
+export {
+  mapProtoCadenceChunkToSse,
+  mapProtoCadenceRunToDomain,
+  mapProtoCadenceTurnToDomain,
+  mapProtoPayloadValueToDomain,
+} from './grpc/cadence-mappers.ts';
 export {
   classifyGrpcError,
   GrpcPayloadContractError,
