@@ -86,6 +86,14 @@ export function extractRightmostForwardedIp(
   return fallback;
 }
 
+export function resolveAnalyticsClientIp(request: Request): string {
+  return extractRightmostForwardedIp(
+    request.headers.get('x-forwarded-for'),
+    request.headers.get('x-real-ip'),
+    '127.0.0.1',
+  );
+}
+
 export function shouldAttachGcpOidcToken(
   baseUrl: string,
   env: Record<string, string | undefined> = process.env,

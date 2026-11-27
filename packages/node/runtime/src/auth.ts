@@ -360,8 +360,31 @@ export function buildDailyAnalyticsSalt(
   return `${baseSalt}:${date.toISOString().slice(0, 10)}`;
 }
 
+export function buildPreviousUtcDayAnalyticsSalt(
+  baseSalt = process.env['ANALYTICS_DAILY_SALT']?.trim() || 'dev-only',
+  date = new Date(),
+): string {
+  const previousUtcDay = new Date(date.getTime() - 86_400_000);
+  return buildDailyAnalyticsSalt(baseSalt, previousUtcDay);
+}
+
+export function isWithinUtcMidnightGraceWindow(date = new Date(), graceMinutes = 30): boolean {
+  return date.getUTCHours() === 0 && date.getUTCMinutes() < graceMinutes;
+}
+
 export function hashVisitorIp(ip: string, dailySalt = buildDailyAnalyticsSalt()): string {
   return createHash('sha256').update(`${dailySalt}:${ip}`).digest('hex').slice(0, 24);
+}
+
+export function hashVisitorIdentity(
+  ip: string,
+  userAgent: string,
+  dailySalt = buildDailyAnalyticsSalt(),
+): string {
+  return createHash('sha256')
+    .update(`${dailySalt}:${ip}:${userAgent.trim()}`)
+    .digest('hex')
+    .slice(0, 32);
 }
 
 const GUEST_SESSION_ID_RE = /^[a-zA-Z0-9_-]{8,96}$/;

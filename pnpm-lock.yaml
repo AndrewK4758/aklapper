@@ -373,6 +373,9 @@ importers:
       isbot:
         specifier: ^5.2.3
         version: 5.2.3
+      maxmind:
+        specifier: ^4.3.29
+        version: 4.3.29
       react:
         specifier: ^19.3.1
         version: 19.3.1
@@ -5518,6 +5521,10 @@ packages:
     resolution: {integrity: sha512-/IXtbwEk5HTPyEwyKX6hGkYXxM9nbj64B+ilVJnC/R6B0pH5G4V3b0pVbL7DBj4tkhBAppbQUlf6F6Xl9LHu1g==}
     engines: {node: '>= 0.4'}
 
+  maxmind@4.3.29:
+    resolution: {integrity: sha512-Vxx0rh7omBekjZnsDxpw35SrGGM3Uy7NoIKWzZlvh3UcjihGaySR8n+YSQ8YBseCvhEn+yehA98rZkTDW+uhPw==}
+    engines: {node: '>=12', npm: '>=6'}
+
   media-typer@1.1.1:
     resolution: {integrity: sha512-yz3xRaG20c6/BOzvYoDaGtPmGscs7YivItZEEqe6GbwNfHuxu9YNmvnEkMzKldAGY4/80pRcQRZSEnhquk9XuQ==}
     engines: {node: '>= 0.8'}
@@ -5588,6 +5595,10 @@ packages:
 
   mlly@1.8.2:
     resolution: {integrity: sha512-d+ObxMQFmbt10sretNDytwt85VrbkhhUA/JBGm1MPaWJ65Cl4wOgLaB1NYvJSZ0Ef03MMEU/0xpPMXUIQ29UfA==}
+
+  mmdb-lib@2.2.1:
+    resolution: {integrity: sha512-DXO4L9W+08T+A7h5+xdT32l7IMot8z7WOH+7C1Maol571PnktQ8un7Ni4CyPFp4H+vht/FDA5/tpjRvWMFQDMw==}
+    engines: {node: '>=10', npm: '>=6'}
 
   mrmime@2.0.1:
     resolution: {integrity: sha512-Y3wQdFg2Va6etvQ5I82yUhGdsKrcYox6p7FfL1LbK2J4V01F9TGlepTIhnK24t7koZibmg82KGglhA1XK5IsLQ==}
@@ -6456,6 +6467,10 @@ packages:
 
   time-span@5.1.0:
     resolution: {integrity: sha512-75voc/9G4rDIJleOo4jPvN4/YC4GRZrY8yy1uU4lwrB3XEQbWve8zXoO5No4eFrGcTAMYyoY67p8jRQdtA1HbA==}
+    engines: {node: '>=12'}
+
+  tiny-lru@11.3.4:
+    resolution: {integrity: sha512-UxWEfRKpFCabAf6fkTNdlfSw/RDUJ/4C6i1aLZaDnGF82PERHyYhz5CMCVYXtLt34LbqgfpJ2bjmgGKgxuF/6A==}
     engines: {node: '>=12'}
 
   tinybench@6.2.4:
@@ -12270,6 +12285,11 @@ snapshots:
 
   math-intrinsics@1.1.0: {}
 
+  maxmind@4.3.29:
+    dependencies:
+      mmdb-lib: 2.2.1
+      tiny-lru: 11.3.4
+
   media-typer@1.1.1: {}
 
   merge-descriptors@2.0.0: {}
@@ -12321,6 +12341,8 @@ snapshots:
       pathe: 2.0.3
       pkg-types: 1.3.1
       ufo: 1.6.4
+
+  mmdb-lib@2.2.1: {}
 
   mrmime@2.0.1: {}
 
@@ -13307,6 +13329,8 @@ snapshots:
   time-span@5.1.0:
     dependencies:
       convert-hrtime: 5.0.0
+
+  tiny-lru@11.3.4: {}
 
   tinybench@6.2.4: {}
 

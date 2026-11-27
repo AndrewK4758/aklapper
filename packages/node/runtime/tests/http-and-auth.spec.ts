@@ -9,6 +9,7 @@ import {
   Argon2ConcurrencyError,
   AUTH_LOG_REDACT_PATHS,
   buildDailyAnalyticsSalt,
+  buildPreviousUtcDayAnalyticsSalt,
   buildTotpOtpAuthUrl,
   clearSessionCookie,
   computeTotpCode,
@@ -20,9 +21,11 @@ import {
   GUEST_SESSION_COOKIE_NAME,
   hashBackupCode,
   hashPasswordArgon2id,
+  hashVisitorIdentity,
   hashVisitorIp,
   isSafeRedirectTarget,
   isSecureRequest,
+  isWithinUtcMidnightGraceWindow,
   parseArgon2idPhc,
   parseCookieHeader,
   sanitizeRedirectTarget,
@@ -36,6 +39,7 @@ import {
   joinUpstreamUrl,
   proxyJson,
   proxySse,
+  resolveAnalyticsClientIp,
   signInternalAuthToken,
   verifyInternalAuthToken,
 } from '../src/http.ts';
@@ -368,5 +372,47 @@ describe('@aklapper/node-runtime/http & auth', () => {
     expect(joined).not.toContain('legacy-boot-secret');
     expect(joined).not.toContain('secret-session-cookie');
     expect(joined).toContain('[REDACTED]');
+  });
+
+  it('resolves analytics client IP canonically across X-Forwarded-For, X-Real-IP, and loopback fallback', () => {
+    const reqXff = new Request('https://andrew-k.us/', {
+      headers: {
+        'x-forwarded-for': '203.0.113.10, 198.51.100.42',
+        'x-real-ip': '198.51.100.99',
+      },
+    });
+    expect(resolveAnalyticsClientIp(reqXff)).toBe('198.51.100.42');
+
+    const reqRealIp = new Request('https://andrew-k.us/', {
+      headers: { 'x-real-ip': '198.51.100.99' },
+    });
+    expect(resolveAnalyticsClientIp(reqRealIp)).toBe('198.51.100.99');
+
+    const reqNone = new Request('https://andrew-k.us/');
+    expect(resolveAnalyticsClientIp(reqNone)).toBe('127.0.0.1');
+  });
+
+  it('computes prior-day UTC salt and 30-minute UTC-midnight grace window for daily visitor hashing', () => {
+    const justAfterMidnight = new Date('2026-11-28T00:05:00.000Z');
+    const midday = new Date('2026-11-28T12:00:00.000Z');
+
+    expect(isWithinUtcMidnightGraceWindow(justAfterMidnight)).toBe(true);
+    expect(isWithinUtcMidnightGraceWindow(midday)).toBe(false);
+    expect(buildDailyAnalyticsSalt('base-salt', justAfterMidnight)).toBe('base-salt:2026-11-28');
+    expect(buildPreviousUtcDayAnalyticsSalt('base-salt', justAfterMidnight)).toBe(
+      'base-salt:2026-11-27',
+    );
+
+    const priorHash = hashVisitorIdentity(
+      '198.51.100.42',
+      'Mozilla/5.0 Safari/605',
+      buildPreviousUtcDayAnalyticsSalt('base-salt', justAfterMidnight),
+    );
+    const yesterdayHash = hashVisitorIdentity(
+      '198.51.100.42',
+      'Mozilla/5.0 Safari/605',
+      buildDailyAnalyticsSalt('base-salt', new Date('2026-11-27T23:55:00.000Z')),
+    );
+    expect(priorHash).toBe(yesterdayHash);
   });
 });
