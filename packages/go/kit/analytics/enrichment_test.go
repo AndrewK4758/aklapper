@@ -206,4 +206,22 @@ func TestUTF8SafeRuneTruncation(t *testing.T) {
 	if gotRef.Referrer == nil || !utf8.ValidString(*gotRef.Referrer) || utf8.RuneCountInString(*gotRef.Referrer) > MaxReferrerLen {
 		t.Fatalf("expected valid UTF-8 truncated referrer <= %d runes, got %+v", MaxReferrerLen, gotRef)
 	}
+
+	for _, tc := range []struct {
+		raw  string
+		want string
+	}{
+		{raw: "/p/%00", want: "/p/%00"},
+		{raw: "/docs/caf%e9", want: "/docs/caf%E9"},
+		{raw: "/p/%c3%28", want: "/p/%C3%28"},
+	} {
+		got := NormalizeLandingPath(tc.raw)
+		if !utf8.ValidString(got) || strings.ContainsRune(got, 0) || !strings.EqualFold(got, tc.want) {
+			t.Fatalf("NormalizeLandingPath(%q) = %q (valid=%v), want %q", tc.raw, got, utf8.ValidString(got), tc.want)
+		}
+		camp := ExtractCampaignParams("https://andrew-k.us" + tc.raw + "?utm_source=test")
+		if !utf8.ValidString(camp.LandingPath) || strings.ContainsRune(camp.LandingPath, 0) {
+			t.Fatalf("ExtractCampaignParams(%q) produced unsafe LandingPath %q", tc.raw, camp.LandingPath)
+		}
+	}
 }

@@ -319,6 +319,14 @@ func NormalizeReferrer(rawReferrer string, ownHosts []string) NormalizedReferrer
 	}
 }
 
+func safeResolvedPath(resolved *url.URL) string {
+	pathname := resolved.Path
+	if !utf8.ValidString(pathname) || strings.IndexByte(pathname, 0) >= 0 {
+		pathname = resolved.EscapedPath()
+	}
+	return pathname
+}
+
 func NormalizeLandingPath(rawPath string) string {
 	cleaned := strings.TrimSpace(strings.ReplaceAll(rawPath, "\x00", ""))
 	if cleaned == "" {
@@ -328,7 +336,7 @@ func NormalizeLandingPath(rawPath string) string {
 	var pathname string
 	if parsed, err := url.Parse(cleaned); err == nil {
 		resolved := base.ResolveReference(parsed)
-		pathname = resolved.Path
+		pathname = safeResolvedPath(resolved)
 	}
 	if pathname == "" {
 		stripped := cleaned
@@ -345,6 +353,7 @@ func NormalizeLandingPath(rawPath string) string {
 		}
 	}
 	withoutTrailing := strings.TrimRight(pathname, "/")
+	withoutTrailing = strings.ReplaceAll(strings.ToValidUTF8(withoutTrailing, ""), "\x00", "")
 	if withoutTrailing == "" {
 		withoutTrailing = "/"
 	}
@@ -360,7 +369,7 @@ func ExtractCampaignParams(rawURL string) CampaignParams {
 	resolved := base.ResolveReference(parsed)
 	q := resolved.Query()
 	return CampaignParams{
-		LandingPath: NormalizeLandingPath(resolved.Path),
+		LandingPath: NormalizeLandingPath(safeResolvedPath(resolved)),
 		RefParam:    SanitizeCampaignValue(q.Get("ref")),
 		UTMSource:   SanitizeCampaignValue(q.Get("utm_source")),
 		UTMMedium:   SanitizeCampaignValue(q.Get("utm_medium")),

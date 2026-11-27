@@ -210,12 +210,12 @@ func strPtrIfNonEmpty(raw string) *string {
 	return &trimmed
 }
 
-func (r *Reader) handleLookupReadError(err error, alreadyCorrupt bool) Enrichment {
+func (r *Reader) handleLookupReadError(alreadyCorrupt bool) Enrichment {
 	r.emitSeam("warn", map[string]any{
 		"seam_type": "BOUNDARY_FAULT",
 		"event":     "analytics.geoip.mmdb_load_failed",
 		"database":  "lookup",
-		"detail":    err.Error(),
+		"detail":    "mmdb_lookup_failed",
 	})
 	if !alreadyCorrupt {
 		r.emitLookupBranch(BranchCorruptDegraded)
@@ -257,7 +257,7 @@ func (r *Reader) Lookup(ip string) Enrichment {
 	if r.cityState == slotReady && r.cityDB != nil {
 		var rec mmdbCityRecord
 		if err := r.cityDB.Lookup(parsedIP, &rec); err != nil {
-			return r.handleLookupReadError(err, corrupt)
+			return r.handleLookupReadError(corrupt)
 		}
 		if c := strPtrIfNonEmpty(rec.Country.ISOCode); c != nil {
 			out.Country = c
@@ -278,7 +278,7 @@ func (r *Reader) Lookup(ip string) Enrichment {
 	if r.asnState == slotReady && r.asnDB != nil {
 		var rec mmdbASNRecord
 		if err := r.asnDB.Lookup(parsedIP, &rec); err != nil {
-			return r.handleLookupReadError(err, corrupt)
+			return r.handleLookupReadError(corrupt)
 		}
 		if rec.AutonomousSystemNumber > 0 {
 			asnVal := int32(rec.AutonomousSystemNumber)
