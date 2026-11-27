@@ -384,7 +384,7 @@ func (s *Store) RefundSandboxRunQuotaTx(ctx context.Context, runID string) (bool
 		return true, nil
 	}
 
-	if !isValidUUIDString(runID) {
+	if !contracts.ValidateUUID(runID) {
 		return false, nil
 	}
 

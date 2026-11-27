@@ -96,7 +96,7 @@ func (s *Store) GetSandboxRun(ctx context.Context, runID string) (*SandboxRun, e
 		return &copied, nil
 	}
 
-	if !isValidUUIDString(runID) {
+	if !contracts.ValidateUUID(runID) {
 		return nil, ErrRunNotFound
 	}
 
@@ -133,7 +133,7 @@ func (s *Store) ClaimPendingSandboxRun(ctx context.Context, runID, sessionID str
 		return &copied, true, nil
 	}
 
-	if !isValidUUIDString(runID) {
+	if !contracts.ValidateUUID(runID) {
 		return nil, false, nil
 	}
 
@@ -278,7 +278,7 @@ func (s *Store) CompleteSandboxRunWithArtifacts(ctx context.Context, input Compl
 		return &copied, nil
 	}
 
-	if !isValidUUIDString(input.RunID) {
+	if !contracts.ValidateUUID(input.RunID) {
 		return nil, ErrRunNotFound
 	}
 
@@ -343,7 +343,7 @@ func (s *Store) FailSandboxRun(ctx context.Context, runID, reason string) error 
 		return nil
 	}
 
-	if !isValidUUIDString(runID) {
+	if !contracts.ValidateUUID(runID) {
 		return nil
 	}
 
@@ -474,7 +474,7 @@ func (s *Store) PauseSandboxRunForSpecApproval(ctx context.Context, input PauseS
 		return &copied, nil
 	}
 
-	if !isValidUUIDString(input.RunID) {
+	if !contracts.ValidateUUID(input.RunID) {
 		return nil, ErrRunNotFound
 	}
 
@@ -593,7 +593,7 @@ func (s *Store) ClaimBuildQueuedSandboxRun(ctx context.Context, runID, sessionID
 		return &copied, true, nil
 	}
 
-	if !isValidUUIDString(runID) {
+	if !contracts.ValidateUUID(runID) {
 		return nil, false, nil
 	}
 
