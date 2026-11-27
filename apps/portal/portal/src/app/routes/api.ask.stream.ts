@@ -1,7 +1,12 @@
 import { randomUUID } from 'node:crypto';
 
 import { createPublicAppError } from '@aklapper/core';
-import { DEFAULT_SSE_HEADER_TIMEOUT_MS, proxyPostSse } from '@aklapper/node-runtime/http';
+import {
+  bridgeGrpcStreamToSse,
+  mapProtoAskChunkToSse,
+  streamAsk,
+} from '@aklapper/node-runtime/grpc';
+import { DEFAULT_SSE_HEADER_TIMEOUT_MS } from '@aklapper/node-runtime/http';
 import {
   createFallbackLogger,
   getOrCreateCorrelationId,
@@ -163,42 +168,32 @@ export async function action({ request, context }: Route.ActionArgs): Promise<Re
   }
 
   const extraResponseHeaders = setCookieHeader ? { 'Set-Cookie': setCookieHeader } : undefined;
-  const upstream = await proxyPostSse({
-    baseUrl: aiAskUrl,
-    path: '/v1/ask/stream',
-    body: {
-      mode: 'qa',
-      question,
-      attemptId,
-      ...(rawConvId ? { conversationId: rawConvId } : {}),
-      ...(visitorLens ? { visitorLens } : {}),
-    },
-    extraResponseHeaders,
+  return bridgeGrpcStreamToSse({
     headerTimeoutMs: resolveAskStreamHeaderTimeoutMs(),
     signal: request.signal,
-    internalAuth: { role: 'guest', subject: sessionId },
     correlationId,
     source: 'portal.api.ask.stream',
     logger,
+    normalizeUnavailableStatus: 503,
+    ...(extraResponseHeaders ? { extraResponseHeaders } : {}),
+    startStream: ({ signal, onHeader }) =>
+      streamAsk(
+        {
+          baseUrl: aiAskUrl,
+          internalAuth: { role: 'guest', subject: sessionId },
+          correlationId,
+          signal,
+          logger,
+        },
+        {
+          mode: 'qa',
+          question,
+          attemptId,
+          ...(rawConvId ? { conversationId: rawConvId } : {}),
+          ...(visitorLens ? { visitorLens } : {}),
+        },
+        { onHeader },
+      ),
+    mapChunkToSse: chunk => mapProtoAskChunkToSse(chunk, logger),
   });
-
-  // Normalize unreachable upstream transport errors (502) to 503 while preserving Set-Cookie and PublicAppError body.
-  if (!upstream.ok && upstream.status === 502) {
-    const rawText = await upstream.text().catch(() => '');
-    const headers = new Headers(upstream.headers);
-    try {
-      const parsed = JSON.parse(rawText) as Record<string, unknown>;
-      if (parsed['code'] === 'ERR_UPSTREAM_UNAVAILABLE') {
-        return new Response(JSON.stringify({ ...parsed, status: 503 }), {
-          status: 503,
-          headers,
-        });
-      }
-    } catch {
-      // fall through
-    }
-    return new Response(rawText, { status: 503, headers });
-  }
-
-  return upstream;
 }

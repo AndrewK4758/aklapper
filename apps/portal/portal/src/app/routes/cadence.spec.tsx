@@ -13,7 +13,16 @@ import {
   type QuotaStatus,
 } from '@aklapper/core';
 import { GUEST_SESSION_COOKIE_NAME, signGuestSessionCookie } from '@aklapper/node-runtime/auth';
-import { INTERNAL_AUTH_HEADER } from '@aklapper/node-runtime/http';
+import {
+  type ApproveSpecGateResult,
+  Code,
+  ConnectError,
+  type CreateCadenceRunInput,
+  type CreateCadenceRunResult,
+  type GrpcCallMetadata,
+  GrpcPayloadContractError,
+  type SubmitGateVerdictResult,
+} from '@aklapper/node-runtime/grpc';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 interface StoredRun {
@@ -389,6 +398,76 @@ vi.mock('@aklapper/db', async importOriginal => {
   };
 });
 
+const grpcMocks = vi.hoisted(() => ({
+  createCadenceRun:
+    vi.fn<
+      (meta: GrpcCallMetadata, req: CreateCadenceRunInput) => Promise<CreateCadenceRunResult>
+    >(),
+  submitCadenceGateVerdict:
+    vi.fn<
+      (
+        meta: GrpcCallMetadata,
+        runId: string,
+        verdict: 'approved' | 'rejected',
+      ) => Promise<SubmitGateVerdictResult>
+    >(),
+  approveCadenceSpecGate:
+    vi.fn<(meta: GrpcCallMetadata, runId: string) => Promise<ApproveSpecGateResult>>(),
+  streamCadenceRun:
+    vi.fn<
+      (
+        meta: GrpcCallMetadata,
+        runId: string,
+        callbacks?: { readonly onHeader?: (headers: Headers) => void },
+      ) => AsyncIterable<unknown>
+    >(),
+  realCreateCadenceRun: null as
+    | ((meta: GrpcCallMetadata, req: CreateCadenceRunInput) => Promise<CreateCadenceRunResult>)
+    | null,
+  realSubmitCadenceGateVerdict: null as
+    | ((
+        meta: GrpcCallMetadata,
+        runId: string,
+        verdict: 'approved' | 'rejected',
+      ) => Promise<SubmitGateVerdictResult>)
+    | null,
+  realApproveCadenceSpecGate: null as
+    | ((meta: GrpcCallMetadata, runId: string) => Promise<ApproveSpecGateResult>)
+    | null,
+  realStreamCadenceRun: null as
+    | ((
+        meta: GrpcCallMetadata,
+        runId: string,
+        callbacks?: { readonly onHeader?: (headers: Headers) => void },
+      ) => AsyncIterable<unknown>)
+    | null,
+}));
+
+vi.mock('@aklapper/node-runtime/grpc', async importOriginal => {
+  const actual = await importOriginal<typeof import('@aklapper/node-runtime/grpc')>();
+  grpcMocks.realCreateCadenceRun = actual.createCadenceRun;
+  grpcMocks.realSubmitCadenceGateVerdict = actual.submitCadenceGateVerdict;
+  grpcMocks.realApproveCadenceSpecGate = actual.approveCadenceSpecGate;
+  grpcMocks.realStreamCadenceRun = actual.streamCadenceRun;
+  grpcMocks.createCadenceRun.mockImplementation((meta, req) => actual.createCadenceRun(meta, req));
+  grpcMocks.submitCadenceGateVerdict.mockImplementation((meta, runId, verdict) =>
+    actual.submitCadenceGateVerdict(meta, runId, verdict),
+  );
+  grpcMocks.approveCadenceSpecGate.mockImplementation((meta, runId) =>
+    actual.approveCadenceSpecGate(meta, runId),
+  );
+  grpcMocks.streamCadenceRun.mockImplementation((meta, runId, callbacks) =>
+    actual.streamCadenceRun(meta, runId, callbacks),
+  );
+  return {
+    ...actual,
+    createCadenceRun: grpcMocks.createCadenceRun,
+    submitCadenceGateVerdict: grpcMocks.submitCadenceGateVerdict,
+    approveCadenceSpecGate: grpcMocks.approveCadenceSpecGate,
+    streamCadenceRun: grpcMocks.streamCadenceRun,
+  };
+});
+
 import { completeSandboxRunRow, createPendingSandboxRunWithQuota } from '@aklapper/db';
 
 import { loader as streamLoader } from './api.cadence.runs.$runId.stream';
@@ -455,6 +534,22 @@ describe('/cadence action & /api/cadence/runs/:runId/stream SSE handler', () => 
     stateStore.reset();
     delete process.env['CADENCE_DEMO_URL'];
     globalThis.fetch = originalFetch;
+    if (grpcMocks.realCreateCadenceRun) {
+      grpcMocks.createCadenceRun.mockImplementation(grpcMocks.realCreateCadenceRun);
+    }
+    if (grpcMocks.realSubmitCadenceGateVerdict) {
+      grpcMocks.submitCadenceGateVerdict.mockImplementation(grpcMocks.realSubmitCadenceGateVerdict);
+    }
+    if (grpcMocks.realApproveCadenceSpecGate) {
+      grpcMocks.approveCadenceSpecGate.mockImplementation(grpcMocks.realApproveCadenceSpecGate);
+    }
+    if (grpcMocks.realStreamCadenceRun) {
+      grpcMocks.streamCadenceRun.mockImplementation(grpcMocks.realStreamCadenceRun);
+    }
+    grpcMocks.createCadenceRun.mockClear();
+    grpcMocks.submitCadenceGateVerdict.mockClear();
+    grpcMocks.approveCadenceSpecGate.mockClear();
+    grpcMocks.streamCadenceRun.mockClear();
   });
 
   afterEach(() => {
@@ -566,11 +661,11 @@ describe('/cadence action & /api/cadence/runs/:runId/stream SSE handler', () => 
     });
   });
 
-  it('honors legacy synchronous 201 upstream responses, fails closed on 502 schema errors, propagates 4xx, and falls back only on 502/504', async () => {
+  it('honors synchronous 201 upstream responses, fails closed on 502 schema errors, propagates 4xx redacted, and falls back only on Unavailable/DeadlineExceeded', async () => {
     const cookie = `${GUEST_SESSION_COOKIE_NAME}=${signGuestSessionCookie('guest_session_upstream1')}`;
     process.env['CADENCE_DEMO_URL'] = 'http://cadence-demo.internal';
 
-    // 1. Legacy synchronous 201 (omitted runStatus) preserves immediate ready intent.
+    // 1. Synchronous 201 (createdImmediately=true) preserves immediate ready intent.
     const syncRun: CadenceRunResult = {
       runId: '11111111-1111-4111-8111-111111111111',
       prompt: 'Legacy synchronous CADENCE prompt',
@@ -581,13 +676,10 @@ describe('/cadence action & /api/cadence/runs/:runId/stream SSE handler', () => 
         prompt: 'Legacy synchronous CADENCE prompt',
       }),
     };
-    globalThis.fetch = vi.fn<() => Promise<Response>>(
-      async () =>
-        new Response(JSON.stringify(syncRun), {
-          status: 201,
-          headers: { 'content-type': 'application/json' },
-        }),
-    ) as unknown as typeof fetch;
+    grpcMocks.createCadenceRun.mockResolvedValueOnce({
+      run: syncRun,
+      createdImmediately: true,
+    });
 
     const legacyRes = unwrapDataResult(
       await action(
@@ -602,14 +694,10 @@ describe('/cadence action & /api/cadence/runs/:runId/stream SSE handler', () => 
     });
     expect(stateStore.runs.size).toBe(0);
 
-    // 2. Malformed 200 payload fails closed with 502 without falling back to PG19.
-    globalThis.fetch = vi.fn<() => Promise<Response>>(
-      async () =>
-        new Response(JSON.stringify({ runId: 123, bogus: true }), {
-          status: 200,
-          headers: { 'content-type': 'application/json' },
-        }),
-    ) as unknown as typeof fetch;
+    // 2. Malformed upstream payload fails closed with 502 without falling back to PG19.
+    grpcMocks.createCadenceRun.mockRejectedValueOnce(
+      new GrpcPayloadContractError('CadenceRunResultSchema', 'invalid runId'),
+    );
     const badSchemaRes = unwrapDataResult(
       await action(
         makeActionArgs({ intent: 'run', prompt: 'Schema validation test prompt' }, cookie),
@@ -618,28 +706,26 @@ describe('/cadence action & /api/cadence/runs/:runId/stream SSE handler', () => 
     expect(badSchemaRes.init?.status).toBe(502);
     expect(stateStore.runs.size).toBe(0);
 
-    // 3. Upstream 400 propagates directly without falling back to PG19.
-    globalThis.fetch = vi.fn<() => Promise<Response>>(
-      async () =>
-        new Response(JSON.stringify({ error: 'Upstream rejected request' }), {
-          status: 400,
-          headers: { 'content-type': 'application/json' },
-        }),
-    ) as unknown as typeof fetch;
+    // 3. Upstream 400 propagates directly with allow-listed message (never echoing raw upstream SQL/details) and without falling back to PG19.
+    grpcMocks.createCadenceRun.mockRejectedValueOnce(
+      new ConnectError(
+        'raw upstream secret detail SELECT * FROM sandbox_runs',
+        Code.InvalidArgument,
+      ),
+    );
     const upstream400 = unwrapDataResult(
       await action(
         makeActionArgs({ intent: 'run', prompt: 'Propagated 400 prompt check' }, cookie),
       ),
     );
     expect(upstream400.init?.status).toBe(400);
+    expect(JSON.stringify(upstream400.data)).not.toContain('SELECT * FROM');
     expect(stateStore.runs.size).toBe(0);
 
-    // 4. Upstream 504 timeout falls back cleanly to Node PG19 pending init.
-    globalThis.fetch = vi.fn<() => Promise<Response>>(async () => {
-      const err = new Error('Timed out');
-      err.name = 'TimeoutError';
-      throw err;
-    }) as unknown as typeof fetch;
+    // 4. Upstream DeadlineExceeded falls back cleanly to Node PG19 pending init.
+    grpcMocks.createCadenceRun.mockRejectedValueOnce(
+      new ConnectError('context deadline exceeded', Code.DeadlineExceeded),
+    );
     const fallbackInit = unwrapDataResult(
       await action(
         makeActionArgs(
@@ -742,64 +828,78 @@ describe('/cadence action & /api/cadence/runs/:runId/stream SSE handler', () => 
     });
   });
 
-  it('attaches X-Internal-Auth on upstream proxy calls and preserves 503 GCP_OIDC_TOKEN_UNAVAILABLE without falling back', async () => {
+  it('passes guest internalAuth metadata on gRPC proxy calls and preserves 503 GCP_OIDC_TOKEN_UNAVAILABLE without falling back', async () => {
     const cookie = `${GUEST_SESSION_COOKIE_NAME}=${signGuestSessionCookie('guest_session_auth001')}`;
     const runId = '66666666-6666-4666-8666-666666666666';
     process.env['CADENCE_DEMO_URL'] = 'http://cadence-demo.internal';
 
-    const seenHeaders: Array<{
-      url: string;
-      internalAuth: string | null;
-      sessionId: string | null;
+    const seenCalls: Array<{
+      op: string;
+      role: string | undefined;
+      subject: string | undefined;
+      correlationId: string;
     }> = [];
-    globalThis.fetch = vi.fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>(
-      async (input, init) => {
-        const url = String(input);
-        const reqHeaders = new Headers(init?.headers);
-        seenHeaders.push({
-          url,
-          internalAuth: reqHeaders.get(INTERNAL_AUTH_HEADER),
-          sessionId: reqHeaders.get('x-session-id'),
-        });
 
-        if (url.endsWith('/stream')) {
-          return new Response('event: complete\ndata: {}\n\n', {
-            status: 200,
-            headers: { 'content-type': 'text/event-stream; charset=utf-8' },
-          });
-        }
-        if (url.endsWith('/gate')) {
-          return new Response(
-            JSON.stringify({
-              run: {
-                runId,
-                prompt: 'Auth gate check',
-                presetSlug: 'solar-forge-starter',
-                runStatus: 'ready',
-                mode: 'fast',
-                gateVerdict: 'approved',
-                turns: [],
-                artifactHtml: '<html></html>',
-              },
-            }),
-            { status: 200, headers: { 'content-type': 'application/json' } },
-          );
-        }
-        return new Response(
-          JSON.stringify({
-            runId,
-            prompt: 'Auth init check',
-            presetSlug: 'solar-forge-starter',
-            runStatus: 'pending',
-            mode: 'fast',
-            gateVerdict: 'pending',
-            turns: [],
-            artifactHtml: '',
-          }),
-          { status: 202, headers: { 'content-type': 'application/json' } },
-        );
-      },
-    ) as unknown as typeof fetch;
+    grpcMocks.createCadenceRun.mockImplementationOnce(async meta => {
+      seenCalls.push({
+        op: 'create',
+        role: meta.internalAuth?.role,
+        subject: meta.internalAuth?.subject,
+        correlationId: meta.correlationId,
+      });
+      return {
+        createdImmediately: false,
+        run: {
+          runId,
+          prompt: 'Auth init check',
+          presetSlug: 'solar-forge-starter',
+          runStatus: 'pending',
+          mode: 'fast',
+          gateVerdict: 'pending',
+          turns: [],
+          artifactHtml: '',
+        },
+      };
+    });
+    grpcMocks.streamCadenceRun.mockImplementationOnce((meta, _id, callbacks) => {
+      seenCalls.push({
+        op: 'stream',
+        role: meta.internalAuth?.role,
+        subject: meta.internalAuth?.subject,
+        correlationId: meta.correlationId,
+      });
+      callbacks?.onHeader?.(new Headers({ 'x-correlation-id': meta.correlationId }));
+      return {
+        async *[Symbol.asyncIterator]() {
+          yield {
+            payload: {
+              case: 'log',
+              value: { runId, line: 'Connected', timestamp: '2026-11-24T22:00:00Z' },
+            },
+          };
+        },
+      };
+    });
+    grpcMocks.submitCadenceGateVerdict.mockImplementationOnce(async meta => {
+      seenCalls.push({
+        op: 'gate',
+        role: meta.internalAuth?.role,
+        subject: meta.internalAuth?.subject,
+        correlationId: meta.correlationId,
+      });
+      return {
+        run: {
+          runId,
+          prompt: 'Auth gate check',
+          presetSlug: 'solar-forge-starter',
+          runStatus: 'ready',
+          mode: 'fast',
+          gateVerdict: 'approved',
+          turns: [],
+          artifactHtml: '<html></html>',
+        },
+      };
+    });
 
     const initRes = unwrapDataResult(
       await action(makeActionArgs({ intent: 'run', prompt: 'Auth init check' }, cookie)),
@@ -811,19 +911,21 @@ describe('/cadence action & /api/cadence/runs/:runId/stream SSE handler', () => 
 
     const streamRes = await streamLoader(makeStreamArgs(runId, cookie));
     expect(streamRes.status).toBe(200);
+    expect(await streamRes.text()).toContain('event: log');
 
     const gateRes = unwrapDataResult(
       await action(makeActionArgs({ intent: 'gate', runId, verdict: 'approved' }, cookie)),
     );
     expect(gateRes.init?.status).toBe(200);
 
-    expect(seenHeaders).toHaveLength(3);
-    for (const call of seenHeaders) {
-      expect(call.internalAuth).toBeTruthy();
-      expect(call.sessionId).toBe('guest_session_auth001');
+    expect(seenCalls).toHaveLength(3);
+    for (const call of seenCalls) {
+      expect(call.role).toBe('guest');
+      expect(call.subject).toBe('guest_session_auth001');
+      expect(call.correlationId).toBeTruthy();
     }
 
-    // Cloud Run OIDC failure returns 503 directly on POST /cadence (run + gate) and GET .../stream with zero PG19 fallback.
+    // Cloud Run OIDC failure runs through real gRPC auth preparation and returns 503 with zero PG19 fallback.
     process.env['CADENCE_DEMO_URL'] = 'https://cadence-demo-xyz.a.run.app';
     globalThis.fetch = vi.fn<() => Promise<Response>>(async () => {
       throw new Error('Metadata server unavailable');

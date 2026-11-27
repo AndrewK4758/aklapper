@@ -40,6 +40,16 @@ export interface ClassifyGrpcErrorContext {
   readonly logger?: SsrStructuredLogger;
 }
 
+export class GrpcPayloadContractError extends Error {
+  readonly schema: string;
+
+  constructor(schema: string, message?: string) {
+    super(message ?? `Upstream gRPC payload failed ${schema} validation`);
+    this.name = 'GrpcPayloadContractError';
+    this.schema = schema;
+  }
+}
+
 interface CatalogEntry {
   readonly code: AppErrorCode;
   readonly status: number;
@@ -308,6 +318,39 @@ export function classifyGrpcError(
     };
     logClassifiedGrpcSeam(ctx.logger, diagnostic, 'HEADER_TIMEOUT', true);
     return { publicError, diagnostic, isFallbackTransportError: true };
+  }
+
+  if (
+    error instanceof GrpcPayloadContractError ||
+    (typeof error === 'object' &&
+      error !== null &&
+      (error as { readonly name?: unknown }).name === 'GrpcPayloadContractError')
+  ) {
+    const [message, action] = GRPC_CATALOG_BY_CODE.ERR_UPSTREAM_UNAVAILABLE;
+    const { publicError } = enforcePublicErrorBoundary(
+      createPublicAppError({
+        code: 'ERR_UPSTREAM_UNAVAILABLE',
+        status: 502,
+        message,
+        action,
+        correlationId,
+      }),
+      { correlationId, source: ctx.source },
+    );
+    const diagnostic: DiagnosticAppError = {
+      code: publicError.code,
+      status: publicError.status,
+      severity: 'ERROR',
+      reasoning: 'Upstream gRPC response violated core payload schema contract',
+      correlationId,
+      source: ctx.source,
+      causeName: 'GrpcPayloadContractError',
+      causeMessage: scrubDiagnosticCause(
+        error instanceof Error ? error.message : 'payload contract violation',
+      ),
+    };
+    logClassifiedGrpcSeam(ctx.logger, diagnostic, 'PAYLOAD_CONTRACT_VIOLATION', false);
+    return { publicError, diagnostic, isFallbackTransportError: false };
   }
 
   if (error instanceof ConnectError) {

@@ -7,7 +7,12 @@ import {
   getSandboxRunWithTurnsById,
   getSharedDb,
 } from '@aklapper/db';
-import { proxySse } from '@aklapper/node-runtime/http';
+import {
+  bridgeGrpcStreamToSse,
+  isFallbackTransportError,
+  mapProtoCadenceChunkToSse,
+  streamCadenceRun,
+} from '@aklapper/node-runtime/grpc';
 import {
   createFallbackLogger,
   getOrCreateCorrelationId,
@@ -93,36 +98,65 @@ export async function loader({ request, params, context }: Route.LoaderArgs): Pr
 
   const cadenceDemoUrl = process.env['CADENCE_DEMO_URL']?.trim();
   if (cadenceDemoUrl) {
-    let upstream: Response;
-    try {
-      upstream = await proxySse({
-        baseUrl: cadenceDemoUrl,
-        path: `/v1/cadence/runs/${encodeURIComponent(runId)}/stream`,
-        headers: {
-          'x-session-id': sessionId,
-          'X-Correlation-Id': correlationId,
-        },
-        headerTimeoutMs: 15_000,
+    let shouldFallbackToPg19 = false;
+    const upstream = await bridgeGrpcStreamToSse({
+      headerTimeoutMs: 15_000,
+      signal: request.signal,
+      correlationId,
+      source: 'portal.cadence.stream',
+      logger,
+      startStream: ({ signal, onHeader }) =>
+        streamCadenceRun(
+          {
+            baseUrl: cadenceDemoUrl,
+            internalAuth: { role: 'guest', subject: sessionId },
+            correlationId,
+            signal,
+            logger,
+          },
+          runId,
+          { onHeader },
+        ),
+      mapChunkToSse: chunk => mapProtoCadenceChunkToSse(chunk, logger),
+      buildPostHeaderErrorFrame: failure => ({
+        event: 'error',
+        data: {
+          runId,
+          error: failure.publicError.message,
+          code: failure.publicError.code,
+          runStatus: 'failed',
+        } satisfies CadenceStreamErrorEvent,
+      }),
+      onPreStreamFailure: failure => {
+        if (isFallbackTransportError(failure)) {
+          shouldFallbackToPg19 = true;
+          return new Response(null, { status: 502 });
+        }
+        return Response.json(
+          { error: failure.publicError.message, ...failure.publicError },
+          { status: failure.publicError.status, headers: jsonHeaders },
+        );
+      },
+    });
+    if (!shouldFallbackToPg19) {
+      logCadenceStreamSeam('info', 'RULE_DIVERGENCE', 'bff.cadence.transport_branch', 'info', {
+        runId,
+        branch: 'grpc_primary',
         correlationId,
-        source: 'portal.cadence.stream',
-        logger,
-        internalAuth: { role: 'guest', subject: sessionId },
-        signal: request.signal,
       });
-    } catch (error) {
-      const { publicError, diagnostic } = classifyServerError(error, {
-        correlationId,
-        source: 'portal.cadence.stream',
-      });
-      logDiagnosticError(logger, diagnostic);
-      return Response.json(
-        { error: publicError.message, ...publicError },
-        { status: publicError.status, headers: jsonHeaders },
-      );
-    }
-    if (upstream.status !== 502 && upstream.status !== 504) {
       return upstream;
     }
+    logCadenceStreamSeam('info', 'RULE_DIVERGENCE', 'bff.cadence.transport_branch', 'info', {
+      runId,
+      branch: 'pg19_fallback_transport_unavailable',
+      correlationId,
+    });
+  } else {
+    logCadenceStreamSeam('info', 'RULE_DIVERGENCE', 'bff.cadence.transport_branch', 'info', {
+      runId,
+      branch: 'pg19_fallback_unconfigured',
+      correlationId,
+    });
   }
 
   let db: ReturnType<typeof getSharedDb>;

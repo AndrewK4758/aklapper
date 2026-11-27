@@ -16,7 +16,7 @@ import {
 import { createClient } from '@connectrpc/connect';
 
 import type { SsrStructuredLogger } from '../request-context.ts';
-import { mapProtoQuotaToDomain } from './errors.ts';
+import { GrpcPayloadContractError, mapProtoQuotaToDomain } from './errors.ts';
 import {
   CadenceService,
   type CadenceGateAudit as ProtoGateAudit,
@@ -206,7 +206,7 @@ export function mapProtoCadenceRunToDomain(
   const parsed = CadenceRunResultSchema.safeParse(candidate);
   if (!parsed.success) {
     logCadencePayloadViolation(logger, 'CadenceRunResultSchema', nonEmpty(proto.runId));
-    throw parsed.error;
+    throw new GrpcPayloadContractError('CadenceRunResultSchema', parsed.error.message);
   }
   return parsed.data;
 }
@@ -316,7 +316,10 @@ export async function createCadenceRun(
   );
   if (!res.run) {
     logCadencePayloadViolation(meta.logger, 'CreateRunResponse');
-    throw new Error('CadenceService.CreateRun returned empty run');
+    throw new GrpcPayloadContractError(
+      'CreateRunResponse',
+      'CadenceService.CreateRun returned empty run',
+    );
   }
   return {
     run: mapProtoCadenceRunToDomain(res.run, meta.logger),
@@ -355,7 +358,10 @@ export async function approveCadenceSpecGate(
   );
   if (!res.run) {
     logCadencePayloadViolation(meta.logger, 'ApproveSpecGateResponse', runId);
-    throw new Error('CadenceService.ApproveSpecGate returned empty run');
+    throw new GrpcPayloadContractError(
+      'ApproveSpecGateResponse',
+      'CadenceService.ApproveSpecGate returned empty run',
+    );
   }
   const quota = mapProtoQuotaToDomain(res.quota);
   return {
@@ -377,7 +383,10 @@ export async function submitCadenceGateVerdict(
   );
   if (!res.run) {
     logCadencePayloadViolation(meta.logger, 'SubmitGateVerdictResponse', runId);
-    throw new Error('CadenceService.SubmitGateVerdict returned empty run');
+    throw new GrpcPayloadContractError(
+      'SubmitGateVerdictResponse',
+      'CadenceService.SubmitGateVerdict returned empty run',
+    );
   }
   return {
     run: mapProtoCadenceRunToDomain(res.run, meta.logger),

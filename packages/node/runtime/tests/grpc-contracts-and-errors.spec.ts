@@ -19,6 +19,7 @@ import {
   callAsk,
   classifyGrpcError,
   getAskStatus,
+  GrpcPayloadContractError,
   IDEMPOTENT_OIDC_RETRY_PROCEDURES,
   isFallbackTransportError,
   isGfeIamAuthRejection,
@@ -320,6 +321,14 @@ describe('classifyGrpcError fail-closed redaction and fallback boundary', () => 
     );
     expect(hmacFail.publicError.status).toBe(500);
     expect(isFallbackTransportError(hmacFail)).toBe(false);
+
+    const schemaFail = classifyGrpcError(
+      new GrpcPayloadContractError('CadenceRunResultSchema', 'invalid runId'),
+      { correlationId: 'corr-schema-1', source: 'test.cadence' },
+    );
+    expect(schemaFail.publicError.status).toBe(502);
+    expect(schemaFail.publicError.code).toBe('ERR_UPSTREAM_UNAVAILABLE');
+    expect(isFallbackTransportError(schemaFail)).toBe(false);
 
     // App-level ERR_DB_UNAVAILABLE carries ErrorDetailEnvelope -> never falls back to PG19.
     const appDbDown = new ConnectError('db unavailable', Code.Unavailable, undefined, [

@@ -12,7 +12,7 @@ import {
 import { createClient } from '@connectrpc/connect';
 
 import type { SsrStructuredLogger } from '../request-context.ts';
-import { mapProtoQuotaToDomain } from './errors.ts';
+import { GrpcPayloadContractError, mapProtoQuotaToDomain } from './errors.ts';
 import {
   AskService,
   type AskResponse as ProtoAskResponse,
@@ -118,7 +118,11 @@ export function mapProtoAskSourceToDomain(src: ProtoAskSource): AskSource {
     ...(nonEmpty(src.sectionHeading) ? { sectionHeading: src.sectionHeading } : {}),
     ...(nonEmpty(src.docKey) ? { docKey: src.docKey } : {}),
   };
-  return AskSourceSchema.parse(candidate);
+  const parsed = AskSourceSchema.safeParse(candidate);
+  if (!parsed.success) {
+    throw new GrpcPayloadContractError('AskSourceSchema', parsed.error.message);
+  }
+  return parsed.data;
 }
 
 export function mapProtoAskResponseToDomain(
@@ -161,7 +165,7 @@ export function mapProtoAskResponseToDomain(
   const parsed = AskResponseSchema.safeParse(candidate);
   if (!parsed.success) {
     logPayloadViolation(logger, 'AskResponseSchema', nonEmpty(proto.correlationId));
-    throw parsed.error;
+    throw new GrpcPayloadContractError('AskResponseSchema', parsed.error.message);
   }
   return parsed.data;
 }
@@ -191,7 +195,7 @@ export function mapProtoAskTurnStateToDomain(
   const parsed = AskTurnStateSchema.safeParse(candidate);
   if (!parsed.success) {
     logPayloadViolation(logger, 'AskTurnStateSchema', nonEmpty(proto.correlationId));
-    throw parsed.error;
+    throw new GrpcPayloadContractError('AskTurnStateSchema', parsed.error.message);
   }
   return parsed.data;
 }
@@ -335,7 +339,10 @@ export async function callAsk(meta: GrpcCallMetadata, req: CallAskInput): Promis
     };
   }
   logPayloadViolation(meta.logger, 'AskUnaryResponse', meta.correlationId);
-  throw new Error('AskService.Ask returned empty outcome oneof');
+  throw new GrpcPayloadContractError(
+    'AskUnaryResponse',
+    'AskService.Ask returned empty outcome oneof',
+  );
 }
 
 export function streamAsk(

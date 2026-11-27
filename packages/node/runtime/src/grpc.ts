@@ -1,3 +1,4 @@
+export { Code, ConnectError } from '@connectrpc/connect';
 export {
   callAsk,
   getAskStatus,
@@ -34,6 +35,7 @@ export {
 } from './grpc/cadence-client.ts';
 export {
   classifyGrpcError,
+  GrpcPayloadContractError,
   isFallbackTransportError,
   mapProtoQuotaToDomain,
   type ClassifiedGrpcFailure,
