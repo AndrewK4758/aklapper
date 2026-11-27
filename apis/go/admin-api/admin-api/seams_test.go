@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"connectrpc.com/connect"
+	adminv1 "github.com/AndrewK4758/aklapper/packages/go/kit/gen/admin/v1"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/grpckit"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/internalauth"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -159,4 +160,35 @@ func TestAdminMuxRejectsNonGRPCAndDirectQdrantProbe(t *testing.T) {
 	srv.Start()
 	defer srv.Close()
 	_ = grpckit.MetadataInternalAuth
+}
+
+func TestValidateDossierInputAcceptsCanonicalKinds(t *testing.T) {
+	for _, kind := range []string{"profile_core", "experience", "project", "architecture", "leadership"} {
+		out, err := validateDossierInput(&adminv1.CareerDossierUpsertInput{
+			Slug:        "sample-" + strings.ReplaceAll(kind, "_", "-"),
+			Kind:        kind,
+			Title:       "Sample Title",
+			DomainLabel: "Cloud Platform",
+			RoleTitle:   "Principal Architect",
+			Timeframe:   "2025",
+			SummaryBody: "Summary text.",
+		}, "corr-dossier-kind")
+		if err != nil {
+			t.Fatalf("expected canonical kind %q to pass validation, got %v", kind, err)
+		}
+		if out.kind != kind {
+			t.Fatalf("expected kind %q, got %q", kind, out.kind)
+		}
+	}
+
+	for _, badKind := range []string{"", "engagement", "capability", "unknown"} {
+		if _, err := validateDossierInput(&adminv1.CareerDossierUpsertInput{
+			Slug:        "bad-kind",
+			Kind:        badKind,
+			Title:       "Bad Kind",
+			SummaryBody: "Summary",
+		}, "corr-dossier-bad-kind"); err == nil {
+			t.Fatalf("expected non-canonical kind %q to fail validation", badKind)
+		}
+	}
 }

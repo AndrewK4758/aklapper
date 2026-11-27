@@ -23,6 +23,15 @@ type validatedDossierInput struct {
 	sortOrder    int32
 }
 
+func isValidCareerDossierKind(kind string) bool {
+	switch kind {
+	case "profile_core", "experience", "project", "architecture", "leadership":
+		return true
+	default:
+		return false
+	}
+}
+
 func validateDossierInput(in *adminv1.CareerDossierUpsertInput, corrID string) (validatedDossierInput, *connect.Error) {
 	if in == nil {
 		return validatedDossierInput{}, newAdminError(connect.CodeInvalidArgument, contracts.ErrCodeValidation, http.StatusBadRequest, "Career dossier payload is required.", "Provide dossier fields.", corrID, nil)
@@ -30,7 +39,7 @@ func validateDossierInput(in *adminv1.CareerDossierUpsertInput, corrID string) (
 	slug := strings.TrimSpace(in.GetSlug())
 	title := strings.TrimSpace(in.GetTitle())
 	kind := strings.TrimSpace(in.GetKind())
-	if slug == "" || title == "" || (kind != "engagement" && kind != "project" && kind != "capability") ||
+	if slug == "" || title == "" || !isValidCareerDossierKind(kind) ||
 		containsNul(slug) || containsNul(title) || containsNul(in.GetSummaryBody()) || containsNul(in.GetDomainLabel()) || containsNul(in.GetRoleTitle()) || containsNul(in.GetTimeframe()) {
 		return validatedDossierInput{}, newAdminError(connect.CodeInvalidArgument, contracts.ErrCodeValidation, http.StatusBadRequest, "Invalid career dossier fields.", "Provide valid slug, kind, title, and text without NUL bytes.", corrID, nil)
 	}
