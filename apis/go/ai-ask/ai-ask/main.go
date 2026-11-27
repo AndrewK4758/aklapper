@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/AndrewK4758/aklapper/packages/go/kit/contracts"
-	ai_askv1 "github.com/AndrewK4758/aklapper/packages/go/kit/gen/ai_ask/v1"
+	"github.com/AndrewK4758/aklapper/packages/go/kit/gen/ai_ask/v1/ai_askv1connect"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/grpckit"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/httpkit"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/internalauth"
@@ -176,11 +176,23 @@ func newHandlerWithDeps(deps askStreamDeps, syncWait time.Duration) http.Handler
 	mux.HandleFunc("POST /v1/ask", handleAskPost(deps.provider, deps.vectorStore, deps.store, deps.privacyCfg, syncWait))
 	mux.HandleFunc("POST /v1/ask/stream", handleAskStreamPost(deps))
 	mux.HandleFunc("GET /v1/ask/turns/{attemptId}", handleTurnLookup(deps.store))
+
+	grpcHealthPath, grpcHealthHandler := grpckit.NewHealthHandler("ai_ask.v1.AskService")
+	mux.Handle(grpcHealthPath, grpcHealthHandler)
+	askPath, askGRPCHandler := ai_askv1connect.NewAskServiceHandler(
+		newAskConnectServer(deps, syncWait),
+		grpckit.NewHandlerOptions("")...,
+	)
+	mux.Handle(askPath, grpckit.NewGRPCOnlyMiddleware(askGRPCHandler))
 	return mux
 }
 
 func main() {
 	if _, err := internalauth.ResolveSecret(""); err != nil {
+		logAskEvent("grpc.startup.secret_missing", map[string]any{
+			"seam_type": "UNSOUND_CONDITION",
+			"service":   "ai-ask",
+		})
 		log.Fatalf("ai-ask production auth startup failure: %v", err)
 	}
 	if _, err := llm.ParseVertexThinkingLevel(os.Getenv("VERTEX_THINKING_LEVEL")); err != nil {
@@ -215,24 +227,9 @@ func main() {
 	}
 	httpHandler := newHandlerWithDeps(deps, defaultSyncWaitWindow)
 	addr := httpkit.ListenAddr("8083")
-	grpcAddr := grpckit.GRPCListenAddr()
+	log.Printf("ai-ask listening on single-port h2c=%s (pgLive=%v)", addr, store.IsLivePG())
 
-	var grpcSrv httpkit.GRPCGracefulServer
-	if grpcAddr != "" {
-		srv, _ := grpckit.NewServer("", "ai_ask.v1.AskService")
-		ai_askv1.RegisterAskServiceServer(srv, newAskGRPCServer(deps))
-		grpcSrv = srv
-		log.Printf("ai-ask listening on http=%s grpc=%s (pgLive=%v)", addr, grpcAddr, store.IsLivePG())
-	} else {
-		log.Printf("ai-ask listening on http=%s (gRPC disabled: GRPC_PORT empty, pgLive=%v)", addr, store.IsLivePG())
-	}
-
-	if err := httpkit.ListenAndServeDualGracefulSignals(httpkit.DualServerConfig{
-		HTTPAddr:    addr,
-		HTTPHandler: httpHandler,
-		GRPCAddr:    grpcAddr,
-		GRPCServer:  grpcSrv,
-	}); err != nil {
+	if err := httpkit.ListenAndServeH2CGracefulSignals(addr, httpHandler, 10*time.Second); err != nil {
 		log.Fatal(err)
 	}
 }

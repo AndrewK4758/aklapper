@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
-	"net"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -15,21 +15,30 @@ import (
 	"testing"
 	"time"
 
+	"connectrpc.com/connect"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/contracts"
 	ai_askv1 "github.com/AndrewK4758/aklapper/packages/go/kit/gen/ai_ask/v1"
+	"github.com/AndrewK4758/aklapper/packages/go/kit/gen/ai_ask/v1/ai_askv1connect"
+	commonv1 "github.com/AndrewK4758/aklapper/packages/go/kit/gen/common/v1"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/grpckit"
+	"github.com/AndrewK4758/aklapper/packages/go/kit/httpkit"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/internalauth"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/llm"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/pg"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/privacy"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/qdrant"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/credentials/insecure"
-	"google.golang.org/grpc/metadata"
-	"google.golang.org/grpc/status"
-	"google.golang.org/grpc/test/bufconn"
 )
+
+type lockedLogWriter struct {
+	mu  *sync.Mutex
+	buf *bytes.Buffer
+}
+
+func (w lockedLogWriter) Write(p []byte) (int, error) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	return w.buf.Write(p)
+}
 
 type streamStubLLM struct {
 	chunks       []string
@@ -363,86 +372,189 @@ func TestAskStreamHTTPAndGRPCContracts(t *testing.T) {
 		}
 	})
 
-	t.Run("gRPC AskService StreamAsk, GetAskStatus, and GetTurn enforce HMAC auth over bufconn", func(t *testing.T) {
+	t.Run("Single-port h2c AskService RPCs enforce auth, stream status+preamble race-free, and preserve GetTurn anti-enumeration & Reindex RBAC", func(t *testing.T) {
 		provider := &streamStubLLM{chunks: []string{"Go gRPC ", "works end-to-end."}, tokensUsed: 64}
 		store := pg.NewMemoryStore()
 		deps := askStreamDeps{provider: provider, vectorStore: &qdrant.Client{BaseURL: qSrv.URL}, store: store, privacyCfg: privCfg}
+		h := newHandlerWithDeps(deps, defaultSyncWaitWindow)
 
-		lis := bufconn.Listen(1024 * 1024)
-		srv, _ := grpckit.NewServer(secret, "ai_ask.v1.AskService")
-		ai_askv1.RegisterAskServiceServer(srv, newAskGRPCServer(deps))
-		go func() { _ = srv.Serve(lis) }()
-		t.Cleanup(srv.Stop)
+		srvCtx, srvCancel := context.WithCancel(context.Background())
+		readyCh := make(chan string, 1)
+		doneCh := make(chan error, 1)
+		go func() {
+			doneCh <- httpkit.ListenAndServeH2CGraceful(srvCtx, httpkit.H2CServerConfig{
+				Addr:            "127.0.0.1:0",
+				Handler:         h,
+				ShutdownTimeout: 2 * time.Second,
+				OnReady:         func(addr string) { readyCh <- addr },
+			})
+		}()
+		addr := <-readyCh
+		t.Cleanup(func() {
+			srvCancel()
+			<-doneCh
+		})
 
-		cfg := grpckit.ClientAuthConfig{Role: internalauth.RoleGuest, Subject: "grpc-guest-1", Secret: secret, TTL: time.Minute}
-		conn, err := grpc.NewClient(
-			"passthrough:///bufnet",
-			grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) { return lis.Dial() }),
-			grpc.WithTransportCredentials(insecure.NewCredentials()),
-			grpc.WithUnaryInterceptor(grpckit.UnaryClientAuthInterceptor(cfg)),
-			grpc.WithStreamInterceptor(grpckit.StreamClientAuthInterceptor(cfg)),
+		baseURL := "http://" + addr
+		h2cHTTP := grpckit.NewH2CClient()
+		t.Cleanup(h2cHTTP.CloseIdleConnections)
+
+		guestCfg := grpckit.ClientAuthConfig{Role: internalauth.RoleGuest, Subject: "grpc-guest-1", Secret: secret, TTL: time.Minute}
+		client := ai_askv1connect.NewAskServiceClient(
+			h2cHTTP,
+			baseURL,
+			connect.WithGRPC(),
+			connect.WithInterceptors(grpckit.NewClientAuthInterceptor(guestCfg)),
 		)
-		if err != nil {
-			t.Fatalf("grpc.NewClient: %v", err)
-		}
-		t.Cleanup(func() { _ = conn.Close() })
-
-		client := ai_askv1.NewAskServiceClient(conn)
-		ctx := metadata.NewOutgoingContext(context.Background(), metadata.Pairs(grpckit.MetadataCorrelationID, "corr-grpc-e2e"))
 
 		attemptID := "dddddddd-dddd-4ddd-8ddd-ddddddddddd1"
-		st, err := client.StreamAsk(ctx, &ai_askv1.StreamAskRequest{Mode: "qa", AttemptId: attemptID, Question: "How does gRPC work?"})
+		convID := "dddddddd-dddd-4ddd-8ddd-ddddddddddd2"
+		sReq := connect.NewRequest(&ai_askv1.StreamAskRequest{
+			Mode:           "qa",
+			AttemptId:      attemptID,
+			ConversationId: convID,
+			VisitorLens:    "engineering-peer",
+			Question:       "How does gRPC work?",
+		})
+		sReq.Header().Set(grpckit.MetadataCorrelationID, "corr-grpc-e2e")
+		st, err := client.StreamAsk(context.Background(), sReq)
 		if err != nil {
 			t.Fatalf("StreamAsk: %v", err)
 		}
+		defer st.Close()
 
-		var gotMeta, gotSources, gotDone bool
+		var gotStatus, gotMeta, gotSources, gotDone bool
 		var deltaText strings.Builder
-		for {
-			chunk, rErr := st.Recv()
-			if errors.Is(rErr, io.EOF) {
-				break
-			}
-			if rErr != nil {
-				t.Fatalf("Recv: %v", rErr)
-			}
+		for st.Receive() {
+			chunk := st.Msg()
 			switch p := chunk.Payload.(type) {
+			case *ai_askv1.AskStreamChunk_Status:
+				if p.Status.GetStage() == "retrieving" {
+					gotStatus = true
+				}
 			case *ai_askv1.AskStreamChunk_Meta:
-				gotMeta = true
+				gotMeta = p.Meta.GetConversationId() == convID && p.Meta.GetTurnIndex() == 1
 			case *ai_askv1.AskStreamChunk_Sources:
 				gotSources = len(p.Sources.Sources) > 0
 			case *ai_askv1.AskStreamChunk_Delta:
 				deltaText.WriteString(p.Delta.Text)
 			case *ai_askv1.AskStreamChunk_Done:
-				gotDone = p.Done.Grounded && p.Done.TokensUsed == 64
+				gotDone = p.Done.Grounded && p.Done.ConversationId == convID && p.Done.GetTurnIndex() == 1 && p.Done.TokensUsed >= 64
 			}
 		}
-		if !gotMeta || !gotSources || !gotDone || deltaText.String() != "Go gRPC works end-to-end." {
-			t.Fatalf("unexpected gRPC stream sequence: meta=%v sources=%v done=%v text=%q", gotMeta, gotSources, gotDone, deltaText.String())
+		if st.Err() != nil {
+			t.Fatalf("StreamAsk stream err: %v", st.Err())
+		}
+		if !gotStatus || !gotMeta || !gotSources || !gotDone || deltaText.String() != "Go gRPC works end-to-end." {
+			t.Fatalf("unexpected gRPC stream sequence: status=%v meta=%v sources=%v done=%v text=%q", gotStatus, gotMeta, gotSources, gotDone, deltaText.String())
 		}
 
-		statusResp, err := client.GetAskStatus(ctx, &ai_askv1.GetAskStatusRequest{})
-		if err != nil || statusResp.GetStatus() != "ready" {
+		// Unary Ask happy path
+		unaryResp, err := client.Ask(context.Background(), connect.NewRequest(&ai_askv1.AskRequest{
+			Mode:     "qa",
+			Question: "Summarize architecture over unary Ask RPC",
+		}))
+		if err != nil || unaryResp.Msg.GetCompleted() == nil || !unaryResp.Msg.GetCompleted().GetGrounded() {
+			t.Fatalf("unexpected unary Ask response: %+v err=%v", unaryResp, err)
+		}
+
+		// GetAskStatus returns ready
+		statusResp, err := client.GetAskStatus(context.Background(), connect.NewRequest(&ai_askv1.GetAskStatusRequest{}))
+		if err != nil || statusResp.Msg.GetStatus() != "ready" {
 			t.Fatalf("unexpected GetAskStatus: %+v err=%v", statusResp, err)
 		}
 
-		turnResp, err := client.GetTurn(ctx, &ai_askv1.GetTurnRequest{AttemptId: attemptID})
-		if err != nil || turnResp.GetStatus() != contracts.TurnStatusCompleted {
+		// GetTurn returns conversationId + turnIndex for owning session
+		turnResp, err := client.GetTurn(context.Background(), connect.NewRequest(&ai_askv1.GetTurnRequest{AttemptId: attemptID}))
+		if err != nil || turnResp.Msg.GetStatus() != contracts.TurnStatusCompleted || turnResp.Msg.GetConversationId() != convID || turnResp.Msg.GetTurnIndex() != 1 {
 			t.Fatalf("unexpected GetTurn: %+v err=%v", turnResp, err)
 		}
 
-		// Unauthenticated client fails closed
-		rawConn, _ := grpc.NewClient(
-			"passthrough:///bufnet",
-			grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) { return lis.Dial() }),
-			grpc.WithTransportCredentials(insecure.NewCredentials()),
+		// Cross-session GetTurn returns CodeNotFound (404 anti-enumeration)
+		otherClient := ai_askv1connect.NewAskServiceClient(
+			h2cHTTP,
+			baseURL,
+			connect.WithGRPC(),
+			connect.WithInterceptors(grpckit.NewClientAuthInterceptor(grpckit.ClientAuthConfig{
+				Role: internalauth.RoleGuest, Subject: "grpc-guest-other", Secret: secret, TTL: time.Minute,
+			})),
 		)
-		t.Cleanup(func() { _ = rawConn.Close() })
-		rawClient := ai_askv1.NewAskServiceClient(rawConn)
-		_, uErr := rawClient.GetAskStatus(context.Background(), &ai_askv1.GetAskStatusRequest{})
-		if status.Code(uErr) != codes.Unauthenticated {
-			t.Fatalf("expected Unauthenticated, got %v", uErr)
+		_, otherErr := otherClient.GetTurn(context.Background(), connect.NewRequest(&ai_askv1.GetTurnRequest{AttemptId: attemptID}))
+		var notFoundErr *connect.Error
+		if !errors.As(otherErr, &notFoundErr) || notFoundErr.Code() != connect.CodeNotFound {
+			t.Fatalf("expected CodeNotFound on cross-session GetTurn, got %v", otherErr)
 		}
+
+		// Non-admin Reindex fails closed with CodePermissionDenied + ErrorDetailEnvelope and emits ai_ask.reindex.unauthorized_role
+		var reindexLogMu sync.Mutex
+		var reindexLogBuf bytes.Buffer
+		var reindexGuestErr error
+		func() {
+			prevLogOut := log.Writer()
+			log.SetOutput(lockedLogWriter{mu: &reindexLogMu, buf: &reindexLogBuf})
+			defer log.SetOutput(prevLogOut)
+			reindexReq := connect.NewRequest(&ai_askv1.ReindexRequest{})
+			reindexReq.Header().Set(grpckit.MetadataCorrelationID, "corr-reindex-rbac")
+			_, reindexGuestErr = client.Reindex(context.Background(), reindexReq)
+		}()
+		var permErr *connect.Error
+		if !errors.As(reindexGuestErr, &permErr) || permErr.Code() != connect.CodePermissionDenied || len(permErr.Details()) == 0 {
+			t.Fatalf("expected CodePermissionDenied with detail on guest Reindex, got %v", reindexGuestErr)
+		}
+		val, valErr := permErr.Details()[0].Value()
+		env, ok := val.(*commonv1.ErrorDetailEnvelope)
+		if valErr != nil || !ok || env.GetError().GetCode() != contracts.ErrCodeForbidden {
+			t.Fatalf("expected ERR_FORBIDDEN ErrorDetailEnvelope, got %+v err=%v", val, valErr)
+		}
+		reindexLogMu.Lock()
+		reindexLogOut := reindexLogBuf.String()
+		reindexLogMu.Unlock()
+		if !strings.Contains(reindexLogOut, `"event":"ai_ask.reindex.unauthorized_role"`) ||
+			!strings.Contains(reindexLogOut, `"seam_type":"UNSOUND_CONDITION"`) ||
+			!strings.Contains(reindexLogOut, `"role":"guest"`) ||
+			!strings.Contains(reindexLogOut, `"correlationId":"corr-reindex-rbac"`) {
+			t.Fatalf("expected structured ai_ask.reindex.unauthorized_role log, got: %s", reindexLogOut)
+		}
+
+		// Unauthenticated client fails closed
+		rawClient := ai_askv1connect.NewAskServiceClient(h2cHTTP, baseURL, connect.WithGRPC())
+		_, uErr := rawClient.GetAskStatus(context.Background(), connect.NewRequest(&ai_askv1.GetAskStatusRequest{}))
+		var unauthErr *connect.Error
+		if !errors.As(uErr, &unauthErr) || unauthErr.Code() != connect.CodeUnauthenticated {
+			t.Fatalf("expected CodeUnauthenticated, got %v", uErr)
+		}
+
+		// Concurrent preamble + main RAG streams pass -race cleanly
+		var wg sync.WaitGroup
+		for idx := range 4 {
+			wg.Add(1)
+			go func(i int) {
+				defer wg.Done()
+				c := ai_askv1connect.NewAskServiceClient(
+					h2cHTTP,
+					baseURL,
+					connect.WithGRPC(),
+					connect.WithInterceptors(grpckit.NewClientAuthInterceptor(grpckit.ClientAuthConfig{
+						Role: internalauth.RoleGuest, Subject: "grpc-race-" + string(rune('a'+i)), Secret: secret, TTL: time.Minute,
+					})),
+				)
+				rStream, rErr := c.StreamAsk(context.Background(), connect.NewRequest(&ai_askv1.StreamAskRequest{
+					Mode:     "qa",
+					Question: "Explain concurrent preamble streaming safety",
+				}))
+				if rErr != nil {
+					t.Errorf("concurrent StreamAsk %d: %v", i, rErr)
+					return
+				}
+				defer rStream.Close()
+				for rStream.Receive() {
+				}
+				if rStream.Err() != nil {
+					t.Errorf("concurrent StreamAsk %d recv: %v", i, rStream.Err())
+				}
+			}(idx)
+		}
+		wg.Wait()
 	})
 
 	t.Run("Active stream renews lease and returns 409 on concurrent in-flight duplicate attemptId", func(t *testing.T) {

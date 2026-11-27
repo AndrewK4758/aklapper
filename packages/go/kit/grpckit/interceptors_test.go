@@ -2,13 +2,20 @@ package grpckit
 
 import (
 	"context"
+	"errors"
+	"io"
 	"log"
-	"net"
+	"net/http"
 	"strings"
 	"testing"
 	"time"
 
+	"connectrpc.com/connect"
+	"github.com/AndrewK4758/aklapper/packages/go/kit/contracts"
 	ai_askv1 "github.com/AndrewK4758/aklapper/packages/go/kit/gen/ai_ask/v1"
+	"github.com/AndrewK4758/aklapper/packages/go/kit/gen/ai_ask/v1/ai_askv1connect"
+	commonv1 "github.com/AndrewK4758/aklapper/packages/go/kit/gen/common/v1"
+	"github.com/AndrewK4758/aklapper/packages/go/kit/httpkit"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/internalauth"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -16,174 +23,369 @@ import (
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
-	"google.golang.org/grpc/test/bufconn"
 )
 
-type testAskServer struct {
-	ai_askv1.UnimplementedAskServiceServer
-	called bool
+type testAskHandler struct {
+	ai_askv1connect.UnimplementedAskServiceHandler
+	called        bool
+	returnPermErr bool
 }
 
-func (s *testAskServer) GetTurn(ctx context.Context, req *ai_askv1.GetTurnRequest) (*ai_askv1.GetTurnResponse, error) {
+func (s *testAskHandler) GetTurn(
+	ctx context.Context,
+	req *connect.Request[ai_askv1.GetTurnRequest],
+) (*connect.Response[ai_askv1.GetTurnResponse], error) {
 	s.called = true
 	claims, ok := ClaimsFromContext(ctx)
 	if !ok || claims == nil {
-		return nil, status.Error(codes.Internal, "missing claims")
+		return nil, connect.NewError(connect.CodeInternal, errors.New("missing claims"))
 	}
-	return &ai_askv1.GetTurnResponse{
-		AttemptId:     req.GetAttemptId(),
+	if s.returnPermErr {
+		return nil, NewDetailedConnectError(
+			connect.CodePermissionDenied,
+			ToProtoPublicError(&contracts.PublicAppError{
+				Code:          contracts.ErrCodeForbidden,
+				Status:        http.StatusForbidden,
+				Message:       "Permission denied for action.",
+				Action:        "Return home or sign in again.",
+				CorrelationID: CorrelationIDFromContext(ctx),
+			}),
+			nil,
+		)
+	}
+	return connect.NewResponse(&ai_askv1.GetTurnResponse{
+		AttemptId:     req.Msg.GetAttemptId(),
 		Status:        "completed",
 		CorrelationId: CorrelationIDFromContext(ctx),
-	}, nil
+	}), nil
 }
 
-func (s *testAskServer) StreamAsk(req *ai_askv1.StreamAskRequest, stream grpc.ServerStreamingServer[ai_askv1.AskStreamChunk]) error {
+func (s *testAskHandler) StreamAsk(
+	ctx context.Context,
+	req *connect.Request[ai_askv1.StreamAskRequest],
+	stream *connect.ServerStream[ai_askv1.AskStreamChunk],
+) error {
 	s.called = true
-	claims, ok := ClaimsFromContext(stream.Context())
+	claims, ok := ClaimsFromContext(ctx)
 	if !ok || claims == nil {
-		return status.Error(codes.Internal, "missing stream claims")
+		return connect.NewError(connect.CodeInternal, errors.New("missing stream claims"))
+	}
+	if s.returnPermErr {
+		return connect.NewError(connect.CodePermissionDenied, errors.New("stream forbidden"))
 	}
 	return stream.Send(&ai_askv1.AskStreamChunk{
 		Payload: &ai_askv1.AskStreamChunk_Meta{
 			Meta: &ai_askv1.AskStreamMeta{
-				AttemptId:     req.GetAttemptId(),
-				CorrelationId: CorrelationIDFromContext(stream.Context()),
+				AttemptId:     req.Msg.GetAttemptId(),
+				CorrelationId: CorrelationIDFromContext(ctx),
 				Mode:          claims.Role,
 			},
 		},
 	})
 }
 
-func TestGRPCAuthAndCorrelationInterceptors(t *testing.T) {
+func startTestH2CServer(t *testing.T, mux *http.ServeMux) string {
+	t.Helper()
+	ctx, cancel := context.WithCancel(context.Background())
+	readyCh := make(chan string, 1)
+	doneCh := make(chan error, 1)
+	go func() {
+		doneCh <- httpkit.ListenAndServeH2CGraceful(ctx, httpkit.H2CServerConfig{
+			Addr:            "127.0.0.1:0",
+			Handler:         mux,
+			ShutdownTimeout: 2 * time.Second,
+			OnReady:         func(addr string) { readyCh <- addr },
+		})
+	}()
+	addr := <-readyCh
+	t.Cleanup(func() {
+		cancel()
+		<-doneCh
+	})
+	return addr
+}
+
+func TestConnectGRPCAuthMiddlewareAndWireInterop(t *testing.T) {
 	const secret = "grpc-unit-secret"
+	t.Setenv("INTERNAL_AUTH_SECRET", secret)
 	var logs strings.Builder
 	prevOut := log.Writer()
 	log.SetOutput(&logs)
 	defer log.SetOutput(prevOut)
 
-	lis := bufconn.Listen(1024 * 1024)
-	srv, _ := NewServer(secret, "ai_ask.v1.AskService")
-	impl := &testAskServer{}
-	ai_askv1.RegisterAskServiceServer(srv, impl)
-	go func() { _ = srv.Serve(lis) }()
-	t.Cleanup(srv.Stop)
+	impl := &testAskHandler{}
+	mux := http.NewServeMux()
+	healthPath, healthHandler := NewHealthHandler("ai_ask.v1.AskService")
+	mux.Handle(healthPath, healthHandler)
+	askPath, askHandler := ai_askv1connect.NewAskServiceHandler(impl, NewHandlerOptions(secret)...)
+	mux.Handle(askPath, NewGRPCOnlyMiddleware(askHandler))
 
-	dial := func(opts ...grpc.DialOption) *grpc.ClientConn {
-		base := []grpc.DialOption{
-			grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) { return lis.Dial() }),
-			grpc.WithTransportCredentials(insecure.NewCredentials()),
-		}
-		conn, err := grpc.NewClient("passthrough:///bufnet", append(base, opts...)...)
+	addr := startTestH2CServer(t, mux)
+	baseURL := "http://" + addr
+	h2cHTTP := NewH2CClient()
+	t.Cleanup(h2cHTTP.CloseIdleConnections)
+
+	t.Run("Health check succeeds without auth via native grpc-go client", func(t *testing.T) {
+		conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 		if err != nil {
 			t.Fatalf("grpc.NewClient: %v", err)
 		}
-		t.Cleanup(func() { _ = conn.Close() })
-		return conn
-	}
+		defer conn.Close()
 
-	t.Run("Health check succeeds without auth", func(t *testing.T) {
-		conn := dial()
 		hc := healthpb.NewHealthClient(conn)
-		res, err := hc.Check(context.Background(), &healthpb.HealthCheckRequest{Service: "ai_ask.v1.AskService"})
-		if err != nil || res.GetStatus() != healthpb.HealthCheckResponse_SERVING {
-			t.Fatalf("expected SERVING without auth, got res=%v err=%v", res, err)
+		for _, svc := range []string{"", "ai_ask.v1.AskService"} {
+			res, err := hc.Check(context.Background(), &healthpb.HealthCheckRequest{Service: svc})
+			if err != nil || res.GetStatus() != healthpb.HealthCheckResponse_SERVING {
+				t.Fatalf("expected SERVING for %q without auth, got res=%v err=%v", svc, res, err)
+			}
 		}
 	})
 
-	t.Run("Authenticated client interceptors propagate claims and correlation ID", func(t *testing.T) {
-		cfg := ClientAuthConfig{Role: internalauth.RoleGuest, Subject: "guest-1", Secret: secret, TTL: time.Minute}
-		conn := dial(
-			grpc.WithUnaryInterceptor(UnaryClientAuthInterceptor(cfg)),
-			grpc.WithStreamInterceptor(StreamClientAuthInterceptor(cfg)),
-		)
-		client := ai_askv1.NewAskServiceClient(conn)
+	t.Run("Health Watch fails closed with Unauthenticated without HMAC and Unimplemented with valid HMAC", func(t *testing.T) {
+		conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+		if err != nil {
+			t.Fatalf("grpc.NewClient: %v", err)
+		}
+		defer conn.Close()
 
-		ctx := metadata.NewOutgoingContext(context.Background(), metadata.Pairs(MetadataCorrelationID, "corr-grpc-01"))
-		var header metadata.MD
-		resp, err := client.GetTurn(ctx, &ai_askv1.GetTurnRequest{AttemptId: "att-1"}, grpc.Header(&header))
+		hc := healthpb.NewHealthClient(conn)
+
+		// 1. Unauthenticated /grpc.health.v1.Health/Watch must be rejected with Unauthenticated.
+		unauthCtx, unauthCancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer unauthCancel()
+		unauthStream, watchErr := hc.Watch(unauthCtx, &healthpb.HealthCheckRequest{Service: ""})
+		if watchErr == nil {
+			_, watchErr = unauthStream.Recv()
+		}
+		if status.Code(watchErr) != codes.Unauthenticated {
+			t.Fatalf("expected Unauthenticated on unauthenticated Health/Watch, got code=%v err=%v", status.Code(watchErr), watchErr)
+		}
+
+		// 2. Authenticated /grpc.health.v1.Health/Watch must fail closed with Unimplemented.
+		tok, signErr := internalauth.Sign(internalauth.RoleService, "health-watch-probe", time.Minute, secret)
+		if signErr != nil {
+			t.Fatalf("internalauth.Sign: %v", signErr)
+		}
+		authCtx, authCancel := context.WithTimeout(
+			metadata.AppendToOutgoingContext(context.Background(), MetadataInternalAuth, tok),
+			2*time.Second,
+		)
+		defer authCancel()
+		authStream, authWatchErr := hc.Watch(authCtx, &healthpb.HealthCheckRequest{Service: "ai_ask.v1.AskService"})
+		if authWatchErr == nil {
+			_, authWatchErr = authStream.Recv()
+		}
+		if status.Code(authWatchErr) != codes.Unimplemented {
+			t.Fatalf("expected Unimplemented on authenticated Health/Watch, got code=%v err=%v", status.Code(authWatchErr), authWatchErr)
+		}
+
+		// 3. /grpc.health.v1.Health/Check without auth still returns SERVING.
+		checkRes, checkErr := hc.Check(context.Background(), &healthpb.HealthCheckRequest{Service: "ai_ask.v1.AskService"})
+		if checkErr != nil || checkRes.GetStatus() != healthpb.HealthCheckResponse_SERVING {
+			t.Fatalf("expected SERVING on Health/Check after Watch checks, got res=%v err=%v", checkRes, checkErr)
+		}
+	})
+
+	t.Run("Strict gRPC-only middleware rejects non-POST with 405 and disallowed media types with 415", func(t *testing.T) {
+		rpcURL := baseURL + ai_askv1connect.AskServiceGetTurnProcedure
+		getRes, err := http.Get(rpcURL)
+		if err != nil {
+			t.Fatalf("GET rpc: %v", err)
+		}
+		_, _ = io.Copy(io.Discard, getRes.Body)
+		_ = getRes.Body.Close()
+		if getRes.StatusCode != http.StatusMethodNotAllowed || getRes.Header.Get("Allow") != http.MethodPost {
+			t.Fatalf("expected 405 + Allow: POST on GET, got status=%d allow=%q", getRes.StatusCode, getRes.Header.Get("Allow"))
+		}
+
+		disallowed := []string{
+			"",
+			"application/json",
+			"application/connect+json",
+			"application/connect+proto",
+			"application/grpc-web",
+			"application/grpc-web+proto",
+			"application/grpc-web-text",
+			"application/grpc+json",
+		}
+		for _, ct := range disallowed {
+			impl.called = false
+			req, _ := http.NewRequest(http.MethodPost, rpcURL, strings.NewReader("{}"))
+			if ct != "" {
+				req.Header.Set("Content-Type", ct)
+			}
+			res, err := http.DefaultClient.Do(req)
+			if err != nil {
+				t.Fatalf("POST %q: %v", ct, err)
+			}
+			_, _ = io.Copy(io.Discard, res.Body)
+			_ = res.Body.Close()
+			if res.StatusCode != http.StatusUnsupportedMediaType || impl.called {
+				t.Fatalf("Content-Type %q: expected 415 without handler invocation, got status=%d called=%v", ct, res.StatusCode, impl.called)
+			}
+		}
+		if !strings.Contains(logs.String(), "grpc.protocol.unsupported_media_type") {
+			t.Fatalf("expected UNSOUND_CONDITION grpc.protocol.unsupported_media_type log, got %s", logs.String())
+		}
+	})
+
+	t.Run("Authenticated unary and streaming RPCs propagate claims and echo x-correlation-id", func(t *testing.T) {
+		cfg := ClientAuthConfig{Role: internalauth.RoleGuest, Subject: "guest-1", Secret: secret, TTL: time.Minute}
+		client := ai_askv1connect.NewAskServiceClient(
+			h2cHTTP,
+			baseURL,
+			connect.WithGRPC(),
+			connect.WithInterceptors(NewClientAuthInterceptor(cfg)),
+		)
+
+		req := connect.NewRequest(&ai_askv1.GetTurnRequest{AttemptId: "att-1"})
+		req.Header().Set(MetadataCorrelationID, "corr-grpc-01")
+		resp, err := client.GetTurn(context.Background(), req)
 		if err != nil {
 			t.Fatalf("GetTurn failed: %v", err)
 		}
-		if resp.GetCorrelationId() != "corr-grpc-01" {
-			t.Fatalf("expected corr-grpc-01, got %q", resp.GetCorrelationId())
+		if resp.Msg.GetCorrelationId() != "corr-grpc-01" {
+			t.Fatalf("expected corr-grpc-01 in body, got %q", resp.Msg.GetCorrelationId())
 		}
-		if got := header.Get(MetadataCorrelationID); len(got) != 1 || got[0] != "corr-grpc-01" {
-			t.Fatalf("expected response header x-correlation-id=corr-grpc-01, got %#v", got)
+		if got := resp.Header().Get(MetadataCorrelationID); got != "corr-grpc-01" {
+			t.Fatalf("expected response header x-correlation-id=corr-grpc-01, got %q", got)
 		}
 
-		stream, err := client.StreamAsk(ctx, &ai_askv1.StreamAskRequest{AttemptId: "att-2", Question: "hello"})
+		sReq := connect.NewRequest(&ai_askv1.StreamAskRequest{AttemptId: "att-2", Question: "hello"})
+		sReq.Header().Set(MetadataCorrelationID, "corr-grpc-02")
+		stream, err := client.StreamAsk(context.Background(), sReq)
 		if err != nil {
 			t.Fatalf("StreamAsk failed: %v", err)
 		}
-		chunk, err := stream.Recv()
-		if err != nil || chunk.GetMeta().GetCorrelationId() != "corr-grpc-01" || chunk.GetMeta().GetMode() != "guest" {
-			t.Fatalf("unexpected stream chunk: %+v err=%v", chunk, err)
+		defer stream.Close()
+		if !stream.Receive() {
+			t.Fatalf("expected stream chunk, err=%v", stream.Err())
+		}
+		meta := stream.Msg().GetMeta()
+		if meta == nil || meta.GetCorrelationId() != "corr-grpc-02" || meta.GetMode() != "guest" {
+			t.Fatalf("unexpected stream meta: %+v", meta)
+		}
+		if got := stream.ResponseHeader().Get(MetadataCorrelationID); got != "corr-grpc-02" {
+			t.Fatalf("expected stream response header x-correlation-id=corr-grpc-02, got %q", got)
 		}
 	})
 
-	t.Run("Missing, duplicate, expired, and forged x-internal-auth fail closed with Unauthenticated", func(t *testing.T) {
-		conn := dial()
-		client := ai_askv1.NewAskServiceClient(conn)
+	t.Run("Auth failures and handler errors both echo x-correlation-id and attach ErrorDetailEnvelope", func(t *testing.T) {
+		rawClient := ai_askv1connect.NewAskServiceClient(h2cHTTP, baseURL, connect.WithGRPC())
 		validTok, _ := internalauth.Sign(internalauth.RoleGuest, "g-1", time.Minute, secret)
 		expiredTok, _ := internalauth.SignWithClock(internalauth.RoleGuest, "g-1", time.Now().Add(-5*time.Minute), time.Minute, secret)
 
 		cases := []struct {
 			name string
-			md   metadata.MD
+			vals []string
 		}{
-			{"missing", metadata.New(nil)},
-			{"duplicate", metadata.Pairs(MetadataInternalAuth, validTok, MetadataInternalAuth, validTok)},
-			{"expired", metadata.Pairs(MetadataInternalAuth, expiredTok)},
-			{"forged", metadata.Pairs(MetadataInternalAuth, validTok+"tamper")},
+			{"missing", nil},
+			{"duplicate", []string{validTok, validTok}},
+			{"expired", []string{expiredTok}},
+			{"forged", []string{validTok + "tamper"}},
 		}
 		for _, tc := range cases {
 			impl.called = false
-			ctx := metadata.NewOutgoingContext(context.Background(), tc.md)
-			_, err := client.GetTurn(ctx, &ai_askv1.GetTurnRequest{AttemptId: "att-x"})
-			if status.Code(err) != codes.Unauthenticated || impl.called {
-				t.Fatalf("case %s unary: expected Unauthenticated without handler call, got err=%v called=%v", tc.name, err, impl.called)
+			req := connect.NewRequest(&ai_askv1.GetTurnRequest{AttemptId: "att-x"})
+			req.Header().Set(MetadataCorrelationID, "corr-auth-"+tc.name)
+			for _, v := range tc.vals {
+				req.Header().Add(MetadataInternalAuth, v)
+			}
+			_, err := rawClient.GetTurn(context.Background(), req)
+			var cErr *connect.Error
+			if !errors.As(err, &cErr) || cErr.Code() != connect.CodeUnauthenticated || impl.called {
+				t.Fatalf("case %s unary: expected CodeUnauthenticated without handler call, got err=%v called=%v", tc.name, err, impl.called)
+			}
+			if got := cErr.Meta().Get(MetadataCorrelationID); got != "corr-auth-"+tc.name {
+				t.Fatalf("case %s unary: expected echoed correlation ID in error meta, got %q", tc.name, got)
 			}
 
 			impl.called = false
-			st, sErr := client.StreamAsk(ctx, &ai_askv1.StreamAskRequest{AttemptId: "att-y"})
+			sReq := connect.NewRequest(&ai_askv1.StreamAskRequest{AttemptId: "att-y"})
+			sReq.Header().Set(MetadataCorrelationID, "corr-sauth-"+tc.name)
+			for _, v := range tc.vals {
+				sReq.Header().Add(MetadataInternalAuth, v)
+			}
+			st, sErr := rawClient.StreamAsk(context.Background(), sReq)
 			if sErr == nil {
-				_, sErr = st.Recv()
+				st.Receive()
+				sErr = st.Err()
+				_ = st.Close()
 			}
-			if status.Code(sErr) != codes.Unauthenticated || impl.called {
-				t.Fatalf("case %s stream: expected Unauthenticated without handler call, got err=%v called=%v", tc.name, sErr, impl.called)
+			var sCErr *connect.Error
+			if !errors.As(sErr, &sCErr) || sCErr.Code() != connect.CodeUnauthenticated || impl.called {
+				t.Fatalf("case %s stream: expected CodeUnauthenticated without handler call, got err=%v called=%v", tc.name, sErr, impl.called)
 			}
+			if got := sCErr.Meta().Get(MetadataCorrelationID); got != "corr-sauth-"+tc.name {
+				t.Fatalf("case %s stream: expected echoed correlation ID in error meta, got %q", tc.name, got)
+			}
+		}
+
+		// Handler-returned PermissionDenied also echoes x-correlation-id and decodes ErrorDetailEnvelope.
+		impl.returnPermErr = true
+		defer func() { impl.returnPermErr = false }()
+		authClient := ai_askv1connect.NewAskServiceClient(
+			h2cHTTP,
+			baseURL,
+			connect.WithGRPC(),
+			connect.WithInterceptors(NewClientAuthInterceptor(ClientAuthConfig{
+				Role: internalauth.RoleGuest, Subject: "g-perm", Secret: secret, TTL: time.Minute,
+			})),
+		)
+
+		permReq := connect.NewRequest(&ai_askv1.GetTurnRequest{AttemptId: "att-perm"})
+		permReq.Header().Set(MetadataCorrelationID, "corr-perm-unary")
+		_, err := authClient.GetTurn(context.Background(), permReq)
+		var permErr *connect.Error
+		if !errors.As(err, &permErr) || permErr.Code() != connect.CodePermissionDenied {
+			t.Fatalf("expected CodePermissionDenied, got %v", err)
+		}
+		if got := permErr.Meta().Get(MetadataCorrelationID); got != "corr-perm-unary" {
+			t.Fatalf("expected echoed correlation ID on handler error meta, got %q", got)
+		}
+		if len(permErr.Details()) != 1 {
+			t.Fatalf("expected 1 ErrorDetailEnvelope detail, got %d", len(permErr.Details()))
+		}
+		val, valErr := permErr.Details()[0].Value()
+		env, ok := val.(*commonv1.ErrorDetailEnvelope)
+		if valErr != nil || !ok || env.GetError().GetCode() != contracts.ErrCodeForbidden {
+			t.Fatalf("expected decoded common.v1.ErrorDetailEnvelope ERR_FORBIDDEN, got %+v err=%v", val, valErr)
+		}
+
+		sPermReq := connect.NewRequest(&ai_askv1.StreamAskRequest{AttemptId: "att-sperm"})
+		sPermReq.Header().Set(MetadataCorrelationID, "corr-perm-stream")
+		sPerm, sPermErr := authClient.StreamAsk(context.Background(), sPermReq)
+		if sPermErr == nil {
+			sPerm.Receive()
+			sPermErr = sPerm.Err()
+			_ = sPerm.Close()
+		}
+		var sPermCErr *connect.Error
+		if !errors.As(sPermErr, &sPermCErr) || sPermCErr.Code() != connect.CodePermissionDenied {
+			t.Fatalf("expected stream CodePermissionDenied, got %v", sPermErr)
+		}
+		if got := sPermCErr.Meta().Get(MetadataCorrelationID); got != "corr-perm-stream" {
+			t.Fatalf("expected echoed correlation ID on stream handler error meta, got %q", got)
 		}
 	})
 
 	t.Run("Malformed x-correlation-id is replaced with UUIDv4 and emits UNSOUND_CONDITION", func(t *testing.T) {
-		conn := dial()
-		client := ai_askv1.NewAskServiceClient(conn)
+		rawClient := ai_askv1connect.NewAskServiceClient(h2cHTTP, baseURL, connect.WithGRPC())
 		tok, _ := internalauth.Sign(internalauth.RoleGuest, "g-corr", time.Minute, secret)
-		ctx := metadata.NewOutgoingContext(context.Background(), metadata.Pairs(
-			MetadataInternalAuth, tok,
-			MetadataCorrelationID, "bad header with spaces!!",
-		))
-		resp, err := client.GetTurn(ctx, &ai_askv1.GetTurnRequest{AttemptId: "att-corr"})
+		req := connect.NewRequest(&ai_askv1.GetTurnRequest{AttemptId: "att-corr"})
+		req.Header().Set(MetadataInternalAuth, tok)
+		req.Header().Set(MetadataCorrelationID, "bad header with spaces!!")
+
+		resp, err := rawClient.GetTurn(context.Background(), req)
 		if err != nil {
 			t.Fatalf("GetTurn failed: %v", err)
 		}
-		if resp.GetCorrelationId() == "bad header with spaces!!" || len(resp.GetCorrelationId()) != 36 {
-			t.Fatalf("expected fresh UUIDv4 correlation ID, got %q", resp.GetCorrelationId())
+		if resp.Msg.GetCorrelationId() == "bad header with spaces!!" || !contracts.ValidateUUID(resp.Msg.GetCorrelationId()) {
+			t.Fatalf("expected fresh UUIDv4 correlation ID, got %q", resp.Msg.GetCorrelationId())
 		}
 		logOut := logs.String()
 		if !strings.Contains(logOut, "grpc.auth.rejected") || !strings.Contains(logOut, "grpc.correlation.invalid_header") {
 			t.Fatalf("expected grpc.auth.rejected and grpc.correlation.invalid_header logs, got %s", logOut)
-		}
-	})
-
-	t.Run("GRPCListenAddr returns empty when GRPC_PORT is unset", func(t *testing.T) {
-		t.Setenv("GRPC_PORT", "")
-		if got := GRPCListenAddr(); got != "" {
-			t.Fatalf("expected empty listen addr when GRPC_PORT is empty, got %q", got)
-		}
-		t.Setenv("GRPC_PORT", "9090")
-		if got := GRPCListenAddr(); got != ":9090" {
-			t.Fatalf("expected :9090, got %q", got)
 		}
 	})
 }

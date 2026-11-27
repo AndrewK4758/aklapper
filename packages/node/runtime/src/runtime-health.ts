@@ -9,6 +9,7 @@ import type {
 import { shouldAttachGcpOidcToken } from './gcp-oidc.ts';
 import { isProductionEnv } from './http-hygiene.ts';
 import { proxyJson } from './http.ts';
+import { probeGrpcRuntimeTarget } from './runtime-health-grpc.ts';
 
 export interface RuntimeProbeTarget {
   readonly service: RuntimeServiceName;
@@ -16,6 +17,8 @@ export interface RuntimeProbeTarget {
   readonly localStatus?: RuntimeServiceHealthState;
   readonly detail?: string;
   readonly oidcAuth?: false | 'auto';
+  readonly transport?: 'http' | 'grpc';
+  readonly grpcService?: string;
 }
 
 export interface RuntimeHealthLogger {
@@ -192,6 +195,24 @@ async function probeSingleService(
       host: safeHostLabel(trimmedUrl),
       ...(correlationId ? { correlationId } : {}),
     });
+  }
+
+  if (target.transport === 'grpc') {
+    return probeGrpcRuntimeTarget(
+      {
+        service: target.service,
+        url: trimmedUrl,
+        ...(target.grpcService !== undefined ? { grpcService: target.grpcService } : {}),
+        oidcAuth: targetOidcAuth,
+        timeoutMs,
+        env,
+        fetchImpl,
+        ...(correlationId ? { correlationId } : {}),
+        ...(logger ? { logger } : {}),
+        checkedAt,
+      },
+      runtime,
+    );
   }
 
   const startedAt = Date.now();

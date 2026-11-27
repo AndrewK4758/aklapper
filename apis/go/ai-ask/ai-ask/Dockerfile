@@ -8,6 +8,6 @@ RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/ai-ask 
 FROM gcr.io/distroless/static-debian12:nonroot
 ENV APP_ENV=production
 COPY --from=builder /out/ai-ask /ai-ask
-EXPOSE 8083 9090
+EXPOSE 8083
 USER nonroot:nonroot
 ENTRYPOINT ["/ai-ask"]

@@ -11,8 +11,8 @@ export async function loader({ request, context }: Route.LoaderArgs): Promise<Re
   const snapshot = await probeRuntimeServices({
     services: [
       { service: 'portal', localStatus: 'healthy', detail: 'SSR ready' },
-      { service: 'ai-ask', url: process.env['AI_ASK_URL'] },
-      { service: 'cadence-demo', url: process.env['CADENCE_DEMO_URL'] },
+      { service: 'ai-ask', url: process.env['AI_ASK_URL'], transport: 'grpc' },
+      { service: 'cadence-demo', url: process.env['CADENCE_DEMO_URL'], transport: 'grpc' },
     ],
     timeoutMs: PORTAL_RUNTIME_TIMEOUT_MS,
     ttlMs: PORTAL_RUNTIME_TTL_MS,

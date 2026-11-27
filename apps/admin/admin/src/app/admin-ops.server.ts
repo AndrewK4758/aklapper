@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto';
+
 import {
   type AdminServiceHealth,
   type AppErrorCode,
@@ -5,8 +7,15 @@ import {
   type QdrantHealthStatus,
   QdrantHealthStatusSchema,
 } from '@aklapper/core';
+import {
+  classifyGrpcError,
+  getAskStatus,
+  isFallbackTransportError,
+  triggerReindex,
+} from '@aklapper/node-runtime/grpc';
 import { proxyJson } from '@aklapper/node-runtime/http';
 import { probeRuntimeServices } from '@aklapper/node-runtime/runtime-health';
+import { logDiagnosticError, type SsrStructuredLogger } from '@aklapper/node-runtime/ssr/stream';
 
 export {
   type AuthenticatedAdminContext,
@@ -22,12 +31,6 @@ export function sanitizeDownloadFilename(rawName: string | null | undefined): st
     .trim();
   if (!base) return 'attachment.bin';
   return base.slice(0, 128);
-}
-
-interface RawAiAskStatus {
-  status?: string;
-  provider?: string;
-  collection?: { name?: string; status?: string; pointsCount?: number };
 }
 
 async function probeCollection(
@@ -89,7 +92,11 @@ function toCollectionHealth(entry: QdrantCollectionHealth): QdrantCollectionHeal
 
 export const QDRANT_REINDEX_TIMEOUT_MS = 90_000;
 
-export async function fetchQdrantStatus(): Promise<QdrantHealthStatus> {
+export async function fetchQdrantStatus(
+  correlationId?: string,
+  logger?: SsrStructuredLogger,
+): Promise<QdrantHealthStatus> {
+  const resolvedCorrId = correlationId?.trim() || randomUUID();
   const [aiAskUrl, qdrantUrl, qdrantApiKey] = [
     process.env['AI_ASK_URL']?.trim(),
     process.env['QDRANT_URL']?.trim(),
@@ -99,23 +106,23 @@ export async function fetchQdrantStatus(): Promise<QdrantHealthStatus> {
     QdrantHealthStatusSchema.parse({ collection: 'portfolio_docs', pointsCount: 0, ...p });
 
   if (aiAskUrl) {
-    const res = await proxyJson<RawAiAskStatus>({
-      baseUrl: aiAskUrl,
-      path: '/v1/ask/status',
-      method: 'GET',
-      timeoutMs: 2_500,
-      internalAuth: { role: 'admin', subject: 'admin-console-status' },
-    });
-    if (res.ok && res.data) {
-      const col = res.data.collection;
-      const provider = res.data.provider?.trim() || 'dual-provider';
-      const rawStatus = col?.status ?? res.data.status ?? 'ok';
+    try {
+      const res = await getAskStatus({
+        baseUrl: aiAskUrl,
+        internalAuth: { role: 'admin', subject: 'admin-console-status' },
+        correlationId: resolvedCorrId,
+        timeoutMs: 2_500,
+        ...(logger ? { logger } : {}),
+      });
+      const col = res.collection;
+      const provider = res.provider.trim() || 'dual-provider';
+      const rawStatus = col?.status || res.status || 'ok';
       const bad = new Set(['degraded', 'unreachable', 'offline', 'error']);
-      const online = !(bad.has(res.data.status ?? '') || bad.has(col?.status ?? ''));
+      const online = !(bad.has(res.status) || bad.has(col?.status ?? ''));
       const pointsCount = Number(col?.pointsCount ?? 0);
       const status = online && pointsCount === 0 ? 'degraded' : rawStatus;
       const portfolio: QdrantCollectionHealth = {
-        name: col?.name ?? 'portfolio_docs',
+        name: col?.name || 'portfolio_docs',
         online,
         status,
         pointsCount,
@@ -139,6 +146,20 @@ export async function fetchQdrantStatus(): Promise<QdrantHealthStatus> {
             : `Connected via ai-ask (${provider}).`,
         collections,
       });
+    } catch (error) {
+      const failure = classifyGrpcError(error, {
+        correlationId: resolvedCorrId,
+        source: 'admin.ops.qdrant_status',
+        ...(logger ? { logger } : {}),
+      });
+      if (!isFallbackTransportError(failure)) {
+        return parse({
+          online: false,
+          status: 'error',
+          provider: 'ai-ask',
+          detail: failure.publicError.message,
+        });
+      }
     }
   }
   if (!qdrantUrl) {
@@ -179,77 +200,91 @@ export interface ReindexResult {
   message: string;
   status?: number;
   code?: AppErrorCode;
+  action?: string;
+  correlationId?: string;
 }
 
-interface RawReindexResponse {
-  indexed?: number;
-  collection?: string;
-  provider?: string;
-  code?: string;
-  error?: string;
-  message?: string;
-}
-
-export async function triggerQdrantReindex(): Promise<ReindexResult> {
+export async function triggerQdrantReindex(
+  correlationId?: string,
+  logger?: SsrStructuredLogger,
+  source = 'admin.ops.reindex',
+): Promise<ReindexResult> {
+  const resolvedCorrId = correlationId?.trim() || randomUUID();
   const aiAskUrl = process.env['AI_ASK_URL']?.trim();
   if (!aiAskUrl) {
+    if (logger) {
+      logDiagnosticError(logger, {
+        code: 'ERR_UPSTREAM_UNAVAILABLE',
+        status: 503,
+        severity: 'ERROR',
+        reasoning: 'AI_ASK_URL is not configured for Qdrant re-indexing',
+        correlationId: resolvedCorrId,
+        source,
+      });
+    }
     return {
       ok: false,
       indexed: 0,
       collection: 'portfolio_docs',
       status: 503,
       code: 'ERR_UPSTREAM_UNAVAILABLE',
-      message: 'AI_ASK_URL is not configured; start svc-ai-ask to run Qdrant re-indexing.',
+      message: 'Upstream service unreachable.',
+      action: 'Retry shortly or go home.',
+      correlationId: resolvedCorrId,
     };
   }
 
-  const result = await proxyJson<RawReindexResponse>({
-    baseUrl: aiAskUrl,
-    path: '/v1/ask/reindex',
-    method: 'POST',
-    body: {},
-    timeoutMs: QDRANT_REINDEX_TIMEOUT_MS,
-    internalAuth: {
-      role: 'admin',
-      subject: 'admin-console-reindex',
-    },
-  });
-
-  if (!result.ok || !result.data) {
-    const isConflict = result.status === 409;
+  try {
+    const res = await triggerReindex({
+      baseUrl: aiAskUrl,
+      internalAuth: {
+        role: 'admin',
+        subject: 'admin-console-reindex',
+      },
+      correlationId: resolvedCorrId,
+      timeoutMs: QDRANT_REINDEX_TIMEOUT_MS,
+      ...(logger ? { logger } : {}),
+    });
+    const indexed = Number(res.indexed ?? 0);
+    const collection = res.collection || 'portfolio_docs';
+    return {
+      ok: true,
+      indexed,
+      collection,
+      message: `Re-indexed ${indexed} documents into ${collection}.`,
+    };
+  } catch (error) {
+    const failure = classifyGrpcError(error, {
+      correlationId: resolvedCorrId,
+      source,
+      normalizeUnavailableStatus: 503,
+      ...(logger ? { logger } : {}),
+    });
     return {
       ok: false,
       indexed: 0,
       collection: 'portfolio_docs',
-      status: isConflict ? 409 : result.status || 503,
-      code: isConflict ? 'ERR_CONSTRAINT' : 'ERR_UPSTREAM_UNAVAILABLE',
-      message:
-        result.data?.message ??
-        result.data?.error ??
-        result.error ??
-        (isConflict ? 'A Qdrant re-index is already running.' : 'Qdrant re-index request failed.'),
+      status: failure.publicError.status,
+      code: failure.publicError.code,
+      message: failure.publicError.message,
+      action: failure.publicError.action,
+      correlationId: failure.publicError.correlationId,
     };
   }
-
-  const indexed = Number(result.data.indexed ?? 0);
-  const collection = result.data.collection ?? 'portfolio_docs';
-  return {
-    ok: true,
-    indexed,
-    collection,
-    message: `Re-indexed ${indexed} documents into ${collection}.`,
-  };
 }
 
-export async function probePublicClusterHealth(): Promise<AdminServiceHealth> {
+export async function probePublicClusterHealth(
+  correlationId?: string,
+): Promise<AdminServiceHealth> {
   const snapshot = await probeRuntimeServices({
     services: [
-      { service: 'ai-ask', url: process.env['AI_ASK_URL'] },
-      { service: 'cadence-demo', url: process.env['CADENCE_DEMO_URL'] },
+      { service: 'ai-ask', url: process.env['AI_ASK_URL'], transport: 'grpc' },
+      { service: 'cadence-demo', url: process.env['CADENCE_DEMO_URL'], transport: 'grpc' },
     ],
     timeoutMs: 1_500,
     ttlMs: 30_000,
     cacheKey: 'admin-overview-runtime',
+    ...(correlationId ? { correlationId } : {}),
   });
   const configured = snapshot.services.filter(item => item.status !== 'unconfigured');
   if (configured.length === 0) {
@@ -268,13 +303,16 @@ export async function probePublicClusterHealth(): Promise<AdminServiceHealth> {
   };
 }
 
-export async function buildOverviewHealthSummary(): Promise<{
+export async function buildOverviewHealthSummary(
+  correlationId?: string,
+  logger?: SsrStructuredLogger,
+): Promise<{
   qdrantHealth: AdminServiceHealth;
   portfolioPublicHealth: AdminServiceHealth;
 }> {
   const [qdrant, portfolioPublicHealth] = await Promise.all([
-    fetchQdrantStatus(),
-    probePublicClusterHealth(),
+    fetchQdrantStatus(correlationId, logger),
+    probePublicClusterHealth(correlationId),
   ]);
 
   const hasQdrantConfig = Boolean(

@@ -28,8 +28,9 @@ import {
   QdrantRuntimeStatusBody,
 } from '#pages/ops';
 
-import { fetchQdrantStatus, requireAdminSession, triggerQdrantReindex } from '../admin-ops.server';
+import { fetchQdrantStatus, requireAdminSession } from '../admin-ops.server';
 import { reportAdminPublicError } from '../client-telemetry';
+import { handleReindexQdrantIntent } from '../cms-reindex-privacy.server';
 import { buildAdminPageMeta } from '../seo';
 import type { Route } from './+types/ops';
 
@@ -41,6 +42,7 @@ export interface AdminOpsStreamData {
 
 export async function loader({ request, context }: Route.LoaderArgs): Promise<AdminOpsStreamData> {
   const correlationId = getOrCreateCorrelationId(request, context);
+  const reqCtx = getRequestContext(context);
   await requireAdminSession(request, { context, source: 'admin.ops.loader' });
 
   return {
@@ -55,7 +57,7 @@ export async function loader({ request, context }: Route.LoaderArgs): Promise<Ad
       })(),
       { request, context, source: 'admin.ops.loader' },
     ),
-    qdrantStatusPayload: deferStreamResult(fetchQdrantStatus(), {
+    qdrantStatusPayload: deferStreamResult(fetchQdrantStatus(correlationId, reqCtx?.logger), {
       request,
       context,
       source: 'admin.ops.qdrant',
@@ -121,33 +123,12 @@ export async function action({ request, context }: Route.ActionArgs) {
     }
 
     if (intent === 'reindex-qdrant') {
-      const result = await triggerQdrantReindex();
-      if (result.ok) {
-        return data<AdminOpsActionData>(
-          { ok: true, message: result.message },
-          { status: 200, headers },
-        );
-      }
-      const upstreamError = Object.assign(new Error(result.message), {
-        status: 503,
-        statusText: 'Service Unavailable',
-        data: null,
-      });
-      const { publicError, diagnostic } = classifyServerError(upstreamError, {
+      const outcome = await handleReindexQdrantIntent(
         correlationId,
-        source: 'admin.ops.action.reindex_qdrant',
-      });
-      logDiagnosticError(logger, diagnostic);
-      return data<AdminOpsActionData>(
-        {
-          ok: false,
-          message: publicError.message,
-          code: publicError.code,
-          action: publicError.action,
-          correlationId: publicError.correlationId,
-        },
-        { status: publicError.status, headers },
+        logger,
+        'admin.ops.action.reindex_qdrant',
       );
+      return data<AdminOpsActionData>(outcome.payload, { status: outcome.status, headers });
     }
 
     return data<AdminOpsActionData>(

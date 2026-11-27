@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package common.v1;
+
+option go_package = "github.com/AndrewK4758/aklapper/packages/go/kit/gen/common/v1;commonv1";
+
+message PublicAppError {
+  string code = 1;
+  int32 status = 2;
+  string message = 3;
+  string action = 4;
+  string correlation_id = 5;
+}
+
+message QuotaStatus {
+  string role = 1;
+  int32 turns_used = 2;
+  int32 max_turns = 3;
+  int32 tokens_used = 4;
+  int32 max_tokens = 5;
+}
+
+message ErrorDetailEnvelope {
+  PublicAppError error = 1;
+  QuotaStatus quota = 2;
+}

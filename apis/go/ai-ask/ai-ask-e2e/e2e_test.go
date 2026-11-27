@@ -5,22 +5,22 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
-	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
 
+	"connectrpc.com/connect"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/contracts"
 	ai_askv1 "github.com/AndrewK4758/aklapper/packages/go/kit/gen/ai_ask/v1"
+	"github.com/AndrewK4758/aklapper/packages/go/kit/gen/ai_ask/v1/ai_askv1connect"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/grpckit"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/httpkit"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/httpkit/e2etest"
@@ -214,14 +214,13 @@ func TestAiAskEndToEnd(t *testing.T) {
 
 	const secret = "e2e-ai-ask-secret"
 	runSuffix := randomRunSuffix(t)
-	grpcPort := e2etest.ReservePort(t)
 	baseURL := e2etest.StartBinary(
 		t,
 		"../ai-ask",
 		"APP_ENV=production",
 		"AI_PROVIDER=local",
 		"INTERNAL_AUTH_SECRET="+secret,
-		"GRPC_PORT="+strconv.Itoa(grpcPort),
+		"GRPC_PORT=",
 		"AI_PRIVACY_DENYLIST=[\"Project-Mercury-NDA\"]",
 		"DOSSIER_PRIVACY_DENYLIST=",
 		"VERTEX_THINKING_LEVEL=",
@@ -386,7 +385,7 @@ func TestAiAskEndToEnd(t *testing.T) {
 		}
 	})
 
-	t.Run("POST /v1/ask/stream SSE redacts split denylist and live gRPC StreamAsk + health work over GRPC_PORT", func(t *testing.T) {
+	t.Run("Single-port $PORT multiplexes legacy HTTP SSE, ConnectRPC AskService, and native grpc-go Health/Check", func(t *testing.T) {
 		headers := guestHeaders(t, "e2e-stream-guest-"+runSuffix, secret)
 		headers["Content-Type"] = "application/json"
 		resSSE, rawSSE := e2etest.DoRequest(
@@ -402,50 +401,88 @@ func TestAiAskEndToEnd(t *testing.T) {
 			t.Fatalf("expected redacted SSE stream with done event, got:\n%s", sseText)
 		}
 
-		cfg := grpckit.ClientAuthConfig{Role: internalauth.RoleGuest, Subject: "e2e-grpc-guest-" + runSuffix, Secret: secret, TTL: time.Minute}
+		// Native google.golang.org/grpc client wire interoperability against single-port h2c Health/Check.
+		parsedBase, err := url.Parse(baseURL)
+		if err != nil {
+			t.Fatalf("parse baseURL: %v", err)
+		}
 		conn, err := grpc.NewClient(
-			fmt.Sprintf("127.0.0.1:%d", grpcPort),
+			parsedBase.Host,
 			grpc.WithTransportCredentials(insecure.NewCredentials()),
-			grpc.WithUnaryInterceptor(grpckit.UnaryClientAuthInterceptor(cfg)),
-			grpc.WithStreamInterceptor(grpckit.StreamClientAuthInterceptor(cfg)),
 		)
 		if err != nil {
-			t.Fatalf("dial live gRPC: %v", err)
+			t.Fatalf("dial live single-port gRPC: %v", err)
 		}
 		t.Cleanup(func() { _ = conn.Close() })
 
 		hc := healthpb.NewHealthClient(conn)
 		hRes, err := hc.Check(context.Background(), &healthpb.HealthCheckRequest{Service: "ai_ask.v1.AskService"})
 		if err != nil || hRes.GetStatus() != healthpb.HealthCheckResponse_SERVING {
-			t.Fatalf("live gRPC health check failed: res=%v err=%v", hRes, err)
+			t.Fatalf("live single-port gRPC health check failed: res=%v err=%v", hRes, err)
 		}
 
-		askClient := ai_askv1.NewAskServiceClient(conn)
-		st, err := askClient.StreamAsk(context.Background(), &ai_askv1.StreamAskRequest{
-			Mode: "qa", Question: "Stream over native gRPC",
-		})
+		// ConnectRPC gRPC client over single-port h2c.
+		h2cHTTP := grpckit.NewH2CClient()
+		t.Cleanup(h2cHTTP.CloseIdleConnections)
+		cfg := grpckit.ClientAuthConfig{Role: internalauth.RoleGuest, Subject: "e2e-grpc-guest-" + runSuffix, Secret: secret, TTL: time.Minute}
+		askClient := ai_askv1connect.NewAskServiceClient(
+			h2cHTTP,
+			baseURL,
+			connect.WithGRPC(),
+			connect.WithInterceptors(grpckit.NewClientAuthInterceptor(cfg)),
+		)
+
+		attemptStream := randomUUIDv4(t)
+		st, err := askClient.StreamAsk(context.Background(), connect.NewRequest(&ai_askv1.StreamAskRequest{
+			Mode: "qa", AttemptId: attemptStream, Question: "Stream over single-port gRPC",
+		}))
 		if err != nil {
 			t.Fatalf("live gRPC StreamAsk: %v", err)
 		}
+		defer st.Close()
 		var deltaBuf strings.Builder
-		var gotDone bool
-		for {
-			ch, rErr := st.Recv()
-			if errors.Is(rErr, io.EOF) {
-				break
-			}
-			if rErr != nil {
-				t.Fatalf("gRPC Recv: %v", rErr)
+		var gotStatus, gotDone bool
+		for st.Receive() {
+			ch := st.Msg()
+			if ch.GetStatus() != nil {
+				gotStatus = true
 			}
 			if d := ch.GetDelta(); d != nil {
 				deltaBuf.WriteString(d.GetText())
 			}
 			if done := ch.GetDone(); done != nil {
-				gotDone = done.GetGrounded() && done.GetTokensUsed() == 57
+				gotDone = done.GetGrounded() && done.GetTokensUsed() >= 57
 			}
 		}
-		if !gotDone || strings.Contains(deltaBuf.String(), "Project-Mercury-NDA") || !strings.Contains(deltaBuf.String(), "[REDACTED]") {
-			t.Fatalf("unexpected live gRPC stream output: gotDone=%v text=%q", gotDone, deltaBuf.String())
+		if st.Err() != nil {
+			t.Fatalf("gRPC StreamAsk err: %v", st.Err())
+		}
+		if !gotStatus || !gotDone || strings.Contains(deltaBuf.String(), "Project-Mercury-NDA") || !strings.Contains(deltaBuf.String(), "[REDACTED]") {
+			t.Fatalf("unexpected live gRPC stream output: gotStatus=%v gotDone=%v text=%q", gotStatus, gotDone, deltaBuf.String())
+		}
+
+		// Unary Ask, GetTurn, GetAskStatus, and admin Reindex over single-port gRPC.
+		turnRes, err := askClient.GetTurn(context.Background(), connect.NewRequest(&ai_askv1.GetTurnRequest{AttemptId: attemptStream}))
+		if err != nil || turnRes.Msg.GetStatus() != contracts.TurnStatusCompleted {
+			t.Fatalf("live gRPC GetTurn failed: %+v err=%v", turnRes, err)
+		}
+		unaryRes, err := askClient.Ask(context.Background(), connect.NewRequest(&ai_askv1.AskRequest{
+			Mode: "qa", Question: "Unary Ask over single-port gRPC",
+		}))
+		if err != nil || unaryRes.Msg.GetCompleted() == nil || !unaryRes.Msg.GetCompleted().GetGrounded() {
+			t.Fatalf("live gRPC unary Ask failed: %+v err=%v", unaryRes, err)
+		}
+		adminClient := ai_askv1connect.NewAskServiceClient(
+			h2cHTTP,
+			baseURL,
+			connect.WithGRPC(),
+			connect.WithInterceptors(grpckit.NewClientAuthInterceptor(grpckit.ClientAuthConfig{
+				Role: internalauth.RoleAdmin, Subject: "e2e-admin-grpc", Secret: secret, TTL: time.Minute,
+			})),
+		)
+		reindexRes, err := adminClient.Reindex(context.Background(), connect.NewRequest(&ai_askv1.ReindexRequest{}))
+		if err != nil || reindexRes.Msg.GetVectorSize() != llm.ExpectedEmbeddingDims {
+			t.Fatalf("live gRPC admin Reindex failed: %+v err=%v", reindexRes, err)
 		}
 	})
 

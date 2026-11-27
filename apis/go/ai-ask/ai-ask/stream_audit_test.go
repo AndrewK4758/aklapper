@@ -24,11 +24,11 @@ type scriptedEmitter struct {
 	errorCodes   []string
 }
 
-func (e *scriptedEmitter) EmitStatus(_, _ string) error                   { return nil }
-func (e *scriptedEmitter) EmitMeta(askStreamMeta) error                   { return nil }
-func (e *scriptedEmitter) EmitPreambleDelta(string) error                 { return nil }
+func (e *scriptedEmitter) EmitStatus(_, _ string) error                     { return nil }
+func (e *scriptedEmitter) EmitMeta(askStreamMeta) error                     { return nil }
+func (e *scriptedEmitter) EmitPreambleDelta(string) error                   { return nil }
 func (e *scriptedEmitter) EmitPreambleError(contracts.PublicAppError) error { return nil }
-func (e *scriptedEmitter) SupportsPreamble() bool                         { return false }
+func (e *scriptedEmitter) SupportsPreamble() bool                           { return false }
 func (e *scriptedEmitter) EmitSources([]contracts.AskSource) error {
 	e.sourcesCalls++
 	return nil

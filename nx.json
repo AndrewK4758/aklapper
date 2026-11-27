@@ -25,7 +25,12 @@
       "!{projectRoot}/test-setup.[jt]s",
       "!{projectRoot}/**/*_test.go"
     ],
-    "sharedGlobals": ["{workspaceRoot}/go.work"]
+    "sharedGlobals": [
+      "{workspaceRoot}/go.work",
+      "{workspaceRoot}/proto/**",
+      "{workspaceRoot}/buf.yaml",
+      "{workspaceRoot}/buf.gen.yaml"
+    ]
   },
   "plugins": [
     {

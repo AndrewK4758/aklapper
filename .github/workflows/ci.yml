@@ -40,6 +40,7 @@ env:
   PNPM_VERSION: 12.23.0
   NODE_VERSION: 26.13.1
   GO_VERSION: '1.27'
+  BUF_VERSION: '1.72.0'
   NX_DAEMON: 'false'
   NX_NO_CLOUD: 'true'
 
@@ -62,6 +63,44 @@ jobs:
 
       - name: Check formatting
         run: pnpm format:check
+
+  proto-check:
+    name: Protobuf lint & codegen drift (buf)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup workspace
+        uses: ./.github/actions/setup-workspace
+        with:
+          pnpm-version: ${{ env.PNPM_VERSION }}
+          node-version: ${{ env.NODE_VERSION }}
+          go-version: ${{ env.GO_VERSION }}
+          setup-go: 'true'
+          restore-nx-cache: 'false'
+
+      - name: Install buf CLI
+        uses: bufbuild/buf-action@v1
+        with:
+          version: ${{ env.BUF_VERSION }}
+          setup_only: true
+
+      - name: Verify protobuf lint and generated stubs have zero drift
+        shell: bash
+        run: |
+          buf lint
+          buf generate
+          pnpm exec oxfmt packages/node/runtime/src/grpc/gen
+          pnpm format:check
+          git diff --exit-code
+          if [ -n "$(git status --porcelain packages/go/kit/gen packages/node/runtime/src/grpc/gen)" ]; then
+            echo "::error::Generated protobuf stubs are untracked or out of date; run 'buf generate && pnpm format'."
+            git status --short packages/go/kit/gen packages/node/runtime/src/grpc/gen
+            exit 1
+          fi
 
   plan:
     name: Plan Nx affected graph
@@ -431,6 +470,7 @@ jobs:
     name: CI status gate
     needs:
       - format
+      - proto-check
       - plan
       - lint
       - typecheck

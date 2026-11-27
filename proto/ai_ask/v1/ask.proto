@@ -2,12 +2,16 @@ syntax = "proto3";
 
 package ai_ask.v1;
 
+import "common/v1/error.proto";
+
 option go_package = "github.com/AndrewK4758/aklapper/packages/go/kit/gen/ai_ask/v1;ai_askv1";
 
 service AskService {
   rpc StreamAsk(StreamAskRequest) returns (stream AskStreamChunk);
+  rpc Ask(AskRequest) returns (AskUnaryResponse);
   rpc GetAskStatus(GetAskStatusRequest) returns (GetAskStatusResponse);
   rpc GetTurn(GetTurnRequest) returns (GetTurnResponse);
+  rpc Reindex(ReindexRequest) returns (ReindexResponse);
 }
 
 message StreamAskRequest {
@@ -15,6 +19,17 @@ message StreamAskRequest {
   string question = 2;
   string job_description = 3;
   string attempt_id = 4;
+  string conversation_id = 5;
+  string visitor_lens = 6;
+}
+
+message AskRequest {
+  string mode = 1;
+  string question = 2;
+  string job_description = 3;
+  string attempt_id = 4;
+  string conversation_id = 5;
+  string visitor_lens = 6;
 }
 
 message AskSource {
@@ -23,22 +38,19 @@ message AskSource {
   string snippet = 3;
   double score = 4;
   string category = 5;
+  string section_heading = 6;
+  string doc_key = 7;
 }
 
-message QuotaStatus {
-  string role = 1;
-  int32 turns_used = 2;
-  int32 max_turns = 3;
-  int32 tokens_used = 4;
-  int32 max_tokens = 5;
+message AskSuggestedLink {
+  string route = 1;
+  string label = 2;
+  string reason = 3;
 }
 
-message PublicAppError {
-  string code = 1;
-  int32 status = 2;
-  string message = 3;
-  string action = 4;
-  string correlation_id = 5;
+message AskStreamStatus {
+  string stage = 1;
+  string label = 2;
 }
 
 message AskStreamMeta {
@@ -47,6 +59,19 @@ message AskStreamMeta {
   string mode = 3;
   string provider = 4;
   string model = 5;
+  string conversation_id = 6;
+  optional int32 turn_index = 7;
+}
+
+message AskStreamPreamble {
+  string text = 1;
+}
+
+message AskStreamPreambleError {
+  string code = 1;
+  string message = 2;
+  string action = 3;
+  string correlation_id = 4;
 }
 
 message AskStreamSources {
@@ -66,14 +91,19 @@ message AskStreamDone {
   string model = 6;
   int32 tokens_used = 7;
   bool usage_estimated = 8;
-  int32 latency_ms = 9;
-  QuotaStatus quota = 10;
+  optional int32 latency_ms = 9;
+  common.v1.QuotaStatus quota = 10;
   string correlation_id = 11;
+  string conversation_id = 12;
+  optional int32 turn_index = 13;
+  string grounding_tier = 14;
+  repeated AskSuggestedLink suggested_links = 15;
+  repeated string follow_up_questions = 16;
 }
 
 message AskStreamError {
-  PublicAppError error = 1;
-  QuotaStatus quota = 2;
+  common.v1.PublicAppError error = 1;
+  common.v1.QuotaStatus quota = 2;
 }
 
 message AskStreamChunk {
@@ -83,6 +113,9 @@ message AskStreamChunk {
     AskStreamDelta delta = 3;
     AskStreamDone done = 4;
     AskStreamError error = 5;
+    AskStreamStatus status = 6;
+    AskStreamPreamble preamble = 7;
+    AskStreamPreambleError preamble_error = 8;
   }
 }
 
@@ -119,9 +152,35 @@ message AskResponse {
   string provider = 10;
   string model = 11;
   int32 tokens_used = 12;
-  int32 latency_ms = 13;
+  optional int32 latency_ms = 13;
   string correlation_id = 14;
-  QuotaStatus quota = 15;
+  common.v1.QuotaStatus quota = 15;
+  string conversation_id = 16;
+  optional int32 turn_index = 17;
+  string grounding_tier = 18;
+  repeated AskSuggestedLink suggested_links = 19;
+  repeated string follow_up_questions = 20;
+}
+
+message AskTurnState {
+  string attempt_id = 1;
+  string status = 2;
+  string mode = 3;
+  string correlation_id = 4;
+  string lease_expires_at = 5;
+  string expires_at = 6;
+  common.v1.QuotaStatus quota = 7;
+  AskResponse response = 8;
+  common.v1.PublicAppError error = 9;
+  string conversation_id = 10;
+  optional int32 turn_index = 11;
+}
+
+message AskUnaryResponse {
+  oneof outcome {
+    AskResponse completed = 1;
+    AskTurnState pending = 2;
+  }
 }
 
 message GetTurnResponse {
@@ -131,7 +190,20 @@ message GetTurnResponse {
   string correlation_id = 4;
   string lease_expires_at = 5;
   string expires_at = 6;
-  QuotaStatus quota = 7;
+  common.v1.QuotaStatus quota = 7;
   AskResponse response = 8;
-  PublicAppError error = 9;
+  common.v1.PublicAppError error = 9;
+  string conversation_id = 10;
+  optional int32 turn_index = 11;
+}
+
+message ReindexRequest {}
+
+message ReindexResponse {
+  int32 indexed = 1;
+  int32 pruned = 2;
+  string collection = 3;
+  int32 vector_size = 4;
+  string provider = 5;
+  string correlation_id = 6;
 }

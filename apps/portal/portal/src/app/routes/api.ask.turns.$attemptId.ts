@@ -1,6 +1,6 @@
-import { AskTurnStateSchema, createPublicAppError, isPublicAppError } from '@aklapper/core';
+import { createPublicAppError } from '@aklapper/core';
 import { classifyServerError } from '@aklapper/core/server-errors';
-import { proxyJson } from '@aklapper/node-runtime/http';
+import { classifyGrpcError, getAskTurn } from '@aklapper/node-runtime/grpc';
 import {
   createFallbackLogger,
   getOrCreateCorrelationId,
@@ -74,59 +74,46 @@ export async function loader({ request, params, context }: Route.LoaderArgs): Pr
     );
   }
 
-  const upstream = await proxyJson<Record<string, unknown>>({
-    baseUrl: aiAskUrl,
-    path: `/v1/ask/turns/${encodeURIComponent(attemptId)}`,
-    method: 'GET',
-    headers: { 'X-Correlation-Id': correlationId },
-    internalAuth: { role: 'guest', subject: sessionId },
-    timeoutMs: 10_000,
-    signal: request.signal,
-  });
-
-  if (upstream.status === 404) {
-    return Response.json(
-      createPublicAppError({
-        code: 'ERR_NOT_FOUND',
-        status: 404,
-        message: 'Ask turn not found or expired.',
-        action: 'Submit a fresh question.',
+  try {
+    const turn = await getAskTurn(
+      {
+        baseUrl: aiAskUrl,
+        internalAuth: { role: 'guest', subject: sessionId },
         correlationId,
-      }),
-      { status: 404, headers },
+        timeoutMs: 10_000,
+        signal: request.signal,
+        logger,
+      },
+      attemptId,
     );
-  }
-
-  if (upstream.data) {
-    const parsedState = AskTurnStateSchema.safeParse(upstream.data);
-    if (parsedState.success) {
-      return Response.json(parsedState.data, { status: upstream.status, headers });
+    let responseStatus = 202;
+    if (turn.status === 'completed' || turn.status === 'abstained') {
+      responseStatus = 200;
+    } else if (turn.status === 'expired') {
+      responseStatus = 504;
+    } else if (turn.status === 'failed') {
+      responseStatus = turn.error && turn.error.status >= 400 ? turn.error.status : 502;
     }
+    return Response.json(turn, { status: responseStatus, headers });
+  } catch (error) {
+    const failure = classifyGrpcError(error, {
+      correlationId,
+      source: 'portal.ask.turn_poll',
+      normalizeUnavailableStatus: 503,
+      logger,
+    });
+    if (failure.publicError.status === 404) {
+      return Response.json(
+        createPublicAppError({
+          code: 'ERR_NOT_FOUND',
+          status: 404,
+          message: 'Ask turn not found or expired.',
+          action: 'Submit a fresh question.',
+          correlationId,
+        }),
+        { status: 404, headers },
+      );
+    }
+    return Response.json(failure.publicError, { status: failure.publicError.status, headers });
   }
-
-  const upstreamErr = Object.assign(new Error(upstream.error ?? 'Upstream turn poll failed'), {
-    status: upstream.status >= 400 ? upstream.status : 502,
-    statusText: 'Upstream Error',
-    data: isPublicAppError(upstream.data) ? upstream.data : null,
-  });
-  const { publicError, diagnostic } = classifyServerError(upstreamErr, {
-    correlationId,
-    source: 'portal.ask.turn_poll',
-  });
-  logDiagnosticError(logger, diagnostic);
-
-  const responseStatus =
-    upstream.error === 'UPSTREAM_UNAVAILABLE'
-      ? 503
-      : upstream.status === 504 || upstream.status === 502 || upstream.status === 503
-        ? upstream.status
-        : publicError.status;
-
-  return Response.json(
-    createPublicAppError({
-      ...publicError,
-      status: responseStatus,
-    }),
-    { status: responseStatus, headers },
-  );
 }
