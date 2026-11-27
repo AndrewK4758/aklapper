@@ -4,6 +4,7 @@ import { reserveLoopbackPort } from './e2e.ts';
 import {
   type EphemeralPostgresHandle,
   migrateAndSeedPostgres,
+  resolveAdminDatabaseUrl,
   resolvePortalDatabaseUrl,
   resolveWorkspaceRootOrThrow,
   shouldReuseExternalDatabase,
@@ -108,14 +109,20 @@ function runCommandWithEnv(
 export function buildExternalPgChildEnv(
   env: Readonly<Record<string, string | undefined>> = process.env,
 ): NodeJS.ProcessEnv {
-  const resolvedPortalUrl = resolvePortalDatabaseUrl(env);
-  if (!resolvedPortalUrl || env['PORTAL_DATABASE_URL']?.trim()) {
-    return { ...env };
+  const nextEnv: NodeJS.ProcessEnv = { ...env };
+  if (!env['PORTAL_DATABASE_URL']?.trim()) {
+    const resolvedPortalUrl = resolvePortalDatabaseUrl(env);
+    if (resolvedPortalUrl) {
+      nextEnv['PORTAL_DATABASE_URL'] = resolvedPortalUrl;
+    }
   }
-  return {
-    ...env,
-    PORTAL_DATABASE_URL: resolvedPortalUrl,
-  };
+  if (!env['ADMIN_DATABASE_URL']?.trim()) {
+    const resolvedAdminUrl = resolveAdminDatabaseUrl(env);
+    if (resolvedAdminUrl) {
+      nextEnv['ADMIN_DATABASE_URL'] = resolvedAdminUrl;
+    }
+  }
+  return nextEnv;
 }
 
 async function main(): Promise<void> {
@@ -145,7 +152,12 @@ async function main(): Promise<void> {
       `[ephemeral-pg:${label}] started ${handle.containerName} on 127.0.0.1:${handle.port}/${handle.dbName} (tmpfs)`,
     );
 
-    await migrateAndSeedPostgres(handle.databaseUrl, workspaceRoot, handle.portalDatabaseUrl);
+    await migrateAndSeedPostgres(
+      handle.databaseUrl,
+      workspaceRoot,
+      handle.portalDatabaseUrl,
+      handle.adminDatabaseUrl,
+    );
     console.error(`[ephemeral-pg:${label}] migrations and seed complete`);
 
     const childEnv: NodeJS.ProcessEnv = {
@@ -154,6 +166,7 @@ async function main(): Promise<void> {
       TEST_DATABASE_URL: handle.databaseUrl,
       E2E_DATABASE_URL: handle.databaseUrl,
       PORTAL_DATABASE_URL: handle.portalDatabaseUrl,
+      ADMIN_DATABASE_URL: handle.adminDatabaseUrl,
       AKLAPPER_EPHEMERAL_PG_ACTIVE: '1',
     };
 

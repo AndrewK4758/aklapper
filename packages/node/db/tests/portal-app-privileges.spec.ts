@@ -4,7 +4,12 @@ import type { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createDbPool } from '../src/index.ts';
-import { expectSqlState } from './pg-privilege-helpers.ts';
+import {
+  assertPublicDdlDenied,
+  assertTablesFullyDenied,
+  assertTablesReadOnly,
+  expectSqlState,
+} from './pg-privilege-helpers.ts';
 
 const ownerDatabaseUrl = process.env['TEST_DATABASE_URL'] ?? process.env['DATABASE_URL'];
 const portalDatabaseUrl = process.env['PORTAL_DATABASE_URL'];
@@ -37,7 +42,7 @@ describe.skipIf(!ownerDatabaseUrl || !portalDatabaseUrl)(
 
       try {
         // 1. Read-only Portal tables allow SELECT and reject INSERT/UPDATE/DELETE with 42501.
-        const readOnlyTables: ReadonlyArray<{ table: string; column: string }> = [
+        await assertTablesReadOnly(portalPool, [
           { table: 'site_content', column: 'key' },
           { table: 'terminal_profiles', column: 'slug' },
           { table: 'terminal_initial_entries', column: 'id' },
@@ -46,26 +51,7 @@ describe.skipIf(!ownerDatabaseUrl || !portalDatabaseUrl)(
           { table: 'career_dossiers', column: 'slug' },
           { table: 'cadence_presets', column: 'slug' },
           { table: 'quota_policies', column: 'role' },
-        ];
-        for (const { table, column } of readOnlyTables) {
-          await expect(
-            portalPool.query(`SELECT "${column}" FROM "public"."${table}" LIMIT 1`),
-          ).resolves.toBeDefined();
-          await expectSqlState(
-            portalPool.query(`INSERT INTO "public"."${table}" DEFAULT VALUES`),
-            '42501',
-          );
-          await expectSqlState(
-            portalPool.query(
-              `UPDATE "public"."${table}" SET "${column}" = "${column}" WHERE false`,
-            ),
-            '42501',
-          );
-          await expectSqlState(
-            portalPool.query(`DELETE FROM "public"."${table}" WHERE false`),
-            '42501',
-          );
-        }
+        ]);
 
         // 2. Scoped write tables allow SELECT/INSERT/UPDATE and deny DELETE with 42501.
         await portalPool.query(
@@ -174,7 +160,7 @@ describe.skipIf(!ownerDatabaseUrl || !portalDatabaseUrl)(
         );
 
         // 5. All 10 restricted application tables + drizzle.__drizzle_migrations deny SELECT/INSERT/UPDATE/DELETE with 42501.
-        const deniedTables: ReadonlyArray<{ schema: string; table: string; column: string }> = [
+        await assertTablesFullyDenied(portalPool, [
           { schema: 'public', table: 'users', column: 'id' },
           { schema: 'public', table: 'webauthn_credentials', column: 'credential_id' },
           { schema: 'public', table: 'totp_secrets', column: 'user_id' },
@@ -186,34 +172,15 @@ describe.skipIf(!ownerDatabaseUrl || !portalDatabaseUrl)(
           { schema: 'public', table: 'menu_items', column: 'slug' },
           { schema: 'public', table: 'roadmap_milestones', column: 'slug' },
           { schema: 'drizzle', table: '__drizzle_migrations', column: 'id' },
-        ];
-        for (const { schema, table, column } of deniedTables) {
-          const qualified = `"${schema}"."${table}"`;
-          await expectSqlState(
-            portalPool.query(`SELECT "${column}" FROM ${qualified} LIMIT 1`),
-            '42501',
-          );
-          await expectSqlState(
-            portalPool.query(`INSERT INTO ${qualified} DEFAULT VALUES`),
-            '42501',
-          );
-          await expectSqlState(
-            portalPool.query(`UPDATE ${qualified} SET "${column}" = "${column}" WHERE false`),
-            '42501',
-          );
-          await expectSqlState(portalPool.query(`DELETE FROM ${qualified} WHERE false`), '42501');
-        }
+        ]);
 
         // 6. DDL statements in schema public fail deterministically with 42501.
-        await expectSqlState(
-          portalPool.query(`CREATE TABLE "public"."portal_ddl_probe_${suffix}" (id int)`),
-          '42501',
+        await assertPublicDdlDenied(
+          portalPool,
+          `portal_ddl_probe_${suffix}`,
+          'site_content',
+          'site_content',
         );
-        await expectSqlState(
-          portalPool.query(`ALTER TABLE "public"."site_content" ADD COLUMN portal_probe text`),
-          '42501',
-        );
-        await expectSqlState(portalPool.query(`DROP TABLE "public"."site_content"`), '42501');
       } finally {
         await ownerPool.query(`DELETE FROM contact_submissions WHERE id = $1::uuid`, [
           testContactId,

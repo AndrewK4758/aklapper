@@ -1,5 +1,6 @@
 import {
   migrateAndSeedPostgres,
+  resolveAdminDatabaseUrl,
   resolvePortalDatabaseUrl,
   resolveWorkspaceRootOrThrow,
   shouldReuseExternalDatabase,
@@ -12,12 +13,17 @@ export default async function setupEphemeralPostgresForVitest(): Promise<() => P
     if (existingUrl) {
       process.env['DATABASE_URL'] = existingUrl;
       process.env['TEST_DATABASE_URL'] = existingUrl;
-      const resolvedPortalUrl = resolvePortalDatabaseUrl({
+      const envWithUrl = {
         ...process.env,
         DATABASE_URL: existingUrl,
-      });
+      };
+      const resolvedPortalUrl = resolvePortalDatabaseUrl(envWithUrl);
       if (resolvedPortalUrl) {
         process.env['PORTAL_DATABASE_URL'] = resolvedPortalUrl;
+      }
+      const resolvedAdminUrl = resolveAdminDatabaseUrl(envWithUrl);
+      if (resolvedAdminUrl) {
+        process.env['ADMIN_DATABASE_URL'] = resolvedAdminUrl;
       }
     }
     return async () => {};
@@ -40,6 +46,7 @@ export default async function setupEphemeralPostgresForVitest(): Promise<() => P
       handle.databaseUrl,
       resolveWorkspaceRootOrThrow(),
       handle.portalDatabaseUrl,
+      handle.adminDatabaseUrl,
     );
   } catch (error) {
     await teardown();
@@ -50,6 +57,7 @@ export default async function setupEphemeralPostgresForVitest(): Promise<() => P
   process.env['TEST_DATABASE_URL'] = handle.databaseUrl;
   process.env['E2E_DATABASE_URL'] = handle.databaseUrl;
   process.env['PORTAL_DATABASE_URL'] = handle.portalDatabaseUrl;
+  process.env['ADMIN_DATABASE_URL'] = handle.adminDatabaseUrl;
   process.env['AKLAPPER_EPHEMERAL_PG_ACTIVE'] = '1';
 
   return teardown;

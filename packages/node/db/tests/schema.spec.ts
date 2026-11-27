@@ -36,6 +36,7 @@ import {
   terminalInitialEntries,
   terminalProfiles,
   webauthnChallenges,
+  webauthnCredentials,
 } from '../src/index.ts';
 
 function createMockInsertDb(returningFn: () => Promise<unknown[]>) {
@@ -94,11 +95,63 @@ describe('@aklapper/db', () => {
     expect(
       journal.entries.some(e => e.idx === 11 && e.tag === '0011_portal_app_grants_and_rls'),
     ).toBe(true);
+    expect(
+      journal.entries.some(
+        e => e.idx === 12 && e.tag === '0012_admin_app_grants_and_webauthn_flags',
+      ),
+    ).toBe(true);
     const drizzleFiles = readdirSync(resolve(import.meta.dirname, '../drizzle'));
     expect(drizzleFiles).toContain('0010_visitor_analytics_enrichment.sql');
     expect(drizzleFiles).toContain('0010_visitor_analytics_enrichment.down.sql');
     expect(drizzleFiles).toContain('0011_portal_app_grants_and_rls.sql');
     expect(drizzleFiles).toContain('0011_portal_app_grants_and_rls.down.sql');
+    expect(drizzleFiles).toContain('0012_admin_app_grants_and_webauthn_flags.sql');
+    expect(drizzleFiles).toContain('0012_admin_app_grants_and_webauthn_flags.down.sql');
+    const up0012Sql = readFileSync(
+      resolve(import.meta.dirname, '../drizzle/0012_admin_app_grants_and_webauthn_flags.sql'),
+      'utf8',
+    );
+    const down0012Sql = readFileSync(
+      resolve(import.meta.dirname, '../drizzle/0012_admin_app_grants_and_webauthn_flags.down.sql'),
+      'utf8',
+    );
+    expect(up0012Sql).not.toMatch(/\bPASSWORD\b/i);
+    expect(up0012Sql).not.toMatch(/\bFORCE\s+ROW\s+LEVEL\s+SECURITY\b/i);
+    expect(up0012Sql).not.toMatch(/\bDROP\s+(?:TABLE|COLUMN|ROLE)\b/i);
+    expect(up0012Sql).not.toMatch(/\broadmap_milestones\b/i);
+    expect(up0012Sql).toContain(
+      'ALTER TABLE "public"."webauthn_credentials" ADD COLUMN IF NOT EXISTS "backup_eligible" boolean',
+    );
+    expect(up0012Sql).toContain(
+      'ALTER TABLE "public"."webauthn_credentials" ADD COLUMN IF NOT EXISTS "backup_state" boolean',
+    );
+    expect(up0012Sql).toContain(
+      'NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOREPLICATION NOBYPASSRLS',
+    );
+    expect(up0012Sql).toContain("WHERE schema_name = 'drizzle'");
+    expect(up0012Sql).toContain('"public"."terminal_commands_id_seq"');
+    expect(up0012Sql).toContain('"public"."terminal_initial_entries_id_seq"');
+    expect(up0012Sql).toContain('"public"."terminal_directory_entries_id_seq"');
+    expect(up0012Sql).toContain('"public"."analytics_events_id_seq"');
+    expect(up0012Sql).toContain(
+      'GRANT EXECUTE ON FUNCTION "public"."career_dossiers_refresh_search_tsv"() TO "admin_app"',
+    );
+    expect(up0012Sql).toContain(
+      'DROP POLICY IF EXISTS "rate_limit_buckets_admin_all" ON "public"."rate_limit_buckets"',
+    );
+    expect(up0012Sql).toContain('CREATE POLICY "rate_limit_buckets_admin_all"');
+    expect(down0012Sql).toContain(
+      'DROP POLICY IF EXISTS "rate_limit_buckets_admin_all" ON "public"."rate_limit_buckets"',
+    );
+    expect(down0012Sql).toContain(
+      'ALTER TABLE IF EXISTS "public"."webauthn_credentials" DROP COLUMN IF EXISTS "backup_eligible"',
+    );
+    expect(down0012Sql).toContain(
+      'ALTER TABLE IF EXISTS "public"."webauthn_credentials" DROP COLUMN IF EXISTS "backup_state"',
+    );
+    expect(down0012Sql).not.toMatch(/\bDISABLE\s+ROW\s+LEVEL\s+SECURITY\b/i);
+    expect(down0012Sql).not.toMatch(/\bDROP\s+ROLE\b/i);
+    expect(down0012Sql).not.toContain('portal_app');
     const up0011Sql = readFileSync(
       resolve(import.meta.dirname, '../drizzle/0011_portal_app_grants_and_rls.sql'),
       'utf8',
@@ -227,6 +280,8 @@ describe('@aklapper/db', () => {
     expect(webauthnChallenges.challenge.name).toBe('challenge');
     expect(webauthnChallenges.consumedAt.name).toBe('consumed_at');
     expect(webauthnChallenges.kind.name).toBe('kind');
+    expect(webauthnCredentials.backupEligible.name).toBe('backup_eligible');
+    expect(webauthnCredentials.backupState.name).toBe('backup_state');
     expect(askTurns.attemptId.name).toBe('attempt_id');
     expect(askTurns.leaseExpiresAt.name).toBe('lease_expires_at');
     expect(askTurns.expiresAt.name).toBe('expires_at');

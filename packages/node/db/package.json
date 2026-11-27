@@ -47,6 +47,12 @@
       "import": "./dist/migrate.js",
       "default": "./dist/migrate.js"
     },
+    "./provision-admin-role": {
+      "@aklapper/source": "./src/provision-admin-role.ts",
+      "types": "./dist/provision-admin-role.d.ts",
+      "import": "./dist/provision-admin-role.js",
+      "default": "./dist/provision-admin-role.js"
+    },
     "./provision-portal-role": {
       "@aklapper/source": "./src/provision-portal-role.ts",
       "types": "./dist/provision-portal-role.d.ts",
@@ -75,10 +81,11 @@
   "scripts": {
     "db:generate": "drizzle-kit generate",
     "db:provision-portal-role": "node --conditions=@aklapper/source ./src/provision-portal-role.ts",
+    "db:provision-admin-role": "node --conditions=@aklapper/source ./src/provision-admin-role.ts",
     "db:migrate": "node --conditions=@aklapper/source ./src/migrate.ts",
     "db:seed": "node --conditions=@aklapper/source ./src/seed.ts",
     "db:seed-admin": "node --conditions=@aklapper/source ./src/seed-admin.ts",
-    "db:setup": "pnpm run db:provision-portal-role && pnpm run db:migrate && pnpm run db:seed"
+    "db:setup": "pnpm run db:provision-portal-role && pnpm run db:provision-admin-role && pnpm run db:migrate && pnpm run db:seed"
   },
   "dependencies": {
     "@aklapper/core": "workspace:*",
@@ -112,6 +119,23 @@
         "options": {
           "cwd": "packages/node/db",
           "command": "node --conditions=@aklapper/source ./src/provision-portal-role.ts"
+        },
+        "configurations": {
+          "development": {},
+          "test": {},
+          "e2e": {},
+          "ci": {},
+          "staging": {},
+          "production": {}
+        }
+      },
+      "db-provision-admin-role": {
+        "cache": false,
+        "defaultConfiguration": "development",
+        "executor": "nx:run-commands",
+        "options": {
+          "cwd": "packages/node/db",
+          "command": "node --conditions=@aklapper/source ./src/provision-admin-role.ts"
         },
         "configurations": {
           "development": {},
@@ -162,7 +186,7 @@
         "executor": "nx:run-commands",
         "options": {
           "cwd": "packages/node/db",
-          "command": "node --conditions=@aklapper/source ./src/provision-portal-role.ts && node --conditions=@aklapper/source ./src/migrate.ts && node --conditions=@aklapper/source ./src/seed.ts"
+          "command": "node --conditions=@aklapper/source ./src/provision-portal-role.ts && node --conditions=@aklapper/source ./src/provision-admin-role.ts && node --conditions=@aklapper/source ./src/migrate.ts && node --conditions=@aklapper/source ./src/seed.ts"
         },
         "configurations": {
           "development": {},

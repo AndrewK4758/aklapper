@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  deriveAdminDatabaseUrl,
   derivePortalDatabaseUrl,
+  resolveAdminDatabaseUrl,
   resolvePortalDatabaseUrl,
   shouldReuseExternalDatabase,
 } from '../src/index.ts';
@@ -65,51 +67,67 @@ describe('@aklapper/tooling ephemeral PG19 harness helpers', () => {
     expect(() => parseEphemeralPgCliArgs(['--unknown', '--', 'echo'])).toThrow(/Unknown option/);
   });
 
-  it('derives and resolves least-privilege PORTAL_DATABASE_URL from DATABASE_URL cleanly', () => {
-    expect(
-      derivePortalDatabaseUrl(
-        'postgres://postgres:postgres@127.0.0.1:55123/aklapper_test?sslmode=disable',
-        's3cr3t@pass/1',
-      ),
-    ).toBe('postgres://portal_app:s3cr3t%40pass%2F1@127.0.0.1:55123/aklapper_test?sslmode=disable');
+  it.each([
+    {
+      role: 'portal_app',
+      urlEnvVar: 'PORTAL_DATABASE_URL',
+      defaultPassword: 'portal_app_local_dev_password',
+      derive: derivePortalDatabaseUrl,
+      resolve: resolvePortalDatabaseUrl,
+    },
+    {
+      role: 'admin_app',
+      urlEnvVar: 'ADMIN_DATABASE_URL',
+      defaultPassword: 'admin_app_local_dev_password',
+      derive: deriveAdminDatabaseUrl,
+      resolve: resolveAdminDatabaseUrl,
+    },
+  ])(
+    'derives and resolves least-privilege $urlEnvVar from DATABASE_URL cleanly',
+    ({ role, urlEnvVar, defaultPassword, derive, resolve }) => {
+      expect(
+        derive(
+          'postgres://postgres:postgres@127.0.0.1:55123/aklapper_test?sslmode=disable',
+          's3cr3t@pass/1',
+        ),
+      ).toBe(`postgres://${role}:s3cr3t%40pass%2F1@127.0.0.1:55123/aklapper_test?sslmode=disable`);
 
-    expect(() => derivePortalDatabaseUrl('   ')).toThrow(/DATABASE_URL is required/);
-    expect(() =>
-      derivePortalDatabaseUrl('postgres://postgres:postgres@127.0.0.1:5432/aklapper', '  '),
-    ).toThrow(/non-empty password/);
+      expect(() => derive('   ')).toThrow(/DATABASE_URL is required/);
+      expect(() => derive('postgres://postgres:postgres@127.0.0.1:5432/aklapper', '  ')).toThrow(
+        /non-empty password/,
+      );
 
-    expect(
-      resolvePortalDatabaseUrl({
-        DATABASE_URL: 'postgres://postgres:postgres@127.0.0.1:5432/aklapper?sslmode=disable',
-      }),
-    ).toBe(
-      'postgres://portal_app:portal_app_local_dev_password@127.0.0.1:5432/aklapper?sslmode=disable',
-    );
+      expect(
+        resolve({
+          DATABASE_URL: 'postgres://postgres:postgres@127.0.0.1:5432/aklapper?sslmode=disable',
+        }),
+      ).toBe(`postgres://${role}:${defaultPassword}@127.0.0.1:5432/aklapper?sslmode=disable`);
 
-    expect(
-      resolvePortalDatabaseUrl({
-        DATABASE_URL: 'postgres://postgres:postgres@127.0.0.1:5432/aklapper',
-        PORTAL_DATABASE_URL: 'postgres://portal_app:explicit_ci_pw@127.0.0.1:5432/aklapper',
-      }),
-    ).toBe('postgres://portal_app:explicit_ci_pw@127.0.0.1:5432/aklapper');
+      expect(
+        resolve({
+          DATABASE_URL: 'postgres://postgres:postgres@127.0.0.1:5432/aklapper',
+          [urlEnvVar]: `postgres://${role}:explicit_ci_pw@127.0.0.1:5432/aklapper`,
+        }),
+      ).toBe(`postgres://${role}:explicit_ci_pw@127.0.0.1:5432/aklapper`);
 
-    expect(resolvePortalDatabaseUrl({})).toBeUndefined();
+      expect(resolve({})).toBeUndefined();
 
-    const derivedExternalEnv = buildExternalPgChildEnv({
-      CI: 'true',
-      DATABASE_URL: 'postgres://postgres:postgres@127.0.0.1:5432/aklapper_ci?sslmode=disable',
-    });
-    expect(derivedExternalEnv['PORTAL_DATABASE_URL']).toBe(
-      'postgres://portal_app:portal_app_local_dev_password@127.0.0.1:5432/aklapper_ci?sslmode=disable',
-    );
+      const derivedExternalEnv = buildExternalPgChildEnv({
+        CI: 'true',
+        DATABASE_URL: 'postgres://postgres:postgres@127.0.0.1:5432/aklapper_ci?sslmode=disable',
+      });
+      expect(derivedExternalEnv[urlEnvVar]).toBe(
+        `postgres://${role}:${defaultPassword}@127.0.0.1:5432/aklapper_ci?sslmode=disable`,
+      );
 
-    const preservedExternalEnv = buildExternalPgChildEnv({
-      CI: 'true',
-      DATABASE_URL: 'postgres://postgres:postgres@127.0.0.1:5432/aklapper_ci',
-      PORTAL_DATABASE_URL: 'postgres://portal_app:custom_pw@127.0.0.1:5432/aklapper_ci',
-    });
-    expect(preservedExternalEnv['PORTAL_DATABASE_URL']).toBe(
-      'postgres://portal_app:custom_pw@127.0.0.1:5432/aklapper_ci',
-    );
-  });
+      const preservedExternalEnv = buildExternalPgChildEnv({
+        CI: 'true',
+        DATABASE_URL: 'postgres://postgres:postgres@127.0.0.1:5432/aklapper_ci',
+        [urlEnvVar]: `postgres://${role}:custom_pw@127.0.0.1:5432/aklapper_ci`,
+      });
+      expect(preservedExternalEnv[urlEnvVar]).toBe(
+        `postgres://${role}:custom_pw@127.0.0.1:5432/aklapper_ci`,
+      );
+    },
+  );
 });
