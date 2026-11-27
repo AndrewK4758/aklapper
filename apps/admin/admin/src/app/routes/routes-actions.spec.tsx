@@ -1,4 +1,10 @@
-import { isPublicAppError } from '@aklapper/core';
+import {
+  DEFAULT_PORTAL_HOME_PORTRAIT,
+  DEFAULT_PORTAL_HOME_RESUME_SUMMARY,
+  isPublicAppError,
+  SITE_CONTENT_KEYS,
+} from '@aklapper/core';
+import { PORTAL_ABOUT_SEED } from '@aklapper/db';
 import { requestContextKey } from '@aklapper/node-runtime/ssr/stream';
 import { RouterContextProvider } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -9,7 +15,6 @@ type LogFn = (obj: Record<string, unknown>, msg?: string) => void;
 const mocks = vi.hoisted(() => ({
   resolveAdminSessionFromRequest: vi.fn<(request: Request) => Promise<unknown>>(),
   getSharedDb: vi.fn<() => unknown>(),
-  setMaintenanceModeDefault: vi.fn<AsyncUnknownFn>(),
   syncAgensiCatalog: vi.fn<AsyncUnknownFn>(),
   upsertSiteContent: vi.fn<AsyncUnknownFn>(),
   upsertCareerDossier: vi.fn<AsyncUnknownFn>(),
@@ -35,7 +40,6 @@ vi.mock('@aklapper/db', async importOriginal => {
   return {
     ...actual,
     getSharedDb: mocks.getSharedDb,
-    setMaintenanceModeDefault: mocks.setMaintenanceModeDefault,
     syncAgensiCatalog: mocks.syncAgensiCatalog,
     upsertSiteContent: mocks.upsertSiteContent,
     upsertCareerDossier: mocks.upsertCareerDossier,
@@ -48,7 +52,7 @@ vi.mock('@aklapper/db', async importOriginal => {
   };
 });
 
-import { ADMIN_CMS_FIXTURE, AUTH_STATUS } from './admin-test-fixtures';
+import { ADMIN_CMS_FIXTURE, AUTH_STATUS, UNAUTH_STATUS } from './admin-test-fixtures';
 import { action as analyticsIngestAction } from './api.analytics.ingest';
 import { action as cmsAction } from './cms';
 import { action as inboxAction } from './inbox';
@@ -134,14 +138,11 @@ describe('Admin mutation actions & classified HTTP status semantics', () => {
   });
 
   it('returns honest 200, 400, 404, and classified 503 responses in cms action without leaking raw SQL', async () => {
-    mocks.setMaintenanceModeDefault.mockResolvedValueOnce({
-      maintenanceModeDefault: true,
-      rebuildProgressPercent: 75,
-    });
+    mocks.deleteMenuItem.mockResolvedValueOnce(true);
     const okCall = makeActionArgs(
       'http://localhost:4301/cms',
       '/cms',
-      { intent: 'set-maintenance', maintenanceModeDefault: 'true', rebuildProgressPercent: '75' },
+      { intent: 'delete-menu-item', slug: 'legacy-item' },
       'corr-cms-200',
     );
     const okRes = (await cmsAction(okCall.args as never)) as unknown as DataWithStatus;
@@ -171,14 +172,14 @@ describe('Admin mutation actions & classified HTTP status semantics', () => {
     expect(missingRes.data['code']).toBe('ERR_NOT_FOUND');
 
     const dbErr = Object.assign(
-      new Error('Failed query: UPDATE portal_chrome; connection terminated'),
+      new Error('Failed query: DELETE FROM menu_items; connection terminated'),
       { name: 'DrizzleQueryError', cause: new Error('connection terminated') },
     );
-    mocks.setMaintenanceModeDefault.mockRejectedValueOnce(dbErr);
+    mocks.deleteMenuItem.mockRejectedValueOnce(dbErr);
     const failCall = makeActionArgs(
       'http://localhost:4301/cms',
       '/cms',
-      { intent: 'set-maintenance', maintenanceModeDefault: 'true' },
+      { intent: 'delete-menu-item', slug: 'broken-item' },
       'corr-cms-503',
     );
     const failRes = (await cmsAction(failCall.args as never)) as unknown as DataWithStatus;
@@ -187,7 +188,7 @@ describe('Admin mutation actions & classified HTTP status semantics', () => {
     expect(failRes.data['code']).toBe('ERR_DB_UNAVAILABLE');
     expect(failRes.data['correlationId']).toBe('corr-cms-503');
     expect(String(failRes.data['message'])).not.toContain('connection terminated');
-    expect(String(failRes.data['message'])).not.toContain('UPDATE');
+    expect(String(failRes.data['message'])).not.toContain('DELETE');
     expect(failCall.logger.error).toHaveBeenCalledTimes(1);
 
     mocks.getSharedDb.mockClear();
@@ -205,6 +206,123 @@ describe('Admin mutation actions & classified HTTP status semantics', () => {
     expect(mocks.getSharedDb).not.toHaveBeenCalled();
   });
 
+  it('rejects retired maintenance and roadmap CMS intents with HTTP 410 and UNSOUND_CONDITION log without mutating Postgres', async () => {
+    for (const intent of [
+      'set-maintenance',
+      'upsert-roadmap-milestone',
+      'delete-roadmap-milestone',
+    ] as const) {
+      mocks.getSharedDb.mockClear();
+      const cid = `corr-retired-${intent}`;
+      const call = makeActionArgs(
+        'http://localhost:4301/cms',
+        '/cms',
+        { intent, slug: 'phase-1', maintenanceModeDefault: 'true' },
+        cid,
+      );
+      const res = (await cmsAction(call.args as never)) as unknown as DataWithStatus;
+      expect(res.init?.status).toBe(410);
+      expect(res.data).toMatchObject({
+        ok: false,
+        code: 'ERR_VALIDATION',
+        correlationId: cid,
+      });
+      expect(mocks.getSharedDb).not.toHaveBeenCalled();
+      expect(call.logger.warn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          seam_type: 'UNSOUND_CONDITION',
+          event: 'admin.cms.retired_maintenance_intent_blocked',
+          intent,
+          correlationId: cid,
+        }),
+        expect.any(String),
+      );
+    }
+
+    // Unauthorized caller posting a retired intent fails closed before CMS dispatch
+    mocks.resolveAdminSessionFromRequest.mockResolvedValueOnce(UNAUTH_STATUS);
+    const unauthCall = makeActionArgs(
+      'http://localhost:4301/cms',
+      '/cms',
+      { intent: 'set-maintenance', maintenanceModeDefault: 'true' },
+      'corr-unauth-retired',
+    );
+    let thrown: unknown = null;
+    try {
+      await cmsAction(unauthCall.args as never);
+    } catch (error) {
+      thrown = error;
+    }
+    const status =
+      thrown instanceof Response
+        ? thrown.status
+        : (thrown as { init?: { status?: number } } | null)?.init?.status;
+    expect([302, 401]).toContain(status);
+    expect(unauthCall.logger.warn).not.toHaveBeenCalled();
+    expect(mocks.getSharedDb).not.toHaveBeenCalled();
+
+    // Active CMS intents targeting retired portal-maintenance key/profile also return HTTP 410 with zero DB calls
+    const retiredTargetCases: ReadonlyArray<Record<string, string>> = [
+      {
+        intent: 'upsert-site-content',
+        key: 'portal-maintenance',
+        markdownBody: '# Dormant',
+        metadataJson: '{"heading":"Legacy"}',
+      },
+      {
+        intent: 'upsert-site-content',
+        key: ' PORTAL-MAINTENANCE ',
+        markdownBody: '# Dormant',
+        metadataJson: '{"heading":"Legacy"}',
+      },
+      {
+        intent: 'upsert-terminal-profile',
+        slug: 'portal-maintenance',
+        bannerTitle: 'Legacy',
+      },
+      {
+        intent: 'upsert-terminal-command',
+        profileSlug: 'portal-maintenance',
+        name: 'roadmap',
+      },
+      {
+        intent: 'upsert-terminal-entry',
+        profileSlug: 'portal-maintenance',
+        command: 'status',
+      },
+      {
+        intent: 'upsert-terminal-directory-entry',
+        profileSlug: 'portal-maintenance',
+        name: 'changes-in-progress',
+      },
+    ];
+
+    for (const [idx, fields] of retiredTargetCases.entries()) {
+      mocks.getSharedDb.mockClear();
+      mocks.upsertSiteContent.mockClear();
+      const cid = `corr-retired-target-${idx}`;
+      const call = makeActionArgs('http://localhost:4301/cms', '/cms', fields, cid);
+      const res = (await cmsAction(call.args as never)) as unknown as DataWithStatus;
+      expect(res.init?.status).toBe(410);
+      expect(res.data).toMatchObject({
+        ok: false,
+        code: 'ERR_VALIDATION',
+        correlationId: cid,
+      });
+      expect(mocks.getSharedDb).not.toHaveBeenCalled();
+      expect(mocks.upsertSiteContent).not.toHaveBeenCalled();
+      expect(call.logger.warn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          seam_type: 'UNSOUND_CONDITION',
+          event: 'admin.cms.retired_maintenance_intent_blocked',
+          intent: fields['intent'],
+          correlationId: cid,
+        }),
+        expect.any(String),
+      );
+    }
+  });
+
   it('validates site_content payloads server-side and emits structured warning and commit audit logs', async () => {
     const invalidSchemaCall = makeActionArgs(
       'http://localhost:4301/cms',
@@ -220,7 +338,6 @@ describe('Admin mutation actions & classified HTTP status semantics', () => {
           footerText: 'Solar Forge',
           footerLinkLabel: 'GitHub',
           footerLinkUrl: 'not-a-valid-url',
-          maintenanceModeDefault: false,
         }),
       },
       'corr-sc-invalid',
@@ -266,6 +383,141 @@ describe('Admin mutation actions & classified HTTP status semantics', () => {
         key: 'admin-analytics',
         updatedAt: '2026-11-24T22:45:00.000Z',
         correlationId: 'corr-sc-valid',
+      }),
+      expect.any(String),
+    );
+    const analyticsLogPayload = validCall.logger.info.mock.calls[0]?.[0] as Record<string, unknown>;
+    expect(analyticsLogPayload['sanitizationVerified']).toBeUndefined();
+  });
+
+  it('guards portal-home upserts against invalid portrait.src, non-HTTPS githubUrl, and PII/References while auditing sanitized commits', async () => {
+    const basePortalHome = {
+      tuiTitle: 'Portfolio Launcher',
+      tuiBadge: { source: 'cloud-run', state: 'idle', label: 'Idle' },
+      heading: 'Andrew Klapper — Portfolio',
+      description: 'Interactive terminal portfolio.',
+      actions: [{ label: 'Contact', to: '/contact', variant: 'primary' }],
+      portrait: { ...DEFAULT_PORTAL_HOME_PORTRAIT },
+      resumeSummary: {
+        ...DEFAULT_PORTAL_HOME_RESUME_SUMMARY,
+        highlights: [...DEFAULT_PORTAL_HOME_RESUME_SUMMARY.highlights],
+        services: DEFAULT_PORTAL_HOME_RESUME_SUMMARY.services.map(s => ({ ...s })),
+      },
+    };
+
+    // 1. Invalid portrait.src returns HTTP 400 ERR_VALIDATION and emits UNSOUND_CONDITION seam without raw URI
+    const hostilePortrait = 'https://evil.example.invalid/hotlink.webp';
+    const badSrcCall = makeActionArgs(
+      'http://localhost:4301/cms',
+      '/cms',
+      {
+        intent: 'upsert-site-content',
+        key: 'portal-home',
+        markdownBody: '# Home',
+        metadataJson: JSON.stringify({
+          ...basePortalHome,
+          portrait: { ...basePortalHome.portrait, src: hostilePortrait },
+        }),
+      },
+      'corr-home-bad-src',
+    );
+    const badSrcRes = (await cmsAction(badSrcCall.args as never)) as unknown as DataWithStatus;
+    expect(badSrcRes.init?.status).toBe(400);
+    expect(badSrcRes.data['code']).toBe('ERR_VALIDATION');
+    expect(mocks.upsertSiteContent).not.toHaveBeenCalled();
+    expect(badSrcCall.logger.warn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        event: 'portal.home.portrait_src_invalid',
+        seam_type: 'UNSOUND_CONDITION',
+        key: 'portal-home',
+        correlationId: 'corr-home-bad-src',
+      }),
+      expect.any(String),
+    );
+    expect(JSON.stringify(badSrcCall.logger.warn.mock.calls)).not.toContain(hostilePortrait);
+
+    // 2. Non-HTTPS githubUrl returns HTTP 400 ERR_VALIDATION with zero DB write
+    const badGithubCall = makeActionArgs(
+      'http://localhost:4301/cms',
+      '/cms',
+      {
+        intent: 'upsert-site-content',
+        key: 'portal-home',
+        markdownBody: '# Home',
+        metadataJson: JSON.stringify({
+          ...basePortalHome,
+          resumeSummary: {
+            ...basePortalHome.resumeSummary,
+            githubUrl: 'javascript:alert(1)',
+          },
+        }),
+      },
+      'corr-home-bad-gh',
+    );
+    const badGithubRes = (await cmsAction(
+      badGithubCall.args as never,
+    )) as unknown as DataWithStatus;
+    expect(badGithubRes.init?.status).toBe(400);
+    expect(badGithubRes.data['code']).toBe('ERR_VALIDATION');
+    expect(mocks.upsertSiteContent).not.toHaveBeenCalled();
+
+    // 3. Disallowed phone / postal ZIP / References returns HTTP 422 ERR_CONSTRAINT with sanitizationFindings
+    const piiCall = makeActionArgs(
+      'http://localhost:4301/cms',
+      '/cms',
+      {
+        intent: 'upsert-site-content',
+        key: 'portal-home',
+        markdownBody: '## References\nJane Synthetic',
+        metadataJson: JSON.stringify({
+          ...basePortalHome,
+          resumeSummary: {
+            ...basePortalHome.resumeSummary,
+            roleLine: 'Senior Engineer · Marietta, GA 99999 · (555) 010-1234',
+          },
+        }),
+      },
+      'corr-home-pii',
+    );
+    const piiRes = (await cmsAction(piiCall.args as never)) as unknown as DataWithStatus;
+    expect(piiRes.init?.status).toBe(422);
+    expect(piiRes.data['code']).toBe('ERR_CONSTRAINT');
+    expect(Array.isArray(piiRes.data['sanitizationFindings'])).toBe(true);
+    expect(mocks.upsertSiteContent).not.toHaveBeenCalled();
+
+    // 4. Clean portal-home with allow-listed andrew@andrew-k.us persists and emits commit audit with adminActor + sanitizationVerified
+    mocks.upsertSiteContent.mockResolvedValueOnce({
+      key: 'portal-home',
+      markdownBody: '# Home clean',
+      metadataJson: basePortalHome,
+      updatedAt: '2026-11-26T22:00:00.000Z',
+    });
+    const cleanHomeCall = makeActionArgs(
+      'http://localhost:4301/cms',
+      '/cms',
+      {
+        intent: 'upsert-site-content',
+        key: 'portal-home',
+        markdownBody: '# Home clean',
+        metadataJson: JSON.stringify(basePortalHome),
+      },
+      'corr-home-ok',
+    );
+    const cleanHomeRes = (await cmsAction(
+      cleanHomeCall.args as never,
+    )) as unknown as DataWithStatus;
+    expect(cleanHomeRes.init?.status).toBe(200);
+    expect(cleanHomeRes.data['ok']).toBe(true);
+    expect(mocks.upsertSiteContent).toHaveBeenCalledTimes(1);
+    expect(cleanHomeCall.logger.info).toHaveBeenCalledWith(
+      expect.objectContaining({
+        event: 'admin.cms.site_content_upsert_committed',
+        seam_type: 'DELTA_AUDIT_GAP',
+        key: 'portal-home',
+        adminActor: AUTH_STATUS.session.handle,
+        sanitizationVerified: true,
+        updatedAt: '2026-11-26T22:00:00.000Z',
+        correlationId: 'corr-home-ok',
       }),
       expect.any(String),
     );
@@ -668,6 +920,126 @@ describe('Admin mutation actions & classified HTTP status semantics', () => {
         chunkCount: 2,
         adminActor: AUTH_STATUS.session.handle,
         correlationId: 'corr-dossier-audit',
+      }),
+      expect.any(String),
+    );
+  });
+
+  it('enforces schema HTTP 400, fail-closed privacy HTTP 422, auth gate, and audit commit log on portal-about CMS mutations', async () => {
+    // 1. Unauthenticated request is rejected before touching DB
+    mocks.resolveAdminSessionFromRequest.mockResolvedValueOnce(UNAUTH_STATUS);
+    const unauthCall = makeActionArgs(
+      'http://localhost:4301/cms',
+      '/cms',
+      {
+        intent: 'upsert-site-content',
+        key: SITE_CONTENT_KEYS.portalAbout,
+        markdownBody: 'Clean note',
+        metadataJson: JSON.stringify(PORTAL_ABOUT_SEED),
+      },
+      'corr-about-unauth',
+    );
+    let authRejected: unknown = null;
+    try {
+      const res = await cmsAction(unauthCall.args as never);
+      authRejected = res;
+    } catch (error) {
+      authRejected = error;
+    }
+    expect(authRejected).toBeTruthy();
+    expect(mocks.upsertSiteContent).not.toHaveBeenCalled();
+
+    // 2. Schema-invalid portal-about returns HTTP 400
+    const badSchemaCall = makeActionArgs(
+      'http://localhost:4301/cms',
+      '/cms',
+      {
+        intent: 'upsert-site-content',
+        key: SITE_CONTENT_KEYS.portalAbout,
+        markdownBody: 'Clean',
+        metadataJson: JSON.stringify({
+          ...PORTAL_ABOUT_SEED,
+          services: [
+            {
+              ...PORTAL_ABOUT_SEED.services[0],
+              to: 'https://untrusted.example/phish',
+            },
+          ],
+        }),
+      },
+      'corr-about-400',
+    );
+    const badSchemaRes = (await cmsAction(
+      badSchemaCall.args as never,
+    )) as unknown as DataWithStatus;
+    expect(badSchemaRes.init?.status).toBe(400);
+    expect(badSchemaRes.data['code']).toBe('ERR_VALIDATION');
+    expect(mocks.upsertSiteContent).not.toHaveBeenCalled();
+
+    // 3. Privacy violation (synthetic phone / US ZIP / email) returns HTTP 422 + sanitizationFindings
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      const piiCall = makeActionArgs(
+        'http://localhost:4301/cms',
+        '/cms',
+        {
+          intent: 'upsert-site-content',
+          key: SITE_CONTENT_KEYS.portalAbout,
+          markdownBody:
+            'Contact reference.contact@example.com at (555) 010-1234 in Marietta, GA 30062',
+          metadataJson: JSON.stringify(PORTAL_ABOUT_SEED),
+        },
+        'corr-about-422',
+      );
+      const piiRes = (await cmsAction(piiCall.args as never)) as unknown as DataWithStatus;
+      expect(piiRes.init?.status).toBe(422);
+      expect(piiRes.data['code']).toBe('ERR_CONSTRAINT');
+      expect(piiRes.data['sanitizationFindings']).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ ruleId: 'pii.email_address' }),
+          expect.objectContaining({ ruleId: 'pii.us_phone' }),
+          expect.objectContaining({ ruleId: 'pii.us_postal_zip' }),
+        ]),
+      );
+      expect(mocks.upsertSiteContent).not.toHaveBeenCalled();
+    } finally {
+      warnSpy.mockRestore();
+    }
+
+    // 4. Valid clean portal-about commits and emits admin.cms.site_content_upsert_committed
+    mocks.upsertSiteContent.mockResolvedValueOnce({
+      key: SITE_CONTENT_KEYS.portalAbout,
+      markdownBody: 'Updated about note for port :11434 and 40000 items.',
+      metadataJson: PORTAL_ABOUT_SEED,
+      updatedAt: '2026-11-26T18:00:00.000Z',
+    });
+    const validCall = makeActionArgs(
+      'http://localhost:4301/cms',
+      '/cms',
+      {
+        intent: 'upsert-site-content',
+        key: SITE_CONTENT_KEYS.portalAbout,
+        markdownBody: 'Updated about note for port :11434 and 40000 items.',
+        metadataJson: JSON.stringify(PORTAL_ABOUT_SEED),
+      },
+      'corr-about-200',
+    );
+    const validRes = (await cmsAction(validCall.args as never)) as unknown as DataWithStatus;
+    expect(validRes.init?.status).toBe(200);
+    expect(validRes.data['ok']).toBe(true);
+    expect(mocks.upsertSiteContent).toHaveBeenCalledWith(
+      expect.anything(),
+      SITE_CONTENT_KEYS.portalAbout,
+      'Updated about note for port :11434 and 40000 items.',
+      expect.objectContaining({ windowTitle: PORTAL_ABOUT_SEED.windowTitle }),
+      { correlationId: 'corr-about-200' },
+    );
+    expect(validCall.logger.info).toHaveBeenCalledWith(
+      expect.objectContaining({
+        event: 'admin.cms.site_content_upsert_committed',
+        key: SITE_CONTENT_KEYS.portalAbout,
+        updatedAt: '2026-11-26T18:00:00.000Z',
+        correlationId: 'corr-about-200',
       }),
       expect.any(String),
     );

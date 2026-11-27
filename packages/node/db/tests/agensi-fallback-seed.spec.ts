@@ -277,6 +277,7 @@ describe('@aklapper/db Agensi cache fallback, corpus isolation & prod seed guard
         await seedDatabase(tx as unknown as AppDatabase, {
           ...process.env,
           NODE_ENV: 'production',
+          DOSSIER_PRIVACY_DENYLIST: JSON.stringify(['SyntheticConfidentialClientX']),
         });
         const afterProdSeed = await getAgensiSkills(tx as unknown as AppDatabase, 'aklapper');
         expect(afterProdSeed.map(s => s.slug)).toEqual(['prod-live-row']);

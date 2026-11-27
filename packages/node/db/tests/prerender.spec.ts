@@ -1,21 +1,23 @@
 import { once } from 'node:events';
 import { createServer } from 'node:http';
 
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import * as dbExports from '../src/index.ts';
 import {
   closeSharedDb,
   getPrerenderAdminAnalyticsData,
   getPrerenderAdminHomeData,
   getPrerenderAdminRootData,
+  getPrerenderPortalAboutData,
   getPrerenderPortalAgensiData,
   getPrerenderPortalAskData,
   getPrerenderPortalCadenceData,
   getPrerenderPortalContactData,
   getPrerenderPortalHomeData,
-  getPrerenderPortalMaintenanceData,
   getPrerenderPortalRootData,
   loadAdminAnalyticsDataWithPrerender,
+  loadPortalAboutDataWithPrerender,
   loadPortalAgensiDataWithPrerender,
   loadPortalContactDataWithPrerender,
   loadPortalHomeDataWithPrerender,
@@ -57,22 +59,54 @@ describe('db prerender fallback loaders', () => {
     expect(portalRoot.chrome.pageTitle).toContain('andrew-k.us');
     expect(portalRoot.chrome.shortcutHint).toContain('Alt+⇧N');
     expect(portalRoot.chrome.shortcutHint).not.toMatch(/Alt\+⇧T|⌘D/);
-    expect(getPrerenderPortalRootData(true).maintenance?.content.heading).toBe(
-      'Site Updates in Progress',
-    );
+    expect('maintenanceMode' in portalRoot).toBe(false);
+    expect('maintenance' in portalRoot).toBe(false);
+    expect('getPrerenderPortalMaintenanceData' in dbExports).toBe(false);
+    expect('loadPortalMaintenanceDataWithPrerender' in dbExports).toBe(false);
+    expect('loadPortalMaintenanceData' in dbExports).toBe(false);
+    expect('getRoadmapMilestones' in dbExports).toBe(false);
     expect(portalHome.terminal.commands.length).toBeGreaterThan(0);
     expect(portalHome.terminal.initialEntries[0]?.command).toBe('ls');
     expect(portalHome.terminal.initialEntries[0]?.output).toContain(
-      'tui                   # TUI version',
+      'about     # Resume & platform services guide',
     );
+    expect(portalHome.terminal.initialEntries[0]?.output).toContain('tui       # TUI version');
     expect(portalHome.terminal.initialEntries[0]?.output).not.toContain('menu');
-    expect(portalHome.terminal.initialEntries[0]?.output).toContain(
-      'changes-in-progress   # Maintenance preview',
-    );
+    expect(portalHome.terminal.initialEntries[0]?.output).not.toContain('changes-in-progress');
+    expect(portalHome.terminal.initialEntries[0]?.output).not.toContain('Maintenance preview');
     expect(portalHome.terminal.initialEntries[0]?.output).not.toMatch(
       /drwxr-xr-x|-rw-r--r--|menu\//,
     );
+    expect(portalHome.content.actions.some(a => a.to === '/about')).toBe(true);
+    expect(portalHome.content.actions.some(a => a.to === '/changes-in-progress')).toBe(false);
+    expect(portalHome.content.portrait).toEqual({
+      src: '/images/andrew-klapper-portrait.webp',
+      alt: 'Greyscale terminal portrait of Andrew Klapper',
+      caption: 'andrew@andrew-k.us :: tty1',
+      width: 440,
+      height: 520,
+    });
+    expect(portalRoot.homeContent?.portrait).toEqual(portalHome.content.portrait);
+    expect(portalRoot.homeContent?.resumeSummary).toEqual(portalHome.content.resumeSummary);
+    expect(portalHome.content.resumeSummary.publicEmail).toBe('andrew@andrew-k.us');
+    expect(portalHome.content.resumeSummary.githubUrl).toBe('https://github.com/AndrewK4758');
+    expect(portalHome.content.resumeSummary.highlights.join('\n')).toMatch(/Ghostty Union/);
+    expect(portalHome.content.resumeSummary.services.map(s => s.command)).toEqual([
+      'cadence',
+      'chat',
+      'agensi',
+      'about',
+      'contact',
+    ]);
+    const homeSummaryJson = JSON.stringify(portalHome.content.resumeSummary);
+    expect(homeSummaryJson).not.toMatch(/References|\bGA\s+\d{5}\b|\(\d{3}\)\s*\d{3}-\d{4}/i);
+    expect(homeSummaryJson).not.toMatch(/\bzsh\b|p10k|powerlevel10k/i);
+    const cdCommand = portalHome.terminal.commands.find(cmd => cmd.name === 'cd');
+    expect(cdCommand?.allowedRoutes).toEqual(['about', 'cadence', 'chat', 'agensi', 'contact']);
+    expect(cdCommand?.errorTemplate).not.toContain('changes-in-progress');
     const portalHelp = portalHome.terminal.commands.find(cmd => cmd.name === 'help')?.output ?? '';
+    expect(portalHelp).toContain('about');
+    expect(portalHelp).not.toContain('changes-in-progress');
     expect(portalHelp).toContain('Split panes & tabs (keybindings & commands):');
     expect(portalHelp).toContain('Alt+Shift+N');
     expect(portalHelp).toContain('F2');
@@ -104,7 +138,35 @@ describe('db prerender fallback loaders', () => {
     });
     expect(getPrerenderPortalCadenceData().presets.length).toBeGreaterThan(0);
     expect(getPrerenderPortalContactData().content.form.id).toBe('contact-form');
-    expect(getPrerenderPortalMaintenanceData().milestones.length).toBeGreaterThan(0);
+    const infoSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
+    try {
+      const prerenderAbout = getPrerenderPortalAboutData();
+      expect(prerenderAbout.content.identity.fullName).toBe('Andrew Klapper');
+      expect(prerenderAbout.dossiers).toHaveLength(10);
+      expect(prerenderAbout.brandContactEmail).toBe('andrew@andrew-k.us');
+      const branchEvents = infoSpy.mock.calls
+        .map(call => {
+          try {
+            return JSON.parse(String(call[0])) as Record<string, unknown>;
+          } catch {
+            return null;
+          }
+        })
+        .filter(
+          (entry): entry is Record<string, unknown> =>
+            entry !== null && entry['event'] === 'portal.about.loader_source_branch',
+        );
+      expect(branchEvents).toEqual([
+        expect.objectContaining({
+          event: 'portal.about.loader_source_branch',
+          seamType: 'RULE_DIVERGENCE',
+          branch: 'prerender_seed_fallback',
+          dossierCount: 10,
+        }),
+      ]);
+    } finally {
+      infoSpy.mockRestore();
+    }
 
     expect(adminRoot.chrome.brandLabel).toContain('admin.andrew-k.us');
     expect(adminRoot.chrome.shortcutHint).toContain('Alt+⇧N');
@@ -126,10 +188,13 @@ describe('db prerender fallback loaders', () => {
     delete process.env['DATABASE_URL'];
 
     const home = await loadPortalHomeDataWithPrerender();
+    const about = await loadPortalAboutDataWithPrerender();
     const contact = await loadPortalContactDataWithPrerender();
     const analytics = await loadAdminAnalyticsDataWithPrerender();
 
     expect(home.content.heading).toContain('Andrew Klapper');
+    expect(about.content.identity.location).toBe('Marietta, GA');
+    expect(about.dossiers).toHaveLength(10);
     expect(contact.content.form.nodes.length).toBeGreaterThan(0);
     expect(analytics.summary).toEqual({ totalSessions: 0, totalEvents: 0 });
   });

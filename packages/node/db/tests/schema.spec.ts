@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 import { vi } from 'vitest';
@@ -16,8 +16,10 @@ import {
   contactSubmissions,
   DEFAULT_MENU_ITEMS,
   extractPgConstraintViolation,
+  getPrerenderPortalAboutData,
   insertContactSubmission,
   menuItems,
+  PORTAL_ABOUT_SEED,
   PORTAL_ASK_SEED,
   QDRANT_COLLECTIONS,
   roadmapMilestones,
@@ -81,9 +83,20 @@ describe('@aklapper/db', () => {
     expect(terminalProfiles.quickCommands.name).toBe('quick_commands');
     expect(terminalInitialEntries.profileSlug.name).toBe('profile_slug');
     expect(terminalCommands.allowedRoutes.name).toBe('allowed_routes');
+    expect(
+      journal.entries.some(e => e.idx === 9 && e.tag === '0009_retire_changes_in_progress_links'),
+    ).toBe(true);
+    // Contraction migration 0010_* must stay partitioned out of the journal and drizzle folder until rollout completes
+    expect(journal.entries.some(e => e.tag.startsWith('0010_'))).toBe(false);
+    const drizzleFiles = readdirSync(resolve(import.meta.dirname, '../drizzle'));
+    expect(drizzleFiles.some(file => file.startsWith('0010_'))).toBe(false);
     expect(terminalDirectoryEntries.profileSlug.name).toBe('profile_slug');
     expect(terminalDirectoryEntries.description.name).toBe('description');
     expect(TERMINAL_DIRECTORY_ENTRY_SEEDS).toHaveLength(6);
+    expect(TERMINAL_DIRECTORY_ENTRY_SEEDS.map(entry => String(entry.name))).toContain('about');
+    expect(TERMINAL_DIRECTORY_ENTRY_SEEDS.map(entry => String(entry.name))).not.toContain(
+      'changes-in-progress',
+    );
     expect(TERMINAL_DIRECTORY_ENTRY_SEEDS.every(entry => !entry.name.endsWith('/'))).toBe(true);
     expect(roadmapMilestones.status.name).toBe('status');
     expect(webauthnChallenges.challenge.name).toBe('challenge');
@@ -116,11 +129,13 @@ describe('@aklapper/db', () => {
     ]);
     expect(DEFAULT_MENU_ITEMS.some(item => item.adminOnly)).toBe(true);
     expect(Object.keys(SITE_CONTENT_KEYS)).toHaveLength(10);
+    expect(SITE_CONTENT_KEYS.portalAbout).toBe('portal-about');
     expect(SITE_CONTENT_KEYS.portalAgensi).toBe('portal-agensi');
     expect(SITE_CONTENT_KEYS.portalAsk).toBe('portal-ask');
     expect(SITE_CONTENT_KEYS.portalContact).toBe('portal-contact');
     expect(TERMINAL_PROFILE_SLUGS.portalHome).toBe('portal-home');
     expect(TERMINAL_PROFILE_SLUGS.adminOps).toBe('admin-ops');
+    expect('portalMaintenance' in TERMINAL_PROFILE_SLUGS).toBe(false);
     expect(agensiSkills.creatorHandle.name).toBe('creator_handle');
     expect(agensiSkills.isPublished.name).toBe('is_published');
     expect(agensiSkills.syncedAt.name).toBe('synced_at');
@@ -265,7 +280,7 @@ describe('@aklapper/db', () => {
     ).rejects.toThrow(/Failed to persist contact submission/i);
   });
 
-  it('preserves custom roadmap_milestones by default, supports non-overwriting bootstrap mode, and gates pruning behind pruneMissingMilestones', async () => {
+  it('prunes retired maintenance and changes-in-progress rows in upsert mode while keeping bootstrap non-destructive', async () => {
     const deleteCalls: unknown[] = [];
     const onConflictUpdateCalls: unknown[] = [];
     const onConflictNothingCalls: unknown[] = [];
@@ -318,6 +333,9 @@ describe('@aklapper/db', () => {
         lastTable = table;
         return { where: whereFn };
       }),
+      transaction: vi.fn<(fn: (tx: unknown) => Promise<unknown>) => Promise<unknown>>(async fn =>
+        fn(mockDb),
+      ),
     } as unknown as AppDatabase;
 
     try {
@@ -325,11 +343,13 @@ describe('@aklapper/db', () => {
       expect(deleteCalls).toEqual([
         menuItems,
         siteContent,
+        terminalProfiles,
         terminalCommands,
         terminalDirectoryEntries,
       ]);
       expect(onConflictUpdateCalls.length).toBeGreaterThan(0);
       expect(onConflictUpdateCalls).toContain(careerDossiers);
+      expect(onConflictUpdateCalls).not.toContain(roadmapMilestones);
 
       deleteCalls.length = 0;
       onConflictUpdateCalls.length = 0;
@@ -337,22 +357,16 @@ describe('@aklapper/db', () => {
       expect(deleteCalls).toHaveLength(0);
       expect(onConflictUpdateCalls).toHaveLength(0);
       expect(onConflictNothingCalls.length).toBeGreaterThan(0);
-
-      deleteCalls.length = 0;
-      await seedDatabase(mockDb, { pruneMissingMilestones: true, env: { ADMIN_PASSWORD: '' } });
-      expect(deleteCalls).toEqual([
-        menuItems,
-        siteContent,
-        terminalCommands,
-        terminalDirectoryEntries,
-        roadmapMilestones,
-      ]);
+      expect(onConflictNothingCalls).not.toContain(roadmapMilestones);
 
       expect(DEFAULT_MENU_ITEMS.some(item => item.slug === 'chat')).toBe(true);
       expect(DEFAULT_MENU_ITEMS.some(item => item.slug === 'ask')).toBe(false);
       expect(TERMINAL_DIRECTORY_ENTRY_SEEDS.map(entry => entry.name)).toContain('chat');
       expect(TERMINAL_DIRECTORY_ENTRY_SEEDS.map(entry => entry.name)).not.toContain('ask');
       expect(TERMINAL_DIRECTORY_ENTRY_SEEDS.map(entry => entry.name)).not.toContain('menu');
+      expect(TERMINAL_DIRECTORY_ENTRY_SEEDS.map(entry => entry.name)).not.toContain(
+        'changes-in-progress',
+      );
       expect(PORTAL_ASK_SEED.windowTitle).toContain('Chat with Andrew');
       const profileDossier = CAREER_DOSSIER_SEEDS.find(
         d => d.slug === 'andrew-klapper-profile-core',
@@ -364,9 +378,83 @@ describe('@aklapper/db', () => {
       expect(logged).toContain('db.seed.mode_branch');
       expect(logged).toContain('RULE_DIVERGENCE');
       expect(logged).toContain('bootstrap_missing_only');
-      expect(logged).toContain('explicit_prune_roadmap');
+      expect(logged).toContain('upsert_safe');
+
+      // Exported process.env.mode='bootstrap' must NOT hijack default upsert mode on seedDatabase(db)
+      const prevModeEnv = process.env['mode'];
+      const prevAdminPassword = process.env['ADMIN_PASSWORD'];
+      const prevNodeEnv = process.env['NODE_ENV'];
+      try {
+        process.env['mode'] = 'bootstrap';
+        process.env['ADMIN_PASSWORD'] = '';
+        process.env['NODE_ENV'] = 'test';
+        infoSpy.mockClear();
+        onConflictUpdateCalls.length = 0;
+        await seedDatabase(mockDb);
+        expect(onConflictUpdateCalls.length).toBeGreaterThan(0);
+        expect(infoSpy.mock.calls.flat().join('\n')).toContain('upsert_safe');
+      } finally {
+        if (prevModeEnv === undefined) delete process.env['mode'];
+        else process.env['mode'] = prevModeEnv;
+        if (prevAdminPassword === undefined) delete process.env['ADMIN_PASSWORD'];
+        else process.env['ADMIN_PASSWORD'] = prevAdminPassword;
+        if (prevNodeEnv === undefined) delete process.env['NODE_ENV'];
+        else process.env['NODE_ENV'] = prevNodeEnv;
+      }
     } finally {
       infoSpy.mockRestore();
     }
+  });
+
+  it('seeds 10 sanitized resume dossiers within Go 1400-rune chunk bounds, excludes personal contacts/phones/ZIPs, and provides prerender /about data', () => {
+    expect(CAREER_DOSSIER_SEEDS).toHaveLength(10);
+    expect(CAREER_DOSSIER_SEEDS.map(d => d.slug)).toEqual([
+      'andrew-klapper-profile-core',
+      'btg-software-engineer',
+      'gitasy-software-engineer',
+      'shipping-services-logistics-owner',
+      'cadence-agentic-sdlc',
+      'ghostty-union-terminal',
+      'gemma-4-dual-gpu-finetuning',
+      'distributed-ai-document-ecosystem',
+      'antigravity-android-blitz-oss',
+      'woodstock-developers-group-mentor',
+    ]);
+
+    for (const dossier of CAREER_DOSSIER_SEEDS) {
+      const metaParts = [
+        `Domain: ${dossier.domainLabel.trim()}`,
+        `Role: ${dossier.roleTitle.trim()}`,
+        `Timeframe: ${dossier.timeframe.trim()}`,
+        ...(dossier.skills.length > 0 ? [`Skills: ${dossier.skills.join(', ')}`] : []),
+      ];
+      const chunk0 = `${dossier.summaryBody.trim()}\n${metaParts.join(' | ')}`;
+      expect(
+        Array.from(chunk0).length,
+        `${dossier.slug} Chunk #0 exceeds 1400 runes`,
+      ).toBeLessThanOrEqual(1400);
+      for (const section of dossier.sectionsJson) {
+        const sectionChunk = `${section.heading.trim()}: ${section.body.trim()}`;
+        expect(
+          Array.from(sectionChunk).length,
+          `${dossier.slug} section "${section.heading}" exceeds 1400 runes`,
+        ).toBeLessThanOrEqual(1400);
+      }
+    }
+
+    expect(PORTAL_ABOUT_SEED.skillGroups).toHaveLength(5);
+    expect(PORTAL_ABOUT_SEED.services.map(s => s.to)).toEqual(['/chat', '/agensi', '/cadence']);
+    expect(PORTAL_ABOUT_SEED.contactCtaHref).toBe('/contact');
+
+    const serializedAll = JSON.stringify({ PORTAL_ABOUT_SEED, CAREER_DOSSIER_SEEDS });
+    expect(serializedAll).not.toMatch(/\bref(?:erence)?s\b/i);
+    expect(serializedAll).not.toMatch(/(?:\(\d{3}\)[-.\s]?|\d{3}[-.\s])\d{3}[-.\s]\d{4}/);
+    expect(serializedAll).not.toMatch(/\b[A-Z]{2}\s+\d{5}(?:-\d{4})?\b/);
+    expect(serializedAll).not.toMatch(/\b\d{5}-\d{4}\b/);
+
+    const prerenderAbout = getPrerenderPortalAboutData();
+    expect(prerenderAbout.content.identity.fullName).toBe('Andrew Klapper');
+    expect(prerenderAbout.dossiers).toHaveLength(10);
+    expect(prerenderAbout.brandContactEmail).toBe('andrew@andrew-k.us');
   });
 });

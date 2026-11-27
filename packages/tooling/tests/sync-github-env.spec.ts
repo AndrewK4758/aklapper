@@ -1,3 +1,8 @@
+import { execFileSync } from 'node:child_process';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join, resolve } from 'node:path';
+
 import { describe, expect, it, vi } from 'vitest';
 
 import {
@@ -148,7 +153,7 @@ describe('@aklapper/tooling GitHub Actions and GCP Secret Manager sync', () => {
     }
   });
 
-  it('rejects all 12 retired keys (including K8s/Cloud SQL/unauth admin) and emits UNSOUND_CONDITION telemetry', () => {
+  it('rejects all 14 retired keys (including K8s/Cloud SQL/unauth admin/maintenance mode) and emits UNSOUND_CONDITION telemetry', () => {
     const logged: string[] = [];
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation((msg: unknown) => {
       logged.push(String(msg));
@@ -172,6 +177,7 @@ describe('@aklapper/tooling GitHub Actions and GCP Secret Manager sync', () => {
         K8S_WATCH_URL: 'https://k8s-watch.bgdkapis.us',
         CLOUD_RUN_ALLOW_UNAUTH_ADMIN: 'false',
         VERTEX_THINKING_BUDGET: '0',
+        PORTAL_MAINTENANCE_MODE: 'false',
       });
 
       expect(plan.placeholderKeys).toEqual(['DATABASE_URL']);
@@ -190,8 +196,10 @@ describe('@aklapper/tooling GitHub Actions and GCP Secret Manager sync', () => {
         'K8S_WATCH_URL',
         'CLOUD_RUN_ALLOW_UNAUTH_ADMIN',
         'VERTEX_THINKING_BUDGET',
+        'PORTAL_MAINTENANCE_MODE',
       ]);
       expect(plan.variables.map(v => v.key)).not.toContain('VERTEX_THINKING_BUDGET');
+      expect(plan.variables.map(v => v.key)).not.toContain('PORTAL_MAINTENANCE_MODE');
       expect(plan.variables.map(v => v.key)).not.toContain('AUTH_API_URL');
       expect(plan.variables.map(v => v.key)).not.toContain('ANALYTICS_API_URL');
       expect(plan.variables.map(v => v.key)).not.toContain('CADENCE_ADMIN_URL');
@@ -201,10 +209,70 @@ describe('@aklapper/tooling GitHub Actions and GCP Secret Manager sync', () => {
       expect(logged.join('\n')).toContain('tooling.env_sync.retired_key_rejected');
       expect(logged.join('\n')).toContain('UNSOUND_CONDITION');
       expect(logged.join('\n')).toContain('K8S_WATCH_URL');
+      expect(logged.join('\n')).toContain('PORTAL_MAINTENANCE_MODE');
       expect(logged.join('\n')).not.toContain('legacy-secret-do-not-print');
     } finally {
       warnSpy.mockRestore();
     }
+  });
+
+  it('rejects PORTAL_MAINTENANCE_MODE in non-dry-run CLI invocation and removes it from deployment manifests', () => {
+    const logged: string[] = [];
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation((msg: unknown) => {
+      logged.push(String(msg));
+    });
+    try {
+      const plan = buildSyncPlan({
+        ...VALID_BASE_ENV,
+        PORTAL_MAINTENANCE_MODE: 'true',
+      });
+      expect(plan.retiredKeys).toEqual(['PORTAL_MAINTENANCE_MODE']);
+      expect(plan.variables.map(v => v.key)).not.toContain('PORTAL_MAINTENANCE_MODE');
+      const retiredEvent = logged
+        .map(line => JSON.parse(line) as Record<string, unknown>)
+        .find(entry => entry['event'] === 'tooling.env_sync.retired_key_rejected');
+      expect(retiredEvent).toEqual({
+        event: 'tooling.env_sync.retired_key_rejected',
+        seam: 'UNSOUND_CONDITION',
+        retiredKeys: ['PORTAL_MAINTENANCE_MODE'],
+      });
+    } finally {
+      warnSpy.mockRestore();
+    }
+
+    const tmpDir = mkdtempSync(join(tmpdir(), 'sync-github-env-retired-'));
+    try {
+      const envFile = join(tmpDir, 'prod.env');
+      const lines = Object.entries({ ...VALID_BASE_ENV, PORTAL_MAINTENANCE_MODE: 'false' }).map(
+        ([k, v]) => `${k}=${v}`,
+      );
+      writeFileSync(envFile, lines.join('\n'), 'utf8');
+      const scriptPath = resolve(import.meta.dirname, '../src/sync-github-env.ts');
+      let stderr = '';
+      let exitCode = 0;
+      try {
+        execFileSync(process.execPath, [scriptPath, '--file', envFile], {
+          encoding: 'utf8',
+          stdio: ['ignore', 'pipe', 'pipe'],
+        });
+      } catch (err) {
+        const execErr = err as { status?: number; stderr?: string };
+        exitCode = execErr.status ?? 1;
+        stderr = execErr.stderr ?? '';
+      }
+      expect(exitCode).not.toBe(0);
+      expect(stderr).toContain('Remove retired keys before syncing: PORTAL_MAINTENANCE_MODE');
+    } finally {
+      rmSync(tmpDir, { recursive: true, force: true });
+    }
+
+    const repoRoot = resolve(import.meta.dirname, '../../..');
+    const workflow = readFileSync(resolve(repoRoot, '.github/workflows/cd-gcp.yml'), 'utf8');
+    const envExample = readFileSync(resolve(repoRoot, '.env.example'), 'utf8');
+
+    expect(envExample).not.toContain('PORTAL_MAINTENANCE_MODE');
+    expect(workflow).not.toMatch(/PORTAL_MAINTENANCE_MODE\s*[:=]/);
+    expect(workflow).toMatch(/--remove-env-vars=[^\n]*PORTAL_MAINTENANCE_MODE/);
   });
 
   it('versions Secret Manager credentials via stdin and binds minimal-privilege 4-SA + Direct IAP roles without Cloud SQL or GKE', () => {

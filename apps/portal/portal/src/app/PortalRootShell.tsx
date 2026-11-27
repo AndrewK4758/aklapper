@@ -1,8 +1,6 @@
-import type { PortalRootLoaderData, PublicAppError } from '@aklapper/core';
+import { normalizePathname, type PortalRootLoaderData } from '@aklapper/core';
 import {
   Button,
-  LazyChunkBoundary,
-  lazyWithRetry,
   Menu,
   NavigationMenu,
   OscStatusBadge,
@@ -17,7 +15,6 @@ import { href, Link, Outlet } from 'react-router';
 
 import { PortalLauncherTui } from '#pages/home';
 
-import { reportPortalClientError } from './client-telemetry';
 import { PortalMobileWorkspaceHost } from './PortalMobileWorkspaceHost';
 import { isPortalPaneRoute, renderPortalPaneView } from './portalPaneViews';
 import type { RuntimeStatusTelemetrySnapshot } from './runtime-status';
@@ -27,17 +24,12 @@ import { portalWorkspaceStore } from './workspace/portalWorkspaceStore';
 
 import styles from './root.module.css';
 
-const LazyPortalChangesInProgressPage = lazyWithRetry(() =>
-  import('#pages/changes-in-progress').then(mod => ({
-    default: mod.PortalChangesInProgressPage,
-  })),
-);
-
 function getPortalPaneTitle(pathname: string): string {
   return pathname === '/' ? 'tty1' : `tui :: ${pathname}`;
 }
 
 const PORTAL_NAV_ITEMS = [
+  { to: href('/about'), label: 'About' },
   { to: href('/cadence'), label: 'CADENCE' },
   { to: href('/chat'), label: 'Chat' },
   { to: href('/agensi'), label: 'Agensi' },
@@ -45,11 +37,12 @@ const PORTAL_NAV_ITEMS = [
 ] as const;
 
 function isPortalNavItemActive(pathname: string, to: string): boolean {
-  const normalized = pathname.replace(/\/+$/, '') || '/';
+  const normalized = normalizePathname(pathname);
   return normalized === to || normalized.startsWith(`${to}/`);
 }
 
 const PANE_LAUNCHER_ITEMS = [
+  { label: 'About', viewId: '/about' },
   { label: 'CADENCE', viewId: '/cadence' },
   { label: 'Chat', viewId: '/chat' },
   { label: 'Agensi', viewId: '/agensi' },
@@ -101,29 +94,6 @@ function PortalHeaderPaneMenu() {
   );
 }
 
-export function OfflineMaintenanceFallback({ error }: { readonly error: PublicAppError }) {
-  return (
-    <div className={styles.standaloneShell} data-testid='offline-maintenance-fallback'>
-      <main className={styles.standaloneMain}>
-        <section className={styles.offlineMaintenance} aria-label='Scheduled Maintenance'>
-          <div className={styles.offlineMaintenanceCard}>
-            <div className={styles.offlineMaintenanceHeader}>
-              <SolarForgeEmblem size={20} />
-              <h1>Changes in Progress</h1>
-            </div>
-            <p className={styles.offlineMaintenanceLead}>
-              andrew-k.us is currently undergoing scheduled maintenance. Please check back shortly.
-            </p>
-            <p className={styles.offlineMaintenanceRef}>
-              Reference ID: <code>{error.correlationId}</code>
-            </p>
-          </div>
-        </section>
-      </main>
-    </div>
-  );
-}
-
 export interface PortalRootShellProps {
   readonly data: PortalRootLoaderData;
   readonly pathname: string;
@@ -144,35 +114,6 @@ export function PortalRootShell({
     () => createPortalTerminalForms(data.contactForm, navigate),
     [data.contactForm, navigate],
   );
-
-  if (data.maintenanceMode && data.maintenance) {
-    portalWorkspaceStore.recordRoutePolicy(pathname, 'excluded-maintenance');
-    return (
-      <div className={styles.standaloneShell}>
-        <main className={styles.standaloneMain}>
-          <LazyChunkBoundary
-            loadingLabel='Loading maintenance status...'
-            errorTitle='Unable to load maintenance view'
-            onChunkError={error => {
-              console.error(
-                JSON.stringify({
-                  event: 'ui.lazy_chunk.load_failed',
-                  routePath: '/changes-in-progress',
-                }),
-              );
-              reportPortalClientError(error, {
-                phase: 'boundary',
-                pathname: '/changes-in-progress',
-                errorCode: 'ERR_UPSTREAM_UNAVAILABLE',
-              });
-            }}
-          >
-            <LazyPortalChangesInProgressPage data={data.maintenance} />
-          </LazyChunkBoundary>
-        </main>
-      </div>
-    );
-  }
 
   const { chrome, terminal, homeContent } = data;
   const isTerminalViewport = pathname === '/';

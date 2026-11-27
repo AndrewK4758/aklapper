@@ -25,10 +25,7 @@ export type WorkspaceStorageEventName =
   | 'ui.workspace_storage.write_failed'
   | 'ui.workspace_storage.route_policy_branch';
 
-export type WorkspaceRoutePolicyBranch =
-  | 'cached-workspace'
-  | 'excluded-maintenance'
-  | 'admin-cleared';
+export type WorkspaceRoutePolicyBranch = 'cached-workspace' | 'admin-cleared';
 
 export interface WorkspaceStorageEvent {
   readonly event: WorkspaceStorageEventName;

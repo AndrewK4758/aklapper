@@ -607,4 +607,47 @@ describe('TerminalWorkspace in-pane TUI navigation', () => {
     expect(navigate).toHaveBeenCalledTimes(2);
     expect(navigate).toHaveBeenLastCalledWith('/contact');
   });
+
+  it('does not special-case /changes-in-progress in the default canHandleInPaneRoute predicate', () => {
+    const navigate = vi.fn<(to: string) => void>();
+    const renderPaneView = vi.fn<(ctx: TerminalPaneViewContext) => React.ReactNode>(
+      (ctx: TerminalPaneViewContext) => (
+        <TuiWindow title={`Pane ${ctx.viewId}`} onClose={ctx.exitTui}>
+          <div>Rendered in pane: {ctx.viewId}</div>
+        </TuiWindow>
+      ),
+    );
+
+    const terminalWithRoute: TerminalProfileData = {
+      ...NAV_TERMINAL_FIXTURE,
+      commands: [
+        ...NAV_TERMINAL_FIXTURE.commands,
+        {
+          name: 'preview',
+          description: 'open arbitrary route',
+          kind: 'navigate',
+          output: 'opening route ...',
+          targetRoute: '/changes-in-progress',
+          allowedRoutes: [],
+          errorTemplate: null,
+          sortOrder: 9,
+        },
+      ],
+    };
+
+    render(
+      <TerminalWorkspace
+        terminal={terminalWithRoute}
+        navigate={navigate}
+        renderPaneView={renderPaneView}
+      />,
+    );
+
+    const input = screen.getByRole('textbox', { name: /terminal command input/i });
+    fireEvent.change(input, { target: { value: 'preview' } });
+    fireEvent.submit(input.closest('form')!);
+
+    expect(navigate).not.toHaveBeenCalled();
+    expect(screen.getByText('Rendered in pane: /changes-in-progress')).toBeTruthy();
+  });
 });

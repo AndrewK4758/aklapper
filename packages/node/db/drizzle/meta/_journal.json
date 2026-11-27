@@ -64,6 +64,13 @@
       "when": 1795600000000,
       "tag": "0008_drop_menu_item_k8s_columns",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1795610000000,
+      "tag": "0009_retire_changes_in_progress_links",
+      "breakpoints": true
     }
   ]
 }

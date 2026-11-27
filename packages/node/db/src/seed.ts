@@ -4,6 +4,8 @@ import {
   type AdminChromeContent,
   type AdminHomeContent,
   buildSplitHelpLines,
+  cloneDefaultPortalHomePortrait,
+  cloneDefaultPortalHomeResumeSummary,
   CONTACT_FORM_DEFINITION,
   formatTerminalDirectoryListing,
   type MenuItem,
@@ -13,13 +15,19 @@ import {
   type PortalChromeContent,
   type PortalContactContent,
   type PortalHomeContent,
-  type PortalMaintenanceContent,
   type TerminalProfileData,
   TerminalProfileDataSchema,
 } from '@aklapper/core';
 import { resolveAgensiCreatorHandle } from '@aklapper/node-runtime/agensi';
 import { loadWorkspaceEnv } from '@aklapper/node-runtime/env';
-import { and, eq, inArray, notInArray, sql } from 'drizzle-orm';
+import {
+  isProductionPrivacyEnv,
+  sanitizeCareerDossierPayload,
+  sanitizePortalAboutSiteContent,
+  sanitizePortalAskSiteContent,
+  sanitizePortalHomeSiteContent,
+} from '@aklapper/node-runtime/privacy';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 
 import { type AppDatabase, createDb, createDbPool } from './client.ts';
 import { resolveTerminalLsOutput, SITE_CONTENT_KEYS, TERMINAL_PROFILE_SLUGS } from './queries.ts';
@@ -29,7 +37,6 @@ import {
   careerDossiers,
   menuItems,
   quotaPolicies,
-  roadmapMilestones,
   sandboxRuns,
   sandboxTurns,
   siteContent,
@@ -38,8 +45,13 @@ import {
   terminalInitialEntries,
   terminalProfiles,
 } from './schema.ts';
+import { PORTAL_ABOUT_SEED } from './seed-about.ts';
 import { seedAdminUserFromEnv, type SeedAdminUserResult } from './seed-admin.ts';
-import { CAREER_DOSSIER_SEEDS, PORTAL_ASK_SEED } from './seed-dossiers.ts';
+import {
+  CAREER_DOSSIER_SEEDS,
+  type CareerDossierSeedEntry,
+  PORTAL_ASK_SEED,
+} from './seed-dossiers.ts';
 import {
   CADENCE_GOLDEN_RUN_SEEDS,
   CADENCE_PRESET_SEEDS,
@@ -108,8 +120,13 @@ export const PORTAL_CHROME_SEED: PortalChromeContent = {
   footerText: 'Andrew Klapper · Personal Portfolio',
   footerLinkLabel: 'agensi.io/creators/aklapper',
   footerLinkUrl: 'https://agensi.io/creators/aklapper',
-  maintenanceModeDefault: false,
 };
+
+const PORTAL_HOME_ABOUT_ACTION = {
+  label: 'About & Resume → /about',
+  to: '/about',
+  variant: 'default',
+} as const;
 
 const PORTAL_HOME_SEED: PortalHomeContent = {
   tuiTitle: 'Portfolio Launcher',
@@ -122,16 +139,14 @@ const PORTAL_HOME_SEED: PortalHomeContent = {
   description:
     "Explore interactive demos, chat with Andrew's AI about his work and experience, browse published Agensi skills, or send a direct message. Use the launcher below or the terminal above to navigate.",
   actions: [
+    PORTAL_HOME_ABOUT_ACTION,
     { label: 'CADENCE Builder → /cadence', to: '/cadence', variant: 'primary' },
     { label: 'Chat with Andrew → /chat', to: '/chat', variant: 'default' },
     { label: 'Agensi Storefront → /agensi', to: '/agensi', variant: 'default' },
     { label: 'Contact → /contact', to: '/contact', variant: 'default' },
-    {
-      label: 'Maintenance Preview → /changes-in-progress',
-      to: '/changes-in-progress',
-      variant: 'default',
-    },
   ],
+  portrait: cloneDefaultPortalHomePortrait(),
+  resumeSummary: cloneDefaultPortalHomeResumeSummary(),
 };
 
 const PORTAL_AGENSI_SEED: PortalAgensiContent = {
@@ -158,21 +173,6 @@ const PORTAL_CONTACT_SEED: PortalContactContent = {
   description:
     'Send a direct message to Andrew Klapper. All fields are validated before submission.',
   form: CONTACT_FORM_DEFINITION,
-};
-
-const PORTAL_MAINTENANCE_SEED: PortalMaintenanceContent = {
-  windowTitle: 'andrew-k.us — Maintenance',
-  statusBadge: {
-    source: 'site-maintenance',
-    state: 'scaling',
-    label: 'Maintenance in Progress',
-  },
-  heading: 'Site Updates in Progress',
-  lead: 'andrew-k.us is currently being updated. Site navigation is temporarily unavailable while updates are deployed.',
-  progressPercent: 72,
-  progressAriaLabel: 'Site update progress',
-  metaLeft: 'Status: Maintenance mode (navigation disabled)',
-  metaRight: 'Progress: 72% · terminal available below',
 };
 
 const ADMIN_CHROME_SEED: AdminChromeContent = {
@@ -205,13 +205,19 @@ const SITE_CONTENT_SEEDS: ReadonlyArray<{
 }> = [
   {
     key: SITE_CONTENT_KEYS.portalChrome,
-    markdownBody: 'Portal global shell chrome and maintenance default.',
+    markdownBody: 'Portal global shell chrome and status badge.',
     metadataJson: PORTAL_CHROME_SEED,
   },
   {
     key: SITE_CONTENT_KEYS.portalHome,
     markdownBody: 'Portal tty1 greeter TUI launcher content.',
     metadataJson: PORTAL_HOME_SEED,
+  },
+  {
+    key: SITE_CONTENT_KEYS.portalAbout,
+    markdownBody:
+      'Portal public-safe resume framing, skills, education, and platform services guide.',
+    metadataJson: PORTAL_ABOUT_SEED,
   },
   {
     key: SITE_CONTENT_KEYS.portalAgensi,
@@ -234,11 +240,6 @@ const SITE_CONTENT_SEEDS: ReadonlyArray<{
     metadataJson: PORTAL_CONTACT_SEED,
   },
   {
-    key: SITE_CONTENT_KEYS.portalMaintenance,
-    markdownBody: 'Portal standalone changes-in-progress maintenance screen.',
-    metadataJson: PORTAL_MAINTENANCE_SEED,
-  },
-  {
     key: SITE_CONTENT_KEYS.adminChrome,
     markdownBody: 'Admin global shell chrome and passkey badge.',
     metadataJson: ADMIN_CHROME_SEED,
@@ -259,26 +260,26 @@ const TERMINAL_PROFILE_SEEDS = [
   {
     slug: TERMINAL_PROFILE_SLUGS.portalHome,
     bannerTitle: 'Solar Forge Terminal // tty1',
-    bannerMeta: 'tty1 · type "tui", "cadence", "chat", "agensi", or "contact" · Tab autocomplete',
+    bannerMeta:
+      'tty1 · type "about", "tui", "cadence", "chat", "agensi", or "contact" · Tab autocomplete',
     osLabel: '⚡',
     directory: '~/projects/aklapper',
     vcsBranch: 'portfolio_v2',
     vcsState: 'clean' as const,
     contextLabel: 'guest@andrew-k.us',
-    placeholder: 'type a command (help, ls, tui, cadence, chat, agensi, contact, cd ...)',
-    quickCommands: ['help', 'ls', 'tui', 'cadence', 'chat', 'agensi', 'contact', 'status', 'clear'],
-  },
-  {
-    slug: TERMINAL_PROFILE_SLUGS.portalMaintenance,
-    bannerTitle: 'Solar Forge Terminal // andrew-k.us (maintenance)',
-    bannerMeta: 'tty1 · type "help" or press Tab',
-    osLabel: '⚡',
-    directory: '~/andrew-k.us',
-    vcsBranch: 'portfolio_v2 !wip',
-    vcsState: 'modified' as const,
-    contextLabel: 'visitor@andrew-k.us',
-    placeholder: 'type a command: help, status, roadmap, stack, clear',
-    quickCommands: ['help', 'status', 'roadmap', 'stack', 'whoami', 'clear'],
+    placeholder: 'type a command (help, ls, about, tui, cadence, chat, agensi, contact, cd ...)',
+    quickCommands: [
+      'help',
+      'ls',
+      'about',
+      'tui',
+      'cadence',
+      'chat',
+      'agensi',
+      'contact',
+      'status',
+      'clear',
+    ],
   },
   {
     slug: TERMINAL_PROFILE_SLUGS.adminOps,
@@ -297,43 +298,43 @@ const TERMINAL_PROFILE_SEEDS = [
 const TERMINAL_DIRECTORY_ENTRY_SEEDS = [
   {
     profileSlug: TERMINAL_PROFILE_SLUGS.portalHome,
+    name: 'about',
+    description: 'Resume & platform services guide',
+    sortOrder: 1,
+    enabled: true,
+  },
+  {
+    profileSlug: TERMINAL_PROFILE_SLUGS.portalHome,
     name: 'tui',
     description: 'TUI version',
-    sortOrder: 1,
+    sortOrder: 2,
     enabled: true,
   },
   {
     profileSlug: TERMINAL_PROFILE_SLUGS.portalHome,
     name: 'cadence',
     description: 'Agentic workflow example',
-    sortOrder: 2,
+    sortOrder: 3,
     enabled: true,
   },
   {
     profileSlug: TERMINAL_PROFILE_SLUGS.portalHome,
     name: 'chat',
     description: "Chat with Andrew's AI",
-    sortOrder: 3,
+    sortOrder: 4,
     enabled: true,
   },
   {
     profileSlug: TERMINAL_PROFILE_SLUGS.portalHome,
     name: 'agensi',
     description: 'Published AI skills',
-    sortOrder: 4,
+    sortOrder: 5,
     enabled: true,
   },
   {
     profileSlug: TERMINAL_PROFILE_SLUGS.portalHome,
     name: 'contact',
     description: 'Connect with me',
-    sortOrder: 5,
-    enabled: true,
-  },
-  {
-    profileSlug: TERMINAL_PROFILE_SLUGS.portalHome,
-    name: 'changes-in-progress',
-    description: 'Maintenance preview',
     sortOrder: 6,
     enabled: true,
   },
@@ -352,19 +353,6 @@ const TERMINAL_INITIAL_ENTRY_SEEDS = [
     output: PORTAL_HOME_DIRECTORY_LISTING,
     status: 'ok' as const,
     durationLabel: '6ms',
-    timestampLabel: '00:00:00',
-    sortOrder: 0,
-  },
-  {
-    profileSlug: TERMINAL_PROFILE_SLUGS.portalMaintenance,
-    command: 'status',
-    output: [
-      'andrew-k.us :: Solar Forge v2 rebuild is actively underway.',
-      'Navigation is temporarily offline while services migrate to Cloud Run (4-service Docker architecture).',
-      'Type "help" at the ❯ prompt below to inspect the rebuild status.',
-    ].join('\n'),
-    status: 'ok' as const,
-    durationLabel: '8ms',
     timestampLabel: '00:00:00',
     sortOrder: 0,
   },
@@ -388,12 +376,13 @@ const TERMINAL_COMMAND_SEEDS = [
     output: [
       'Available terminal commands:',
       '  ls         — list portal routes & workspaces',
+      '  about      — open /about resume & platform services guide',
       '  tui        — open TUI launcher in a split pane',
       '  cadence    — open /cadence artifact sandbox',
       "  chat       — open /chat to chat with Andrew's AI & JD match",
       '  agensi     — open /agensi commercial skills storefront',
       '  contact    — run inline terminal contact form (or "contact --tui" / "--help")',
-      '  cd <route> — navigate to /cadence, /chat, /agensi, /contact, or /changes-in-progress',
+      '  cd <route> — navigate to /about, /cadence, /chat, /agensi, or /contact',
       '  status     — inspect cluster & service state',
       '  whoami     — display active terminal session',
       '  clear      — clear terminal scrollback',
@@ -416,6 +405,17 @@ const TERMINAL_COMMAND_SEEDS = [
     allowedRoutes: [] as string[],
     errorTemplate: null,
     sortOrder: 2,
+  },
+  {
+    profileSlug: TERMINAL_PROFILE_SLUGS.portalHome,
+    name: 'about',
+    description: 'open /about resume & platform services guide',
+    kind: 'navigate' as const,
+    output: 'opening /about ...',
+    targetRoute: '/about',
+    allowedRoutes: [] as string[],
+    errorTemplate: null,
+    sortOrder: 3,
   },
   {
     profileSlug: TERMINAL_PROFILE_SLUGS.portalHome,
@@ -475,13 +475,13 @@ const TERMINAL_COMMAND_SEEDS = [
   {
     profileSlug: TERMINAL_PROFILE_SLUGS.portalHome,
     name: 'cd',
-    description: 'navigate to /cadence, /chat, /agensi, /contact, or /changes-in-progress',
+    description: 'navigate to /about, /cadence, /chat, /agensi, or /contact',
     kind: 'cd' as const,
     output: 'cd /{{target}}',
     targetRoute: null,
-    allowedRoutes: ['cadence', 'chat', 'agensi', 'contact', 'changes-in-progress'],
+    allowedRoutes: ['about', 'cadence', 'chat', 'agensi', 'contact'],
     errorTemplate:
-      'cd: no such route: {{input}}\nTry: cd cadence | cd chat | cd agensi | cd contact | cd changes-in-progress',
+      'cd: no such route: {{input}}\nTry: cd about | cd cadence | cd chat | cd agensi | cd contact',
     sortOrder: 9,
   },
   {
@@ -516,113 +516,6 @@ const TERMINAL_COMMAND_SEEDS = [
     allowedRoutes: [] as string[],
     errorTemplate: null,
     sortOrder: 12,
-  },
-  {
-    profileSlug: TERMINAL_PROFILE_SLUGS.portalMaintenance,
-    name: 'help',
-    description: 'list available maintenance commands',
-    kind: 'static' as const,
-    output: [
-      'Available commands (maintenance tty1):',
-      '  status    — current rebuild & deployment status',
-      '  roadmap   — active Solar Forge v2 milestones',
-      '  stack     — runtime & cloud architecture summary',
-      '  whoami    — active session identity',
-      '  uname     — print platform kernel banner',
-      '  uptime    — show browser session uptime',
-      '  clear     — clear terminal scrollback',
-    ].join('\n'),
-    targetRoute: null,
-    allowedRoutes: [] as string[],
-    errorTemplate: null,
-    sortOrder: 1,
-  },
-  {
-    profileSlug: TERMINAL_PROFILE_SLUGS.portalMaintenance,
-    name: 'status',
-    description: 'current rebuild & deployment status',
-    kind: 'static' as const,
-    output: [
-      'STATE    : CHANGES IN PROGRESS (maintenance mode)',
-      'HOST     : andrew-k.us',
-      'RUNTIME  : Google Cloud Run (us-central1, scale-to-0)',
-      'PROGRESS : [██████████████░░░░░░] 72%',
-      'NOTICE   : Full portal navigation will unlock as soon as v2 rollout completes.',
-    ].join('\n'),
-    targetRoute: null,
-    allowedRoutes: [] as string[],
-    errorTemplate: null,
-    sortOrder: 2,
-  },
-  {
-    profileSlug: TERMINAL_PROFILE_SLUGS.portalMaintenance,
-    name: 'roadmap',
-    description: 'active Solar Forge v2 milestones',
-    kind: 'roadmap' as const,
-    output: '',
-    targetRoute: null,
-    allowedRoutes: [] as string[],
-    errorTemplate: null,
-    sortOrder: 3,
-  },
-  {
-    profileSlug: TERMINAL_PROFILE_SLUGS.portalMaintenance,
-    name: 'stack',
-    description: 'runtime & cloud architecture summary',
-    kind: 'static' as const,
-    output: [
-      'Frontend : React 19 · React Router 8 SSR · Vite 8 · CSS Modules + @layer tokens',
-      'Backend  : Go microservices + Fastify 5 Node 24/26 native TS · PostgreSQL 19 · Qdrant',
-      'Infra    : Cloud Run (4-service scale-to-0) + Direct VPC Egress PG19',
-    ].join('\n'),
-    targetRoute: null,
-    allowedRoutes: [] as string[],
-    errorTemplate: null,
-    sortOrder: 4,
-  },
-  {
-    profileSlug: TERMINAL_PROFILE_SLUGS.portalMaintenance,
-    name: 'whoami',
-    description: 'active session identity',
-    kind: 'static' as const,
-    output: 'visitor@andrew-k.us (read-only maintenance tty1)',
-    targetRoute: null,
-    allowedRoutes: [] as string[],
-    errorTemplate: null,
-    sortOrder: 5,
-  },
-  {
-    profileSlug: TERMINAL_PROFILE_SLUGS.portalMaintenance,
-    name: 'uname',
-    description: 'print platform kernel banner',
-    kind: 'static' as const,
-    output: 'SolarForge 2.0.0 andrew-k.us x86_64 CloudRun/Linux',
-    targetRoute: null,
-    allowedRoutes: [] as string[],
-    errorTemplate: null,
-    sortOrder: 6,
-  },
-  {
-    profileSlug: TERMINAL_PROFILE_SLUGS.portalMaintenance,
-    name: 'uptime',
-    description: 'show browser session uptime',
-    kind: 'uptime' as const,
-    output: 'up {{seconds}}s · 1 user · load average: 0.00, 0.00, 0.00',
-    targetRoute: null,
-    allowedRoutes: [] as string[],
-    errorTemplate: null,
-    sortOrder: 7,
-  },
-  {
-    profileSlug: TERMINAL_PROFILE_SLUGS.portalMaintenance,
-    name: 'clear',
-    description: 'clear terminal scrollback',
-    kind: 'clear' as const,
-    output: '',
-    targetRoute: null,
-    allowedRoutes: [] as string[],
-    errorTemplate: null,
-    sortOrder: 8,
   },
   {
     profileSlug: TERMINAL_PROFILE_SLUGS.adminOps,
@@ -747,37 +640,6 @@ const TERMINAL_COMMAND_SEEDS = [
     allowedRoutes: [] as string[],
     errorTemplate: null,
     sortOrder: 10,
-  },
-] as const;
-
-const ROADMAP_MILESTONE_SEEDS = [
-  {
-    slug: 'solar-forge-theme',
-    status: 'done' as const,
-    label: 'Solar Forge 4-layer CSS variable theme & animated reticle emblem',
-    sortOrder: 1,
-    enabled: true,
-  },
-  {
-    slug: 'cloud-run-ssr',
-    status: 'done' as const,
-    label: 'React Router 8 + Fastify 5 SSR migrated from App Engine to Cloud Run',
-    sortOrder: 2,
-    enabled: true,
-  },
-  {
-    slug: 'terminal-tui-workspace',
-    status: 'active' as const,
-    label: 'Interactive Solar Forge terminal & draggable TUI workspace',
-    sortOrder: 3,
-    enabled: true,
-  },
-  {
-    slug: 'gke-go-cadence',
-    status: 'queued' as const,
-    label: 'Scale-from-zero Go microservices & CADENCE live sandbox rollout',
-    sortOrder: 4,
-    enabled: true,
   },
 ] as const;
 
@@ -987,13 +849,12 @@ export {
   ADMIN_HOME_SEED,
   AGENSI_SKILL_SEEDS,
   CADENCE_PRESET_SEEDS,
+  PORTAL_ABOUT_SEED,
   PORTAL_AGENSI_SEED,
   PORTAL_ASK_SEED,
   PORTAL_CADENCE_SEED,
   PORTAL_CONTACT_SEED,
   PORTAL_HOME_SEED,
-  PORTAL_MAINTENANCE_SEED,
-  ROADMAP_MILESTONE_SEEDS,
   seedAdminUserFromEnv,
   type SeedAdminUserResult,
   TERMINAL_COMMAND_SEEDS,
@@ -1002,47 +863,192 @@ export {
   TERMINAL_PROFILE_SEEDS,
 };
 
+export interface SeedSiteContentEntry {
+  readonly key: string;
+  readonly markdownBody: string;
+  readonly metadataJson: Record<string, unknown>;
+}
+
 export interface SeedDatabaseOptions {
   mode?: 'upsert' | 'bootstrap';
-  pruneMissingMilestones?: boolean;
   env?: Record<string, string | undefined>;
+  siteContentSeeds?: readonly SeedSiteContentEntry[];
+  careerDossierSeeds?: readonly CareerDossierSeedEntry[];
 }
 
 function resolveSeedOptions(
   optionsOrEnv?: SeedDatabaseOptions | Record<string, string | undefined>,
 ): {
   mode: 'upsert' | 'bootstrap';
-  pruneMissingMilestones: boolean;
   env: Record<string, string | undefined>;
+  siteContentSeeds: readonly SeedSiteContentEntry[];
+  careerDossierSeeds: readonly CareerDossierSeedEntry[];
 } {
   if (!optionsOrEnv) {
-    return { mode: 'upsert', pruneMissingMilestones: false, env: process.env };
+    return {
+      mode: 'upsert',
+      env: process.env,
+      siteContentSeeds: SITE_CONTENT_SEEDS,
+      careerDossierSeeds: CAREER_DOSSIER_SEEDS,
+    };
   }
   const maybeOpts = optionsOrEnv as SeedDatabaseOptions;
   if (
-    'mode' in maybeOpts ||
-    'pruneMissingMilestones' in maybeOpts ||
-    (typeof maybeOpts.env === 'object' && maybeOpts.env !== null)
+    optionsOrEnv !== process.env &&
+    ('mode' in maybeOpts ||
+      'siteContentSeeds' in maybeOpts ||
+      'careerDossierSeeds' in maybeOpts ||
+      (typeof maybeOpts.env === 'object' && maybeOpts.env !== null))
   ) {
     return {
       mode: maybeOpts.mode === 'bootstrap' ? 'bootstrap' : 'upsert',
-      pruneMissingMilestones: Boolean(maybeOpts.pruneMissingMilestones),
       env: maybeOpts.env ?? process.env,
+      siteContentSeeds: maybeOpts.siteContentSeeds ?? SITE_CONTENT_SEEDS,
+      careerDossierSeeds: maybeOpts.careerDossierSeeds ?? CAREER_DOSSIER_SEEDS,
     };
   }
   return {
     mode: 'upsert',
-    pruneMissingMilestones: false,
     env: optionsOrEnv as Record<string, string | undefined>,
+    siteContentSeeds: SITE_CONTENT_SEEDS,
+    careerDossierSeeds: CAREER_DOSSIER_SEEDS,
   };
+}
+
+async function mergeBootstrapAboutNavigation(db: AppDatabase): Promise<void> {
+  const [cdRow] = await db
+    .select({
+      allowedRoutes: terminalCommands.allowedRoutes,
+    })
+    .from(terminalCommands)
+    .where(
+      and(
+        eq(terminalCommands.profileSlug, TERMINAL_PROFILE_SLUGS.portalHome),
+        eq(terminalCommands.name, 'cd'),
+      ),
+    )
+    .limit(1);
+  if (Array.isArray(cdRow?.allowedRoutes) && !cdRow.allowedRoutes.includes('about')) {
+    await db
+      .update(terminalCommands)
+      .set({ allowedRoutes: [...cdRow.allowedRoutes, 'about'] })
+      .where(
+        and(
+          eq(terminalCommands.profileSlug, TERMINAL_PROFILE_SLUGS.portalHome),
+          eq(terminalCommands.name, 'cd'),
+        ),
+      );
+  }
+
+  const [profileRow] = await db
+    .select({
+      quickCommands: terminalProfiles.quickCommands,
+    })
+    .from(terminalProfiles)
+    .where(eq(terminalProfiles.slug, TERMINAL_PROFILE_SLUGS.portalHome))
+    .limit(1);
+  if (Array.isArray(profileRow?.quickCommands) && !profileRow.quickCommands.includes('about')) {
+    await db
+      .update(terminalProfiles)
+      .set({ quickCommands: [...profileRow.quickCommands, 'about'] })
+      .where(eq(terminalProfiles.slug, TERMINAL_PROFILE_SLUGS.portalHome));
+  }
+
+  const [homeRow] = await db
+    .select({
+      metadataJson: siteContent.metadataJson,
+    })
+    .from(siteContent)
+    .where(eq(siteContent.key, SITE_CONTENT_KEYS.portalHome))
+    .limit(1);
+  const metadataJson = homeRow?.metadataJson;
+  if (metadataJson && typeof metadataJson === 'object' && Array.isArray(metadataJson['actions'])) {
+    const existingActions = metadataJson['actions'] as unknown[];
+    const hasAboutAction = existingActions.some(
+      action =>
+        action !== null &&
+        typeof action === 'object' &&
+        (action as Record<string, unknown>)['to'] === '/about',
+    );
+    if (!hasAboutAction) {
+      await db
+        .update(siteContent)
+        .set({
+          metadataJson: {
+            ...metadataJson,
+            actions: [...existingActions, PORTAL_HOME_ABOUT_ACTION],
+          },
+          updatedAt: new Date(),
+        })
+        .where(eq(siteContent.key, SITE_CONTENT_KEYS.portalHome));
+    }
+  }
 }
 
 export async function seedDatabase(
   db: AppDatabase,
   optionsOrEnv: SeedDatabaseOptions | Record<string, string | undefined> = process.env,
 ): Promise<void> {
-  const { mode, pruneMissingMilestones, env } = resolveSeedOptions(optionsOrEnv);
+  const { mode, env, siteContentSeeds, careerDossierSeeds } = resolveSeedOptions(optionsOrEnv);
   const isBootstrap = mode === 'bootstrap';
+  const requireConfiguredDenylist = isProductionPrivacyEnv(env);
+  const rawDenylist = env['DOSSIER_PRIVACY_DENYLIST'];
+
+  // Pre-write fail-closed privacy sanitization executes BEFORE any database mutation.
+  for (const content of siteContentSeeds) {
+    if (content.key === SITE_CONTENT_KEYS.portalAbout) {
+      sanitizePortalAboutSiteContent(
+        content.markdownBody,
+        content.metadataJson,
+        rawDenylist,
+        undefined,
+        env,
+      );
+    } else if (content.key === SITE_CONTENT_KEYS.portalHome) {
+      sanitizePortalHomeSiteContent(
+        content.markdownBody,
+        content.metadataJson,
+        rawDenylist,
+        undefined,
+        env,
+      );
+    } else if (content.key === SITE_CONTENT_KEYS.portalAsk) {
+      sanitizePortalAskSiteContent(
+        content.markdownBody,
+        content.metadataJson,
+        rawDenylist,
+        undefined,
+        env,
+      );
+    }
+  }
+
+  const sanitizedDossiers = careerDossierSeeds.map(dossier => {
+    const sections = dossier.sectionsJson.map(section => ({
+      heading: section.heading,
+      body: section.body,
+    }));
+    const verification = sanitizeCareerDossierPayload(
+      {
+        slug: dossier.slug,
+        kind: dossier.kind,
+        title: dossier.title,
+        domainLabel: dossier.domainLabel,
+        roleTitle: dossier.roleTitle,
+        timeframe: dossier.timeframe,
+        skills: [...dossier.skills],
+        summaryBody: dossier.summaryBody,
+        sections,
+        sortOrder: dossier.sortOrder,
+      },
+      {
+        env,
+        rawDenylist,
+        requireConfiguredDenylist,
+      },
+    );
+    return { dossier, sections, verification };
+  });
 
   console.info(
     JSON.stringify({
@@ -1069,7 +1075,7 @@ export async function seedDatabase(
         }));
   }
 
-  for (const content of SITE_CONTENT_SEEDS) {
+  for (const content of siteContentSeeds) {
     const stmt = db.insert(siteContent).values(content);
     await (isBootstrap
       ? stmt.onConflictDoNothing({ target: siteContent.key })
@@ -1163,9 +1169,14 @@ export async function seedDatabase(
         }));
   }
 
-  if (!isBootstrap) {
+  if (isBootstrap) {
+    await mergeBootstrapAboutNavigation(db);
+  } else {
     await db.delete(menuItems).where(eq(menuItems.slug, 'ask'));
-    await db.delete(siteContent).where(eq(siteContent.key, 'portal-menu'));
+    await db
+      .delete(siteContent)
+      .where(inArray(siteContent.key, ['portal-menu', 'portal-maintenance']));
+    await db.delete(terminalProfiles).where(eq(terminalProfiles.slug, 'portal-maintenance'));
     await db
       .delete(terminalCommands)
       .where(
@@ -1179,40 +1190,9 @@ export async function seedDatabase(
       .where(
         and(
           eq(terminalDirectoryEntries.profileSlug, TERMINAL_PROFILE_SLUGS.portalHome),
-          inArray(terminalDirectoryEntries.name, ['ask', 'menu']),
+          inArray(terminalDirectoryEntries.name, ['ask', 'menu', 'changes-in-progress']),
         ),
       );
-  }
-
-  if (pruneMissingMilestones) {
-    console.info(
-      JSON.stringify({
-        event: 'db.seed.mode_branch',
-        seam: 'RULE_DIVERGENCE',
-        branch: 'explicit_prune_roadmap',
-      }),
-    );
-    await db.delete(roadmapMilestones).where(
-      notInArray(
-        roadmapMilestones.slug,
-        ROADMAP_MILESTONE_SEEDS.map(milestone => milestone.slug),
-      ),
-    );
-  }
-
-  for (const milestone of ROADMAP_MILESTONE_SEEDS) {
-    const stmt = db.insert(roadmapMilestones).values(milestone);
-    await (isBootstrap
-      ? stmt.onConflictDoNothing({ target: roadmapMilestones.slug })
-      : stmt.onConflictDoUpdate({
-          target: roadmapMilestones.slug,
-          set: {
-            status: milestone.status,
-            label: milestone.label,
-            sortOrder: milestone.sortOrder,
-            enabled: milestone.enabled,
-          },
-        }));
   }
 
   for (const preset of CADENCE_PRESET_SEEDS) {
@@ -1338,37 +1318,46 @@ export async function seedDatabase(
       .onConflictDoNothing({ target: quotaPolicies.role });
   }
 
-  for (const dossier of CAREER_DOSSIER_SEEDS) {
-    const sections = dossier.sectionsJson.map(section => ({
-      heading: section.heading,
-      body: section.body,
-    }));
-    const dossierStmt = db.insert(careerDossiers).values({
-      slug: dossier.slug,
-      kind: dossier.kind,
-      title: dossier.title,
-      domainLabel: dossier.domainLabel,
-      roleTitle: dossier.roleTitle,
-      timeframe: dossier.timeframe,
-      skills: [...dossier.skills],
-      summaryBody: dossier.summaryBody,
-      sectionsJson: sections,
-      publishStatus: dossier.publishStatus,
-      sanitizationVerifiedAt: dossier.sanitizationVerifiedAt,
-      denylistHash: dossier.denylistHash,
-      sortOrder: dossier.sortOrder,
-    });
-    await (isBootstrap
-      ? dossierStmt.onConflictDoNothing({ target: careerDossiers.slug })
-      : dossierStmt.onConflictDoUpdate({
-          target: careerDossiers.slug,
-          set: {
-            summaryBody: dossier.summaryBody,
-            sectionsJson: sections,
-            updatedAt: new Date(),
-          },
-        }));
-  }
+  await db.transaction(async tx => {
+    for (const { dossier, sections, verification } of sanitizedDossiers) {
+      const dossierStmt = tx.insert(careerDossiers).values({
+        slug: dossier.slug,
+        kind: dossier.kind,
+        title: dossier.title,
+        domainLabel: dossier.domainLabel,
+        roleTitle: dossier.roleTitle,
+        timeframe: dossier.timeframe,
+        skills: [...dossier.skills],
+        summaryBody: dossier.summaryBody,
+        sectionsJson: sections,
+        publishStatus: dossier.publishStatus,
+        sanitizationVerifiedAt: verification.verifiedAt,
+        denylistHash: verification.denylistHash,
+        sortOrder: dossier.sortOrder,
+        updatedAt: verification.verifiedAt,
+      });
+      await (isBootstrap
+        ? dossierStmt.onConflictDoNothing({ target: careerDossiers.slug })
+        : dossierStmt.onConflictDoUpdate({
+            target: careerDossiers.slug,
+            set: {
+              kind: dossier.kind,
+              title: dossier.title,
+              domainLabel: dossier.domainLabel,
+              roleTitle: dossier.roleTitle,
+              timeframe: dossier.timeframe,
+              skills: [...dossier.skills],
+              summaryBody: dossier.summaryBody,
+              sectionsJson: sections,
+              publishStatus: dossier.publishStatus,
+              sanitizationVerifiedAt: verification.verifiedAt,
+              denylistHash: verification.denylistHash,
+              sortOrder: dossier.sortOrder,
+              updatedAt: verification.verifiedAt,
+            },
+          }));
+    }
+  });
 
   await seedAdminUserFromEnv(db, env);
 }
@@ -1377,16 +1366,14 @@ if (import.meta.main) {
   loadWorkspaceEnv({ startDir: import.meta.dirname });
   const argv = process.argv.slice(2);
   let mode: 'upsert' | 'bootstrap' = 'upsert';
-  let pruneMissingMilestones = false;
   for (const arg of argv) {
     if (arg === '--mode=bootstrap') mode = 'bootstrap';
     else if (arg === '--mode=upsert') mode = 'upsert';
-    else if (arg === '--prune') pruneMissingMilestones = true;
   }
   const pool = createDbPool();
   try {
     const db = createDb(pool);
-    await seedDatabase(db, { mode, pruneMissingMilestones });
+    await seedDatabase(db, { mode });
     console.log('Postgres seed data applied successfully.');
   } finally {
     await pool.end();

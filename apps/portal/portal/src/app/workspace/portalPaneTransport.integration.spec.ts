@@ -33,7 +33,7 @@ describe('portalPaneTransport live HTTP single-fetch fault classification', () =
     }
     if (url.startsWith('/cadence.data')) {
       res.writeHead(204, {
-        'X-Remix-Redirect': '/changes-in-progress',
+        'X-Remix-Redirect': '/contact',
         'X-Remix-Status': '302',
       });
       res.end();
@@ -163,6 +163,106 @@ describe.runIf(existsSync(DIST_SERVER_ENTRY))(
       expect(['ERR_VALIDATION', 'ERR_DB_UNAVAILABLE']).toContain(failed.code);
       expect(failed.correlationId).toMatch(/\S+/);
       expect(failed.formError ?? Object.values(failed.fieldErrors).join('')).toMatch(/\S+/);
+    });
+
+    it('returns zero-DB HTTP 404 with noindex/nofollow, matching X-Correlation-Id, no JSON-LD, JSON /api/* 404, bot onAllReady, and case-insensitive /Contact 200', async () => {
+      // Desktop GET /changes-in-progress -> 404 HTML
+      const desktopRes = await fetch(`${baseUrl}/changes-in-progress`, {
+        headers: { 'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36' },
+      });
+      expect(desktopRes.status).toBe(404);
+      const desktopCorr = desktopRes.headers.get('x-correlation-id');
+      expect(desktopCorr).toMatch(/\S+/);
+      const desktopHtml = await desktopRes.text();
+      expect(desktopHtml).toContain(`content="${desktopCorr}"`);
+      expect(desktopHtml).toContain(desktopCorr ?? '');
+      expect(desktopHtml.match(/<meta[^>]+name="robots"[^>]*>/gi)).toHaveLength(1);
+      expect(desktopHtml).toContain('name="robots" content="noindex, nofollow"');
+      expect(desktopHtml).toContain('name="googlebot" content="noindex, nofollow"');
+      expect(desktopHtml).not.toContain('application/ld+json');
+      expect(desktopHtml).toContain('Return Home');
+
+      // Mobile GET /nonexistent-route/nested/ -> 404 preserving mobile viewport
+      const mobileRes = await fetch(`${baseUrl}/nonexistent-route/nested/`, {
+        headers: {
+          'sec-ch-ua-mobile': '?1',
+          'user-agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)',
+        },
+      });
+      expect(mobileRes.status).toBe(404);
+      const mobileHtml = await mobileRes.text();
+      expect(mobileHtml).toContain('data-viewport="mobile-portrait"');
+      expect(mobileHtml).toContain('name="robots" content="noindex, nofollow"');
+      expect(mobileHtml).toContain('name="googlebot" content="noindex, nofollow"');
+      expect(mobileHtml).not.toContain('application/ld+json');
+
+      // Bot crawler GET /changes-in-progress -> 404 without hidden Suspense swap chunks
+      const botRes = await fetch(`${baseUrl}/changes-in-progress`, {
+        headers: { 'user-agent': 'Googlebot/2.1 (+http://www.google.com/bot.html)' },
+      });
+      expect(botRes.status).toBe(404);
+      const botHtml = await botRes.text();
+      expect(botHtml).toContain('name="robots" content="noindex, nofollow"');
+      expect(botHtml).toContain('name="googlebot" content="noindex, nofollow"');
+      expect(botHtml).not.toContain('<template id="B:');
+
+      // Unmatched GET and POST /api/* -> 404 application/json PublicAppError
+      for (const method of ['GET', 'POST'] as const) {
+        const apiRes = await fetch(`${baseUrl}/api/nonexistent-endpoint`, { method });
+        expect(apiRes.status).toBe(404);
+        expect(apiRes.headers.get('content-type')).toContain('application/json');
+        const apiCorr = apiRes.headers.get('x-correlation-id');
+        expect(apiCorr).toMatch(/\S+/);
+        const apiBody = (await apiRes.json()) as {
+          code: string;
+          status: number;
+          correlationId: string;
+        };
+        expect(apiBody.code).toBe('ERR_NOT_FOUND');
+        expect(apiBody.status).toBe(404);
+        expect(apiBody.correlationId).toBe(apiCorr);
+      }
+
+      // Case-insensitive and percent-encoded navigable routes -> 200 OK with PortalRootShell (index, follow)
+      for (const navigablePath of ['/Contact', '/%63ontact', '/%63hat']) {
+        const navRes = await fetch(`${baseUrl}${navigablePath}`);
+        expect(navRes.status).toBe(200);
+        const navHtml = await navRes.text();
+        expect(navHtml).toContain('name="robots" content="index, follow"');
+        expect(navHtml).toContain('name="googlebot" content="index, follow"');
+        expect(navHtml).not.toContain('name="googlebot" content="noindex, nofollow"');
+        expect(navHtml).toContain('<header');
+      }
+
+      // POST to retired /changes-in-progress and Single Fetch .data endpoint -> 404 ERR_NOT_FOUND (never 405 or route-id leak)
+      for (const postPath of ['/changes-in-progress', '/changes-in-progress.data']) {
+        const postRes = await fetch(`${baseUrl}${postPath}`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/x-www-form-urlencoded' },
+          body: 'probe=1',
+        });
+        expect(postRes.status).toBe(404);
+        expect(postRes.headers.get('x-correlation-id')).toMatch(/\S+/);
+        const postBody = await postRes.text();
+        expect(postBody).toContain('ERR_NOT_FOUND');
+        expect(postBody).not.toMatch(/Method Not Allowed|did not provide an [`']?action/i);
+        expect(postBody).not.toContain('ERR_INTERNAL');
+      }
+
+      // Stale /_root.data returns 404 and malformed /%ZZ fails closed (400/404) without 500 or URIError
+      const staleRootRes = await fetch(`${baseUrl}/_root.data`);
+      expect(staleRootRes.status).toBe(404);
+      expect(await staleRootRes.text()).not.toContain('ERR_INTERNAL');
+
+      const malformedRes = await fetch(`${baseUrl}/%ZZ`);
+      expect([400, 404]).toContain(malformedRes.status);
+      expect(await malformedRes.text()).not.toContain('ERR_INTERNAL');
+
+      // Burst of 50 concurrent 404 probes completes cleanly without DB pool saturation
+      const burstResponses = await Promise.all(
+        Array.from({ length: 50 }, (_, idx) => fetch(`${baseUrl}/bot-probe-${idx + 1}`)),
+      );
+      expect(burstResponses.every(res => res.status === 404)).toBe(true);
     });
   },
 );

@@ -144,6 +144,15 @@ export const PRIVACY_PATTERN_RULES: readonly PrivacyPatternRule[] = [
     regex: /(?<![A-Za-z0-9])(?:\+?1[-.\s])?(?:\(\d{3}\)[-.\s]?|\d{3}[-.\s])\d{3}[-.\s]\d{4}(?!\d)/g,
   },
   {
+    ruleId: 'pii.us_postal_zip',
+    category: 'pii',
+    // Strictly case-sensitive 2-letter US state codes prevent false positives on lowercase words
+    // such as "in 40000", "or 40000", "id 12345", or "ms 15000" while blocking state+ZIP, ZIP+4,
+    // and labeled ZIP values.
+    regex:
+      /\b(?:A[LKSZR]|C[AOT]|D[EC]|F[LM]|G[AU]|HI|I[ADLN]|K[SY]|LA|M[ADEHINOPST]|N[CDEHJMVY]|O[HKR]|P[ARW]|RI|S[CD]|T[NX]|UT|V[AIT]|W[AIVY])(?:,[ \t]{0,4}|[ \t]{1,4})\d{5}(?:-\d{4})?\b|\b\d{5}-\d{4}\b|\b[Zz][Ii][Pp](?:[ \t]{1,4}[Cc][Oo][Dd][Ee])?[:#\s]{1,8}\d{5}(?:-\d{4})?\b/g,
+  },
+  {
     ruleId: 'workspace.private_governance_repo',
     category: 'workspace',
     regex: /\baklapper[-_/]cadence\b/gi,

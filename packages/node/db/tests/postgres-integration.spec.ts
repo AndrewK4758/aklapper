@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 import {
@@ -19,6 +19,7 @@ import {
   type AppDatabase,
   askTurns,
   CADENCE_PRESET_SEEDS,
+  CAREER_DOSSIER_SEEDS,
   careerDossiers,
   claimPendingSandboxRun,
   cloneCachedSandboxRunForSession,
@@ -56,6 +57,10 @@ import {
   loadAdminAnalyticsSummary,
   loadAdminCmsData,
   loadAdminOverviewData,
+  loadPortalAboutData,
+  loadPortalAboutDataWithPrerender,
+  loadPortalHomeData,
+  loadPortalRootData,
   pruneExpiredAskTurns,
   publishCareerDossier,
   rateLimitBuckets,
@@ -94,27 +99,28 @@ describe('@aklapper/db PostgreSQL 19 integration (ephemeral container)', () => {
   it('serves the clean DB-driven portal-home ls listing from terminal_directory_entries', async () => {
     const entries = await getTerminalDirectoryEntries(db, TERMINAL_PROFILE_SLUGS.portalHome);
     expect(entries.map(entry => [entry.name, entry.description])).toEqual([
+      ['about', 'Resume & platform services guide'],
       ['tui', 'TUI version'],
       ['cadence', 'Agentic workflow example'],
       ['chat', "Chat with Andrew's AI"],
       ['agensi', 'Published AI skills'],
       ['contact', 'Connect with me'],
-      ['changes-in-progress', 'Maintenance preview'],
     ]);
 
     const expectedListing = [
-      'tui                   # TUI version',
-      'cadence               # Agentic workflow example',
-      "chat                  # Chat with Andrew's AI",
-      'agensi                # Published AI skills',
-      'contact               # Connect with me',
-      'changes-in-progress   # Maintenance preview',
+      'about     # Resume & platform services guide',
+      'tui       # TUI version',
+      'cadence   # Agentic workflow example',
+      "chat      # Chat with Andrew's AI",
+      'agensi    # Published AI skills',
+      'contact   # Connect with me',
     ].join('\n');
 
     const profile = await getTerminalProfile(db, TERMINAL_PROFILE_SLUGS.portalHome);
     expect(profile.initialEntries[0]?.command).toBe('ls');
     expect(profile.initialEntries[0]?.output).toBe(expectedListing);
     expect(profile.commands.find(cmd => cmd.name === 'ls')?.output).toBe(expectedListing);
+    expect(profile.initialEntries[0]?.output).not.toContain('changes-in-progress');
     expect(profile.initialEntries[0]?.output).not.toMatch(/drwxr-xr-x|-rw-r--r--|menu\//);
   });
 
@@ -130,10 +136,10 @@ describe('@aklapper/db PostgreSQL 19 integration (ephemeral container)', () => {
     try {
       const updatedProfile = await getTerminalProfile(db, TERMINAL_PROFILE_SLUGS.portalHome);
       expect(updatedProfile.initialEntries[0]?.output).toContain(
-        'status-board          # Live cluster health',
+        'status-board   # Live cluster health',
       );
       expect(updatedProfile.commands.find(cmd => cmd.name === 'ls')?.output).toContain(
-        'status-board          # Live cluster health',
+        'status-board   # Live cluster health',
       );
 
       const cms = await loadAdminCmsData(db);
@@ -1136,6 +1142,968 @@ describe('@aklapper/db PostgreSQL 19 integration (ephemeral container)', () => {
       await resetRateLimitBucket(db, `auth:login:handle:${handle}`);
       await resetRateLimitBucket(db, `auth:totp:ip:${ipHash}`);
       await resetRateLimitBucket(db, `auth:totp:user:${bffUser.id}`);
+    }
+  });
+
+  it('applies, rolls back, and reapplies reversible 0009 migration while preserving custom CMS edits and legacy maintenance rows', async () => {
+    const drizzleDir = resolve(import.meta.dirname, '../drizzle');
+    const journalPath = resolve(drizzleDir, 'meta/_journal.json');
+    const journal = JSON.parse(readFileSync(journalPath, 'utf8')) as {
+      entries: Array<{ idx: number; tag: string }>;
+    };
+
+    expect(
+      journal.entries.some(e => e.idx === 9 && e.tag === '0009_retire_changes_in_progress_links'),
+    ).toBe(true);
+    expect(journal.entries.some(e => e.tag.startsWith('0010_'))).toBe(false);
+    expect(readdirSync(drizzleDir).some(name => name.startsWith('0010_'))).toBe(false);
+
+    const upPath = resolve(drizzleDir, '0009_retire_changes_in_progress_links.sql');
+    const downPath = resolve(drizzleDir, '0009_retire_changes_in_progress_links.down.sql');
+    expect(existsSync(upPath)).toBe(true);
+    expect(existsSync(downPath)).toBe(true);
+    const up0009 = readFileSync(upPath, 'utf8');
+    const down0009 = readFileSync(downPath, 'utf8');
+
+    const snapshotHomeContent = await pool.query<{ metadata_json: Record<string, unknown> }>(
+      `SELECT metadata_json FROM site_content WHERE key = 'portal-home'`,
+    );
+    const snapshotChromeContent = await pool.query<{ metadata_json: Record<string, unknown> }>(
+      `SELECT metadata_json FROM site_content WHERE key = 'portal-chrome'`,
+    );
+    const snapshotDirEntries = await pool.query<{
+      name: string;
+      description: string;
+      sort_order: number;
+      enabled: boolean;
+    }>(
+      `SELECT name, description, sort_order, enabled
+       FROM terminal_directory_entries
+       WHERE profile_slug = 'portal-home'
+       ORDER BY sort_order, id`,
+    );
+    const snapshotCommands = await pool.query<{
+      name: string;
+      description: string;
+      allowed_routes: string[];
+      error_template: string | null;
+      output: string;
+    }>(
+      `SELECT name, description, allowed_routes, error_template, output
+       FROM terminal_commands
+       WHERE profile_slug = 'portal-home' AND name IN ('cd', 'help', 'ls')`,
+    );
+    const snapshotInitialLs = await pool.query<{ id: number; output: string }>(
+      `SELECT id, output
+       FROM terminal_initial_entries
+       WHERE profile_slug = 'portal-home' AND command = 'ls'`,
+    );
+
+    const originalHomeMeta = snapshotHomeContent.rows[0]?.metadata_json;
+    const originalChromeMeta = snapshotChromeContent.rows[0]?.metadata_json;
+    expect(originalHomeMeta).toBeDefined();
+    expect(originalChromeMeta).toBeDefined();
+
+    const hadMaintenanceContent =
+      (await pool.query(`SELECT 1 FROM site_content WHERE key = 'portal-maintenance'`)).rows
+        .length > 0;
+    const hadMaintenanceProfile =
+      (await pool.query(`SELECT 1 FROM terminal_profiles WHERE slug = 'portal-maintenance'`)).rows
+        .length > 0;
+    const hadRoadmapRows =
+      (await pool.query(`SELECT 1 FROM roadmap_milestones LIMIT 1`)).rows.length > 0;
+    const sentinelMilestoneSlug = 'sentinel-legacy-compat-check';
+
+    try {
+      // Ensure pre-migration baseline rows exist even if seeds later remove changes-in-progress.
+      await pool.query(down0009);
+
+      if (!hadMaintenanceContent) {
+        await pool.query(
+          `INSERT INTO site_content (key, markdown_body, metadata_json)
+           VALUES ('portal-maintenance', 'Legacy maintenance sentinel', '{"heading":"Maintenance"}'::jsonb)
+           ON CONFLICT (key) DO NOTHING`,
+        );
+      }
+      if (!hadMaintenanceProfile) {
+        await pool.query(
+          `INSERT INTO terminal_profiles (
+             slug, banner_title, banner_meta, os_label, directory, vcs_branch,
+             vcs_state, context_label, placeholder, quick_commands
+           ) VALUES (
+             'portal-maintenance', 'Maintenance', 'meta', '⚡', '~/site', 'main',
+             'clean', 'visitor@andrew-k.us', 'help', ARRAY['help']
+           ) ON CONFLICT (slug) DO NOTHING`,
+        );
+      }
+      if (!hadRoadmapRows) {
+        await pool.query(
+          `INSERT INTO roadmap_milestones (slug, status, label, sort_order, enabled)
+           VALUES ($1, 'active', 'Legacy milestone sentinel', 99, true)
+           ON CONFLICT (slug) DO NOTHING`,
+          [sentinelMilestoneSlug],
+        );
+      }
+      await pool.query(
+        `UPDATE site_content
+         SET metadata_json = jsonb_set(metadata_json, '{maintenanceModeDefault}', 'false'::jsonb, true)
+         WHERE key = 'portal-chrome'`,
+      );
+
+      // Inject custom operator heading on portal-home to verify surgical JSONB preservation.
+      const customHeading = 'Custom Operator Portfolio Heading';
+      await pool.query(
+        `UPDATE site_content
+         SET metadata_json = jsonb_set(metadata_json, '{heading}', to_jsonb($1::text), true)
+         WHERE key = 'portal-home'`,
+        [customHeading],
+      );
+
+      // 1. Apply 0009 forward twice (verifies both forward transformation and idempotency).
+      await pool.query(up0009);
+      await pool.query(up0009);
+
+      const dirAfterUp = await pool.query<{ name: string }>(
+        `SELECT name FROM terminal_directory_entries
+         WHERE profile_slug = 'portal-home'
+         ORDER BY sort_order, id`,
+      );
+      expect(dirAfterUp.rows.map(r => r.name)).not.toContain('changes-in-progress');
+      expect(dirAfterUp.rows.map(r => r.name)).toEqual([
+        'about',
+        'tui',
+        'cadence',
+        'chat',
+        'agensi',
+        'contact',
+      ]);
+
+      const homeAfterUp = await pool.query<{
+        heading: string;
+        actions: Array<{ to: string; label: string; variant: string }>;
+      }>(
+        `SELECT
+           metadata_json->>'heading' AS heading,
+           metadata_json->'actions' AS actions
+         FROM site_content
+         WHERE key = 'portal-home'`,
+      );
+      expect(homeAfterUp.rows[0]?.heading).toBe(customHeading);
+      expect(homeAfterUp.rows[0]?.actions.map(a => a.to)).toEqual([
+        '/about',
+        '/cadence',
+        '/chat',
+        '/agensi',
+        '/contact',
+      ]);
+
+      const cmdsAfterUp = await pool.query<{
+        name: string;
+        description: string;
+        allowed_routes: string[];
+        error_template: string | null;
+        output: string;
+      }>(
+        `SELECT name, description, allowed_routes, error_template, output
+         FROM terminal_commands
+         WHERE profile_slug = 'portal-home' AND name IN ('cd', 'help', 'ls')`,
+      );
+      const cdAfterUp = cmdsAfterUp.rows.find(r => r.name === 'cd');
+      const helpAfterUp = cmdsAfterUp.rows.find(r => r.name === 'help');
+      const lsCmdAfterUp = cmdsAfterUp.rows.find(r => r.name === 'ls');
+      expect(cdAfterUp?.allowed_routes).toEqual(['about', 'cadence', 'chat', 'agensi', 'contact']);
+      expect(cdAfterUp?.description).toContain(', or /contact');
+      expect(cdAfterUp?.description).not.toContain('changes-in-progress');
+      expect(cdAfterUp?.error_template).not.toContain('changes-in-progress');
+      expect(cdAfterUp?.error_template).toMatch(/cd contact$/);
+      expect(helpAfterUp?.output).toContain(', or /contact');
+      expect(helpAfterUp?.output).not.toContain('changes-in-progress');
+      expect(lsCmdAfterUp?.output).not.toContain('changes-in-progress');
+      expect(lsCmdAfterUp?.output).toContain('contact');
+      expect(lsCmdAfterUp?.output.endsWith('\n')).toBe(false);
+
+      const initialLsAfterUp = await pool.query<{ output: string }>(
+        `SELECT output
+         FROM terminal_initial_entries
+         WHERE profile_slug = 'portal-home' AND command = 'ls'`,
+      );
+      expect(initialLsAfterUp.rows[0]?.output).not.toContain('changes-in-progress');
+      expect(initialLsAfterUp.rows[0]?.output).toContain('contact');
+      expect(initialLsAfterUp.rows[0]?.output.endsWith('\n')).toBe(false);
+
+      // Verify legacy maintenance tables/rows remain intact for concurrent prior revisions.
+      const roadmapCount = await pool.query<{ cnt: number }>(
+        `SELECT COUNT(*)::int AS cnt FROM roadmap_milestones`,
+      );
+      expect(Number(roadmapCount.rows[0]?.cnt)).toBeGreaterThanOrEqual(1);
+      const maintenanceSite = await pool.query(
+        `SELECT key FROM site_content WHERE key = 'portal-maintenance'`,
+      );
+      expect(maintenanceSite.rows).toHaveLength(1);
+      const maintenanceProfile = await pool.query(
+        `SELECT slug FROM terminal_profiles WHERE slug = 'portal-maintenance'`,
+      );
+      expect(maintenanceProfile.rows).toHaveLength(1);
+      const chromeLegacyFlag = await pool.query<{ has_flag: boolean }>(
+        `SELECT (metadata_json ? 'maintenanceModeDefault') AS has_flag
+         FROM site_content
+         WHERE key = 'portal-chrome'`,
+      );
+      expect(chromeLegacyFlag.rows[0]?.has_flag).toBe(true);
+
+      // Verify actions.min(1) guard refuses to empty an actions array containing only /changes-in-progress.
+      const savedPostUpActions = homeAfterUp.rows[0]?.actions ?? [];
+      await pool.query(
+        `UPDATE site_content
+         SET metadata_json = jsonb_set(
+           metadata_json,
+           '{actions}',
+           '[{"label":"Maintenance Preview → /changes-in-progress","to":"/changes-in-progress","variant":"default"}]'::jsonb,
+           false
+         )
+         WHERE key = 'portal-home'`,
+      );
+      await pool.query(up0009);
+      const guardedActions = await pool.query<{ actions: Array<{ to: string }> }>(
+        `SELECT metadata_json->'actions' AS actions FROM site_content WHERE key = 'portal-home'`,
+      );
+      expect(guardedActions.rows[0]?.actions).toHaveLength(1);
+      expect(guardedActions.rows[0]?.actions[0]?.to).toBe('/changes-in-progress');
+      await pool.query(
+        `UPDATE site_content
+         SET metadata_json = jsonb_set(metadata_json, '{actions}', $1::jsonb, false)
+         WHERE key = 'portal-home'`,
+        [JSON.stringify(savedPostUpActions)],
+      );
+
+      // Simulate a Stage 1 CMS save stripping maintenanceModeDefault before rolling back to N-1.
+      const chromeBeforeStrip = await pool.query<{
+        markdown_body: string;
+        metadata_json: Record<string, unknown>;
+      }>(`SELECT markdown_body, metadata_json FROM site_content WHERE key = 'portal-chrome'`);
+      const strippedChrome = await upsertSiteContent(
+        db,
+        SITE_CONTENT_KEYS.portalChrome,
+        chromeBeforeStrip.rows[0]?.markdown_body ?? 'Portal chrome',
+        chromeBeforeStrip.rows[0]?.metadata_json ?? {},
+      );
+      expect('maintenanceModeDefault' in strippedChrome.metadataJson).toBe(false);
+
+      // 2. Roll back 0009 twice (verifies complete reversibility, N-1 portal-chrome backfill, and idempotency).
+      await pool.query(down0009);
+      await pool.query(down0009);
+
+      const chromeAfterDown = await pool.query<{
+        metadata_json: Record<string, unknown>;
+      }>(`SELECT metadata_json FROM site_content WHERE key = 'portal-chrome'`);
+      expect(chromeAfterDown.rows[0]?.metadata_json['maintenanceModeDefault']).toBe(false);
+      expect(chromeAfterDown.rows[0]?.metadata_json['brandLabel']).toBe(
+        strippedChrome.metadataJson['brandLabel'],
+      );
+
+      const dirAfterDown = await pool.query<{ name: string }>(
+        `SELECT name FROM terminal_directory_entries
+         WHERE profile_slug = 'portal-home' AND name = 'changes-in-progress'`,
+      );
+      expect(dirAfterDown.rows).toHaveLength(1);
+
+      const homeAfterDown = await pool.query<{
+        heading: string;
+        actions: Array<{ to: string }>;
+      }>(
+        `SELECT
+           metadata_json->>'heading' AS heading,
+           metadata_json->'actions' AS actions
+         FROM site_content
+         WHERE key = 'portal-home'`,
+      );
+      expect(homeAfterDown.rows[0]?.heading).toBe(customHeading);
+      expect(homeAfterDown.rows[0]?.actions.map(a => a.to)).toEqual([
+        '/about',
+        '/cadence',
+        '/chat',
+        '/agensi',
+        '/contact',
+        '/changes-in-progress',
+      ]);
+
+      const cmdsAfterDown = await pool.query<{
+        name: string;
+        description: string;
+        allowed_routes: string[];
+        error_template: string | null;
+        output: string;
+      }>(
+        `SELECT name, description, allowed_routes, error_template, output
+         FROM terminal_commands
+         WHERE profile_slug = 'portal-home' AND name IN ('cd', 'help', 'ls')`,
+      );
+      const cdAfterDown = cmdsAfterDown.rows.find(r => r.name === 'cd');
+      const helpAfterDown = cmdsAfterDown.rows.find(r => r.name === 'help');
+      const lsCmdAfterDown = cmdsAfterDown.rows.find(r => r.name === 'ls');
+      expect(cdAfterDown?.allowed_routes).toEqual([
+        'about',
+        'cadence',
+        'chat',
+        'agensi',
+        'contact',
+        'changes-in-progress',
+      ]);
+      expect(cdAfterDown?.description).toContain(', /contact, or /changes-in-progress');
+      expect(cdAfterDown?.error_template).toContain(' | cd changes-in-progress');
+      expect(helpAfterDown?.output).toContain(', /contact, or /changes-in-progress');
+      expect(lsCmdAfterDown?.output.match(/changes-in-progress/g)).toHaveLength(1);
+
+      const initialLsAfterDown = await pool.query<{ output: string }>(
+        `SELECT output
+         FROM terminal_initial_entries
+         WHERE profile_slug = 'portal-home' AND command = 'ls'`,
+      );
+      expect(initialLsAfterDown.rows[0]?.output.match(/changes-in-progress/g)).toHaveLength(1);
+
+      // 3. Reapply 0009 forward and verify clean retirement persists.
+      await pool.query(up0009);
+
+      const dirAfterReapply = await pool.query<{ name: string }>(
+        `SELECT name FROM terminal_directory_entries
+         WHERE profile_slug = 'portal-home' AND name = 'changes-in-progress'`,
+      );
+      expect(dirAfterReapply.rows).toHaveLength(0);
+
+      const homeAfterReapply = await pool.query<{
+        heading: string;
+        actions: Array<{ to: string }>;
+      }>(
+        `SELECT
+           metadata_json->>'heading' AS heading,
+           metadata_json->'actions' AS actions
+         FROM site_content
+         WHERE key = 'portal-home'`,
+      );
+      expect(homeAfterReapply.rows[0]?.heading).toBe(customHeading);
+      expect(homeAfterReapply.rows[0]?.actions.map(a => a.to)).toEqual([
+        '/about',
+        '/cadence',
+        '/chat',
+        '/agensi',
+        '/contact',
+      ]);
+    } finally {
+      await pool.query(
+        `UPDATE site_content SET metadata_json = $1::jsonb WHERE key = 'portal-home'`,
+        [JSON.stringify(originalHomeMeta)],
+      );
+      await pool.query(
+        `UPDATE site_content SET metadata_json = $1::jsonb WHERE key = 'portal-chrome'`,
+        [JSON.stringify(originalChromeMeta)],
+      );
+      await pool.query(`DELETE FROM terminal_directory_entries WHERE profile_slug = 'portal-home'`);
+      for (const entry of snapshotDirEntries.rows) {
+        await pool.query(
+          `INSERT INTO terminal_directory_entries (profile_slug, name, description, sort_order, enabled)
+           VALUES ('portal-home', $1, $2, $3, $4)`,
+          [entry.name, entry.description, entry.sort_order, entry.enabled],
+        );
+      }
+      for (const cmd of snapshotCommands.rows) {
+        await pool.query(
+          `UPDATE terminal_commands
+           SET description = $1, allowed_routes = $2, error_template = $3, output = $4
+           WHERE profile_slug = 'portal-home' AND name = $5`,
+          [cmd.description, cmd.allowed_routes, cmd.error_template, cmd.output, cmd.name],
+        );
+      }
+      for (const entry of snapshotInitialLs.rows) {
+        await pool.query(`UPDATE terminal_initial_entries SET output = $1 WHERE id = $2`, [
+          entry.output,
+          entry.id,
+        ]);
+      }
+      if (!hadMaintenanceContent) {
+        await pool.query(`DELETE FROM site_content WHERE key = 'portal-maintenance'`);
+      }
+      if (!hadMaintenanceProfile) {
+        await pool.query(`DELETE FROM terminal_profiles WHERE slug = 'portal-maintenance'`);
+      }
+      if (!hadRoadmapRows) {
+        await pool.query(`DELETE FROM roadmap_milestones WHERE slug = $1`, [sentinelMilestoneSlug]);
+      }
+    }
+  });
+
+  it('tolerates dormant portal-maintenance rows and kind=roadmap commands, strips retired keys on registered site_content saves, and prunes retired rows on upsert seed', async () => {
+    const originalChrome = await pool.query<{
+      markdown_body: string;
+      metadata_json: Record<string, unknown>;
+    }>(`SELECT markdown_body, metadata_json FROM site_content WHERE key = 'portal-chrome'`);
+    const originalHome = await pool.query<{
+      markdown_body: string;
+      metadata_json: Record<string, unknown>;
+    }>(`SELECT markdown_body, metadata_json FROM site_content WHERE key = 'portal-home'`);
+
+    try {
+      // Seed dormant legacy rows simulating an in-flight rollout database.
+      await pool.query(
+        `UPDATE site_content
+         SET metadata_json = jsonb_set(metadata_json, '{maintenanceModeDefault}', 'true'::jsonb, true)
+         WHERE key = 'portal-chrome'`,
+      );
+      await pool.query(
+        `INSERT INTO site_content (key, markdown_body, metadata_json)
+         VALUES ('portal-maintenance', 'Legacy maintenance copy', '{"heading":"Maintenance"}'::jsonb)
+         ON CONFLICT (key) DO NOTHING`,
+      );
+      await pool.query(
+        `INSERT INTO terminal_profiles (
+           slug, banner_title, banner_meta, os_label, directory, vcs_branch,
+           vcs_state, context_label, placeholder, quick_commands
+         ) VALUES (
+           'portal-maintenance', 'Maintenance', 'meta', '⚡', '~/site', 'main',
+           'clean', 'visitor@andrew-k.us', 'help', ARRAY['help']
+         ) ON CONFLICT (slug) DO NOTHING`,
+      );
+      await pool.query(
+        `INSERT INTO terminal_commands (
+           profile_slug, name, description, kind, output, target_route,
+           allowed_routes, error_template, sort_order
+         ) VALUES (
+           'portal-maintenance', 'roadmap', 'legacy roadmap', 'roadmap', '', NULL,
+           ARRAY[]::text[], NULL, 1
+         ) ON CONFLICT (profile_slug, name) DO NOTHING`,
+      );
+      await pool.query(
+        `INSERT INTO terminal_directory_entries (profile_slug, name, description, sort_order, enabled)
+         VALUES ('portal-home', 'changes-in-progress', 'Maintenance preview', 6, true)
+         ON CONFLICT (profile_slug, name) DO NOTHING`,
+      );
+
+      // Portal root loader succeeds against legacy portal-chrome JSONB with no maintenance properties.
+      const portalRoot = await loadPortalRootData(db);
+      expect('maintenanceMode' in portalRoot).toBe(false);
+      expect('maintenance' in portalRoot).toBe(false);
+      expect('maintenanceModeDefault' in portalRoot.chrome).toBe(false);
+
+      // Admin overview succeeds without maintenance fields.
+      const overview = await loadAdminOverviewData(db);
+      expect('maintenanceModeDefault' in overview).toBe(false);
+      expect('rebuildProgressPercent' in overview).toBe(false);
+
+      // Admin CMS loads cleanly without ZodError and filters dormant portal-maintenance rows out of display lists.
+      const cms = await loadAdminCmsData(db);
+      expect(cms.siteContents.some(row => row.key === 'portal-maintenance')).toBe(false);
+      expect(cms.terminalProfiles.some(row => row.slug === 'portal-maintenance')).toBe(false);
+      expect(cms.terminalCommands.some(row => row.profileSlug === 'portal-maintenance')).toBe(
+        false,
+      );
+      expect('roadmapMilestones' in cms).toBe(false);
+
+      // Saving a registered site_content row strips retired/unknown keys (such as maintenanceModeDefault).
+      const chromeBody = originalChrome.rows[0]?.markdown_body ?? 'Portal chrome';
+      const chromeMeta = originalChrome.rows[0]?.metadata_json ?? {};
+      const savedChrome = await upsertSiteContent(db, SITE_CONTENT_KEYS.portalChrome, chromeBody, {
+        ...chromeMeta,
+        maintenanceModeDefault: true,
+        unexpectedLegacyField: 'remove-me',
+      });
+      expect('maintenanceModeDefault' in savedChrome.metadataJson).toBe(false);
+      expect('unexpectedLegacyField' in savedChrome.metadataJson).toBe(false);
+
+      // Bootstrap seed mode is non-destructive and preserves legacy rows.
+      await seedDatabase(db, { mode: 'bootstrap', env: { ADMIN_PASSWORD: '' } });
+      const bootstrapMaint = await pool.query(
+        `SELECT key FROM site_content WHERE key = 'portal-maintenance'`,
+      );
+      expect(bootstrapMaint.rows).toHaveLength(1);
+      const bootstrapDir = await pool.query(
+        `SELECT name FROM terminal_directory_entries
+         WHERE profile_slug = 'portal-home' AND name = 'changes-in-progress'`,
+      );
+      expect(bootstrapDir.rows).toHaveLength(1);
+
+      // Upsert seed mode prunes retired portal-maintenance and changes-in-progress rows cleanly.
+      await seedDatabase(db, { mode: 'upsert', env: { ADMIN_PASSWORD: '' } });
+      const upsertMaintSite = await pool.query(
+        `SELECT key FROM site_content WHERE key = 'portal-maintenance'`,
+      );
+      expect(upsertMaintSite.rows).toHaveLength(0);
+      const upsertMaintProfile = await pool.query(
+        `SELECT slug FROM terminal_profiles WHERE slug = 'portal-maintenance'`,
+      );
+      expect(upsertMaintProfile.rows).toHaveLength(0);
+      const upsertDir = await pool.query(
+        `SELECT name FROM terminal_directory_entries
+         WHERE profile_slug = 'portal-home' AND name = 'changes-in-progress'`,
+      );
+      expect(upsertDir.rows).toHaveLength(0);
+    } finally {
+      if (originalChrome.rows[0]) {
+        await pool.query(
+          `UPDATE site_content SET markdown_body = $1, metadata_json = $2::jsonb WHERE key = 'portal-chrome'`,
+          [
+            originalChrome.rows[0].markdown_body,
+            JSON.stringify(originalChrome.rows[0].metadata_json),
+          ],
+        );
+      }
+      if (originalHome.rows[0]) {
+        await pool.query(
+          `UPDATE site_content SET markdown_body = $1, metadata_json = $2::jsonb WHERE key = 'portal-home'`,
+          [originalHome.rows[0].markdown_body, JSON.stringify(originalHome.rows[0].metadata_json)],
+        );
+      }
+      await pool.query(`DELETE FROM site_content WHERE key = 'portal-maintenance'`);
+      await pool.query(`DELETE FROM terminal_profiles WHERE slug = 'portal-maintenance'`);
+      await pool.query(
+        `DELETE FROM terminal_directory_entries
+         WHERE profile_slug = 'portal-home' AND name = 'changes-in-progress'`,
+      );
+    }
+  });
+
+  it('hydrates legacy 5-field portal-home rows on bootstrap, persists portrait/resume on upsert, and guards portal-home upserts against invalid portrait.src and PII/References', async () => {
+    const originalHome = await pool.query<{
+      markdown_body: string;
+      metadata_json: Record<string, unknown>;
+    }>(`SELECT markdown_body, metadata_json FROM site_content WHERE key = 'portal-home'`);
+
+    const prevDenylist = process.env['DOSSIER_PRIVACY_DENYLIST'];
+    const encodedDenylist = Buffer.from(
+      JSON.stringify(['SyntheticConfidentialClientX']),
+      'utf8',
+    ).toString('base64');
+    process.env['DOSSIER_PRIVACY_DENYLIST'] = encodedDenylist;
+
+    const warnLogs: string[] = [];
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation((msg: unknown) => {
+      warnLogs.push(String(msg));
+    });
+
+    const legacyFiveFieldHome = {
+      tuiTitle: 'Legacy Launcher',
+      tuiBadge: { source: 'cloud-run', state: 'idle', label: 'Idle' },
+      heading: 'Legacy Heading',
+      description: 'Legacy 5-field portal-home row.',
+      actions: [{ label: 'Contact', to: '/contact', variant: 'primary' }],
+    };
+
+    try {
+      // Seed a legacy 5-field row directly in PG19 and run bootstrap mode (must preserve row, hydrate via Zod defaults)
+      await pool.query(
+        `UPDATE site_content SET markdown_body = $1, metadata_json = $2::jsonb WHERE key = 'portal-home'`,
+        ['# Legacy body', JSON.stringify(legacyFiveFieldHome)],
+      );
+      await seedDatabase(db, { mode: 'bootstrap', env: { ADMIN_PASSWORD: '' } });
+
+      const rawAfterBootstrap = await pool.query<{ metadata_json: Record<string, unknown> }>(
+        `SELECT metadata_json FROM site_content WHERE key = 'portal-home'`,
+      );
+      expect(rawAfterBootstrap.rows[0]?.metadata_json['heading']).toBe('Legacy Heading');
+      expect('portrait' in (rawAfterBootstrap.rows[0]?.metadata_json ?? {})).toBe(false);
+
+      const hydratedHome = await loadPortalHomeData(db);
+      expect(hydratedHome.content.heading).toBe('Legacy Heading');
+      expect(hydratedHome.content.portrait.src).toBe('/images/andrew-klapper-portrait.webp');
+      expect(hydratedHome.content.resumeSummary.publicEmail).toBe('andrew@andrew-k.us');
+
+      // Upsert mode persists canonical portrait & resumeSummary into PostgreSQL JSONB
+      await seedDatabase(db, { mode: 'upsert', env: { ADMIN_PASSWORD: '' } });
+      const rawAfterUpsert = await pool.query<{ metadata_json: Record<string, unknown> }>(
+        `SELECT metadata_json FROM site_content WHERE key = 'portal-home'`,
+      );
+      expect(rawAfterUpsert.rows[0]?.metadata_json['portrait']).toBeDefined();
+      expect(rawAfterUpsert.rows[0]?.metadata_json['resumeSummary']).toBeDefined();
+
+      const seededHome = await loadPortalHomeData(db);
+      const validMeta = seededHome.content;
+
+      // Reject non-root-relative portrait.src and emit UNSOUND_CONDITION seam without raw URI
+      warnLogs.length = 0;
+      const hostilePortraitUri = 'https://evil.example.invalid/hotlink-portrait.webp';
+      await expect(
+        upsertSiteContent(db, SITE_CONTENT_KEYS.portalHome, '# Home', {
+          ...validMeta,
+          portrait: { ...validMeta.portrait, src: hostilePortraitUri },
+        }),
+      ).rejects.toThrow(/root-relative/i);
+      const portraitWarnBlob = warnLogs.join('\n');
+      expect(portraitWarnBlob).toContain('portal.home.portrait_src_invalid');
+      expect(portraitWarnBlob).toContain('UNSOUND_CONDITION');
+      expect(portraitWarnBlob).not.toContain(hostilePortraitUri);
+
+      // Reject PII / References / denylist in portal-home write without mutating PostgreSQL
+      await expect(
+        upsertSiteContent(db, SITE_CONTENT_KEYS.portalHome, '# Home', {
+          ...validMeta,
+          resumeSummary: {
+            ...validMeta.resumeSummary,
+            bio: 'Call (555) 010-1234 or email reference.contact@example.com in Marietta, GA 99999.',
+          },
+        }),
+      ).rejects.toBeInstanceOf(PrivacySanitizationError);
+
+      await expect(
+        upsertSiteContent(db, SITE_CONTENT_KEYS.portalHome, '## References\nJane Synthetic', {
+          ...validMeta,
+        }),
+      ).rejects.toBeInstanceOf(PrivacySanitizationError);
+
+      // Clean portal-home upsert containing allow-listed andrew@andrew-k.us succeeds and persists
+      const updatedBio =
+        'Updated clean bio with andrew@andrew-k.us verified across Go, TypeScript, and PostgreSQL 19.';
+      const saved = await upsertSiteContent(db, SITE_CONTENT_KEYS.portalHome, '# Home clean', {
+        ...validMeta,
+        resumeSummary: {
+          ...validMeta.resumeSummary,
+          bio: updatedBio,
+        },
+      });
+      expect((saved.metadataJson['resumeSummary'] as Record<string, unknown>)['bio']).toBe(
+        updatedBio,
+      );
+    } finally {
+      warnSpy.mockRestore();
+      if (prevDenylist === undefined) delete process.env['DOSSIER_PRIVACY_DENYLIST'];
+      else process.env['DOSSIER_PRIVACY_DENYLIST'] = prevDenylist;
+
+      if (originalHome.rows[0]) {
+        await pool.query(
+          `UPDATE site_content SET markdown_body = $1, metadata_json = $2::jsonb WHERE key = 'portal-home'`,
+          [originalHome.rows[0].markdown_body, JSON.stringify(originalHome.rows[0].metadata_json)],
+        );
+      }
+    }
+  });
+
+  it('seeds 10 sanitized resume dossiers atomically, upgrades pre-existing PG19 databases safely, and enforces pre-write + upsertSiteContent privacy boundaries', async () => {
+    const prodDenylist = JSON.stringify(['SyntheticConfidentialClientX']);
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const infoSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
+
+    const readAboutSourceBranchEvents = () =>
+      infoSpy.mock.calls
+        .map(call => {
+          try {
+            return JSON.parse(String(call[0])) as Record<string, unknown>;
+          } catch {
+            return null;
+          }
+        })
+        .filter(
+          (entry): entry is Record<string, unknown> =>
+            entry !== null && entry['event'] === 'portal.about.loader_source_branch',
+        );
+
+    try {
+      // 1. Fresh/live loadPortalAboutData returns portal-about, 10 published dossiers, and emits postgres_live branch seam
+      await seedDatabase(db, {
+        mode: 'upsert',
+        env: {
+          ADMIN_PASSWORD: '',
+          NODE_ENV: 'production',
+          DOSSIER_PRIVACY_DENYLIST: prodDenylist,
+        },
+      });
+      infoSpy.mockClear();
+      const liveAbout = await loadPortalAboutData(db);
+      expect(liveAbout.content.identity.fullName).toBe('Andrew Klapper');
+      expect(liveAbout.content.skillGroups).toHaveLength(5);
+      expect(liveAbout.dossiers).toHaveLength(10);
+      expect(liveAbout.brandContactEmail).toBe('andrew@andrew-k.us');
+      expect(readAboutSourceBranchEvents()).toEqual([
+        expect.objectContaining({
+          event: 'portal.about.loader_source_branch',
+          seamType: 'RULE_DIVERGENCE',
+          branch: 'postgres_live',
+          dossierCount: 10,
+        }),
+      ]);
+
+      // 2. Prerender fallback resolves without DATABASE_URL when prerender flag is active
+      const prevPrerender = process.env['IS_RR_BUILD_REQUEST'];
+      const prevDbUrl = process.env['DATABASE_URL'];
+      try {
+        process.env['IS_RR_BUILD_REQUEST'] = 'yes';
+        delete process.env['DATABASE_URL'];
+        const prerendered = await loadPortalAboutDataWithPrerender();
+        expect(prerendered.content.identity.location).toBe('Marietta, GA');
+        expect(prerendered.dossiers).toHaveLength(10);
+        expect(prerendered.brandContactEmail).toBe('andrew@andrew-k.us');
+      } finally {
+        if (prevPrerender === undefined) delete process.env['IS_RR_BUILD_REQUEST'];
+        else process.env['IS_RR_BUILD_REQUEST'] = prevPrerender;
+        if (prevDbUrl !== undefined) process.env['DATABASE_URL'] = prevDbUrl;
+      }
+
+      // 3. Production seedDatabase fails closed before mutating PG19 when DOSSIER_PRIVACY_DENYLIST is unset
+      await expect(
+        seedDatabase(db, {
+          mode: 'upsert',
+          env: {
+            ADMIN_PASSWORD: '',
+            NODE_ENV: 'production',
+            DOSSIER_PRIVACY_DENYLIST: '',
+          },
+        }),
+      ).rejects.toMatchObject({
+        status: 422,
+        findings: expect.arrayContaining([
+          expect.objectContaining({ ruleId: 'config.denylist_empty_in_prod' }),
+        ]),
+      });
+
+      // 4. Pre-write sanitization aborts BEFORE writing any site_content or career_dossiers row
+      await expect(
+        seedDatabase(db, {
+          mode: 'upsert',
+          env: { ADMIN_PASSWORD: '', DOSSIER_PRIVACY_DENYLIST: prodDenylist },
+          siteContentSeeds: [
+            {
+              key: SITE_CONTENT_KEYS.portalAbout,
+              markdownBody: 'Clean',
+              metadataJson: {
+                ...liveAbout.content,
+                description: 'Synthetic phone (555) 010-1234 should abort pre-write',
+              },
+            },
+          ],
+        }),
+      ).rejects.toMatchObject({ status: 422 });
+      const untouchedAbout = await loadPortalAboutData(db);
+      expect(untouchedAbout.content.description).not.toContain('555');
+
+      // 4b. Poisoned mid-batch careerDossierSeeds aborts pre-write before mutating even clean earlier batch entries
+      const cleanFirstSeed = CAREER_DOSSIER_SEEDS[0];
+      const secondSeed = CAREER_DOSSIER_SEEDS[1];
+      if (!cleanFirstSeed || !secondSeed) {
+        throw new Error('Expected at least 2 seeded career dossiers');
+      }
+      await expect(
+        seedDatabase(db, {
+          mode: 'upsert',
+          env: { ADMIN_PASSWORD: '', DOSSIER_PRIVACY_DENYLIST: prodDenylist },
+          careerDossierSeeds: [
+            {
+              ...cleanFirstSeed,
+              title: 'Should Never Commit Before Poisoned Entry',
+            },
+            {
+              ...secondSeed,
+              summaryBody:
+                'Poisoned mid-batch dossier for SyntheticConfidentialClientX at (555) 010-1234.',
+            },
+          ],
+        }),
+      ).rejects.toMatchObject({ status: 422 });
+      const untouchedFirst = await getCareerDossierBySlug(db, cleanFirstSeed.slug);
+      expect(untouchedFirst?.title).toBe(cleanFirstSeed.title);
+
+      // 5. Existing-database upgrade path: simulate pre-upgrade DB missing portal-about & stale profile_core
+      await pool.query(`DELETE FROM site_content WHERE key = 'portal-about'`);
+      await pool.query(
+        `UPDATE career_dossiers SET role_title = 'Stale Legacy Role', skills = ARRAY['Legacy']
+         WHERE slug = 'andrew-klapper-profile-core'`,
+      );
+      await pool.query(
+        `DELETE FROM terminal_commands WHERE profile_slug = 'portal-home' AND name = 'about'`,
+      );
+
+      // Upsert upgrade restores portal-about, terminal about command, and full-column dossier metadata atomically
+      await seedDatabase(db, {
+        mode: 'upsert',
+        env: {
+          ADMIN_PASSWORD: '',
+          NODE_ENV: 'production',
+          DOSSIER_PRIVACY_DENYLIST: prodDenylist,
+        },
+      });
+      const upgraded = await loadPortalAboutData(db);
+      const profileCore = upgraded.dossiers.find(d => d.slug === 'andrew-klapper-profile-core');
+      expect(profileCore?.roleTitle).toBe('Senior Full-Stack & Systems Engineer');
+      expect(profileCore?.skills).toContain('C# (.NET 10)');
+      const aboutCmd = await pool.query(
+        `SELECT name FROM terminal_commands WHERE profile_slug = 'portal-home' AND name = 'about'`,
+      );
+      expect(aboutCmd.rows).toHaveLength(1);
+
+      // Bootstrap mode preserves operator edits while backfilling missing rows
+      const operatorEdited = await upsertSiteContent(
+        db,
+        SITE_CONTENT_KEYS.portalAbout,
+        'Operator edited markdown',
+        {
+          ...upgraded.content,
+          servicesIntro: 'Operator customized services intro.',
+        },
+        { rawDenylist: prodDenylist, env: { NODE_ENV: 'production' } },
+      );
+      expect(operatorEdited.metadataJson['servicesIntro']).toBe(
+        'Operator customized services intro.',
+      );
+      await seedDatabase(db, {
+        mode: 'bootstrap',
+        env: {
+          ADMIN_PASSWORD: '',
+          NODE_ENV: 'production',
+          DOSSIER_PRIVACY_DENYLIST: prodDenylist,
+        },
+      });
+      const afterBootstrap = await loadPortalAboutData(db);
+      expect(afterBootstrap.content.servicesIntro).toBe('Operator customized services intro.');
+
+      // 6. upsertSiteContent rejects portal-about PII/ZIP and empty prod denylist with HTTP 422
+      await expect(
+        upsertSiteContent(
+          db,
+          SITE_CONTENT_KEYS.portalAbout,
+          'Bad ZIP Marietta, GA 30062',
+          upgraded.content,
+          { rawDenylist: prodDenylist, env: { NODE_ENV: 'production' } },
+        ),
+      ).rejects.toMatchObject({ status: 422 });
+      await expect(
+        upsertSiteContent(db, SITE_CONTENT_KEYS.portalAbout, 'Clean', upgraded.content, {
+          rawDenylist: '',
+          env: { NODE_ENV: 'production' },
+        }),
+      ).rejects.toMatchObject({
+        status: 422,
+        findings: expect.arrayContaining([
+          expect.objectContaining({ ruleId: 'config.denylist_empty_in_prod' }),
+        ]),
+      });
+
+      // 7. Live PG19 authority: unpublishing a dossier immediately removes it from loadPortalAboutData
+      await unpublishCareerDossier(db, 'woodstock-developers-group-mentor');
+      const afterUnpublish = await loadPortalAboutData(db);
+      expect(
+        afterUnpublish.dossiers.some(d => d.slug === 'woodstock-developers-group-mentor'),
+      ).toBe(false);
+
+      // 8. All dossiers unpublished -> returns empty dossiers array and emits empty_dossiers_degraded branch seam
+      await pool.query(`UPDATE career_dossiers SET publish_status = 'draft'`);
+      infoSpy.mockClear();
+      const emptyAbout = await loadPortalAboutData(db);
+      expect(emptyAbout.dossiers).toEqual([]);
+      expect(readAboutSourceBranchEvents()).toEqual([
+        expect.objectContaining({
+          event: 'portal.about.loader_source_branch',
+          seamType: 'RULE_DIVERGENCE',
+          branch: 'empty_dossiers_degraded',
+          dossierCount: 0,
+        }),
+      ]);
+    } finally {
+      infoSpy.mockRestore();
+      warnSpy.mockRestore();
+      // Restore canonical seed state for subsequent tests
+      await seedDatabase(db, {
+        mode: 'upsert',
+        env: {
+          ADMIN_PASSWORD: '',
+          NODE_ENV: 'test',
+          DOSSIER_PRIVACY_DENYLIST: prodDenylist,
+        },
+      });
+    }
+  });
+
+  it('additively merges /about navigation into pre-existing portal-home rows during bootstrap mode without overwriting operator edits', async () => {
+    const prodDenylist = JSON.stringify(['SyntheticConfidentialClientX']);
+
+    try {
+      // Simulate a pre-upgrade PG19 database missing portal-about & /about navigation, with custom operator portal-home copy
+      await pool.query(`DELETE FROM site_content WHERE key = 'portal-about'`);
+      await pool.query(
+        `DELETE FROM terminal_commands WHERE profile_slug = 'portal-home' AND name = 'about'`,
+      );
+      await pool.query(
+        `DELETE FROM terminal_directory_entries WHERE profile_slug = 'portal-home' AND name = 'about'`,
+      );
+      await pool.query(
+        `UPDATE terminal_commands
+         SET allowed_routes = ARRAY['cadence', 'chat', 'agensi', 'contact']
+         WHERE profile_slug = 'portal-home' AND name = 'cd'`,
+      );
+      await pool.query(
+        `UPDATE terminal_profiles
+         SET quick_commands = ARRAY['ls', 'tui', 'cadence', 'chat', 'agensi', 'contact', 'help', 'clear']
+         WHERE slug = 'portal-home'`,
+      );
+
+      const homeRow = await pool.query<{ metadata_json: Record<string, unknown> }>(
+        `SELECT metadata_json FROM site_content WHERE key = 'portal-home'`,
+      );
+      const currentMeta = homeRow.rows[0]?.metadata_json ?? {};
+      const existingActions = Array.isArray(currentMeta['actions'])
+        ? (currentMeta['actions'] as Array<Record<string, unknown>>).filter(
+            a => a['to'] !== '/about',
+          )
+        : [];
+      await pool.query(
+        `UPDATE site_content SET metadata_json = $1::jsonb WHERE key = 'portal-home'`,
+        [
+          JSON.stringify({
+            ...currentMeta,
+            tuiTitle: 'Custom Operator Launcher Title',
+            heading: 'Custom Operator Heading',
+            actions: existingActions,
+          }),
+        ],
+      );
+
+      await seedDatabase(db, {
+        mode: 'bootstrap',
+        env: {
+          ADMIN_PASSWORD: '',
+          NODE_ENV: 'production',
+          DOSSIER_PRIVACY_DENYLIST: prodDenylist,
+        },
+      });
+
+      // portal-about, terminal_commands['about'], and terminal_directory_entries['about'] backfilled
+      const aboutData = await loadPortalAboutData(db);
+      expect(aboutData.content.identity.fullName).toBe('Andrew Klapper');
+
+      const aboutCmd = await pool.query(
+        `SELECT name FROM terminal_commands WHERE profile_slug = 'portal-home' AND name = 'about'`,
+      );
+      expect(aboutCmd.rows).toHaveLength(1);
+
+      const aboutDir = await pool.query(
+        `SELECT name FROM terminal_directory_entries WHERE profile_slug = 'portal-home' AND name = 'about'`,
+      );
+      expect(aboutDir.rows).toHaveLength(1);
+
+      // Additive merge into existing rows: cd.allowed_routes, quick_commands, portal-home.actions
+      const cdRow = await pool.query<{ allowed_routes: string[] }>(
+        `SELECT allowed_routes FROM terminal_commands WHERE profile_slug = 'portal-home' AND name = 'cd'`,
+      );
+      expect(cdRow.rows[0]?.allowed_routes).toContain('about');
+
+      const profileRow = await pool.query<{ quick_commands: string[] }>(
+        `SELECT quick_commands FROM terminal_profiles WHERE slug = 'portal-home'`,
+      );
+      expect(profileRow.rows[0]?.quick_commands).toContain('about');
+
+      const updatedHome = await pool.query<{ metadata_json: Record<string, unknown> }>(
+        `SELECT metadata_json FROM site_content WHERE key = 'portal-home'`,
+      );
+      const updatedMeta = updatedHome.rows[0]?.metadata_json ?? {};
+      expect(updatedMeta['tuiTitle']).toBe('Custom Operator Launcher Title');
+      expect(updatedMeta['heading']).toBe('Custom Operator Heading');
+      const updatedActions = Array.isArray(updatedMeta['actions'])
+        ? (updatedMeta['actions'] as Array<Record<string, unknown>>)
+        : [];
+      expect(updatedActions.some(a => a['to'] === '/about')).toBe(true);
+    } finally {
+      await seedDatabase(db, {
+        mode: 'upsert',
+        env: {
+          ADMIN_PASSWORD: '',
+          NODE_ENV: 'test',
+          DOSSIER_PRIVACY_DENYLIST: prodDenylist,
+        },
+      });
     }
   });
 });

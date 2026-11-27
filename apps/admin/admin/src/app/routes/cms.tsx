@@ -113,7 +113,7 @@ export function meta({ matches, location }: Route.MetaArgs) {
     pathname: location.pathname,
     title: 'Postgres 19 CMS // admin.andrew-k.us',
     description:
-      'Manage site_content, live maintenance mode, menu registry, terminal commands, roadmap, Agensi skills, and CADENCE presets.',
+      'Manage site_content, menu registry, terminal commands, Agensi skills, and CADENCE presets.',
   });
 }
 

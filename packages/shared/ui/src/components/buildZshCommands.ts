@@ -1,4 +1,4 @@
-import type { RoadmapMilestone, RoadmapMilestoneStatus, TerminalCommandSpec } from '@aklapper/core';
+import type { TerminalCommandSpec } from '@aklapper/core';
 
 import { parseCliNavFlags, type TerminalNavTarget } from './terminalPaneNav';
 import type { ZshCommandHandler } from './ZshP10kTerminal';
@@ -7,25 +7,7 @@ export interface ZshCommandRuntime {
   navigate?: (to: string) => void | Promise<void>;
   navigateView?: (to: string, target: TerminalNavTarget) => void | Promise<void>;
   openTui?: (target?: TerminalNavTarget) => void;
-  milestones?: readonly RoadmapMilestone[];
   getUptimeSeconds?: () => number;
-}
-
-export function formatRoadmapMarker(status: RoadmapMilestoneStatus): string {
-  switch (status) {
-    case 'done':
-      return '[x]';
-    case 'active':
-      return '[~]';
-    case 'queued':
-      return '[ ]';
-  }
-}
-
-export function formatRoadmapMilestones(milestones: readonly RoadmapMilestone[]): string {
-  return milestones
-    .map(milestone => `${formatRoadmapMarker(milestone.status)} ${milestone.label}`)
-    .join('\n');
 }
 
 export function buildZshCommandHandlers(
@@ -85,9 +67,7 @@ export function buildZshCommandHandlers(
         };
         break;
       case 'roadmap':
-        handlers[spec.name] = () => ({
-          output: runtime.milestones ? formatRoadmapMilestones(runtime.milestones) : spec.output,
-        });
+        handlers[spec.name] = () => ({ output: spec.output });
         break;
       case 'uptime':
         handlers[spec.name] = () => {

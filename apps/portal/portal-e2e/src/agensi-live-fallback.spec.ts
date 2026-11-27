@@ -42,7 +42,6 @@ async function withIsolatedAgensiSsr(
       PORTAL_HOST: '127.0.0.1',
       PORT: String(ssrPort),
       PORTAL_PORT: String(ssrPort),
-      PORTAL_MAINTENANCE_MODE: 'false',
       SERVE_PRERENDERED_STATIC: 'false',
       AGENSI_API_BASE_URL: mockBaseUrl,
       AGENSI_API_KEY: '',
@@ -255,11 +254,6 @@ test.describe('portal /agensi live sync & PG19 cache fallback', () => {
     page,
   }, testInfo) => {
     if (IS_LIVE_EXTERNAL_TARGET) {
-      if (process.env['PORTAL_MAINTENANCE_MODE'] === 'true') {
-        await page.goto('/changes-in-progress');
-        await expect(page.locator('body')).toBeVisible();
-        return;
-      }
       await page.goto('/agensi');
       await expect(
         page

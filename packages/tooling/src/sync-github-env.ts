@@ -26,7 +26,6 @@ export const GITHUB_OPTIONAL_ENV_SECRETS = [
 export const GITHUB_REQUIRED_ENV_VARS = ['GCP_PROJECT_ID', 'GCP_REGION', 'GAR_REPOSITORY'] as const;
 
 export const GITHUB_OPTIONAL_ENV_VARS = [
-  'PORTAL_MAINTENANCE_MODE',
   'PUBLIC_PORTAL_URL',
   'PUBLIC_ADMIN_URL',
   'PUBLIC_ANALYTICS_ENDPOINT',
@@ -100,6 +99,7 @@ export const RETIRED_ENV_KEYS = [
   'K8S_WATCH_URL',
   'CLOUD_RUN_ALLOW_UNAUTH_ADMIN',
   'VERTEX_THINKING_BUDGET',
+  'PORTAL_MAINTENANCE_MODE',
 ] as const;
 
 export function parseEnvFileContent(content: string): Record<string, string> {

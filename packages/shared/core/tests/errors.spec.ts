@@ -329,13 +329,22 @@ describe('@aklapper/core error contracts and server error classification', () =>
     expect(enrichedFail.ok).toBe(false);
     expect(enrichedFail.code).toBe('ERR_DB_UNAVAILABLE');
 
-    expect(PORTAL_NAVIGABLE_ROUTE_PATHS).toEqual(['/', '/cadence', '/chat', '/agensi', '/contact']);
+    expect(PORTAL_NAVIGABLE_ROUTE_PATHS).toEqual([
+      '/',
+      '/about',
+      '/cadence',
+      '/chat',
+      '/agensi',
+      '/contact',
+    ]);
+    expect(isPortalNavigableRoutePath('/about')).toBe(true);
     expect(isPortalNavigableRoutePath('/contact')).toBe(true);
     expect(isPortalNavigableRoutePath('/api/contact')).toBe(false);
     expect(isPortalNavigableRoutePath('https://evil.example')).toBe(false);
 
     expect(PORTAL_ROUTE_PATHS).toEqual([
       '/',
+      '/about',
       '/cadence',
       '/chat',
       '/agensi',
@@ -346,8 +355,8 @@ describe('@aklapper/core error contracts and server error classification', () =>
       '/api/analytics/ingest',
       '/api/runtime/status',
       '/api/cadence/runs/:runId/stream',
-      '/changes-in-progress',
     ]);
+    expect(PORTAL_ROUTE_PATHS).not.toContain('/changes-in-progress');
     expect(ADMIN_ROUTE_PATHS).toEqual([
       '/',
       '/login',

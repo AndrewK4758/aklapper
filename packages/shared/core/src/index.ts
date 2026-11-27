@@ -1,3 +1,4 @@
+export * from './about.ts';
 export * from './admin-cms-contracts.ts';
 export * from './admin-contracts.ts';
 export * from './agensi.ts';
@@ -12,6 +13,7 @@ export * from './career-dossiers.ts';
 export * from './errors.ts';
 export * from './forms.ts';
 export * from './loader-data.ts';
+export * from './portal-home-profile.ts';
 export * from './portal.ts';
 export * from './privacy-error-match.ts';
 export * from './rbac.ts';

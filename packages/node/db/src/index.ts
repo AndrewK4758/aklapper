@@ -21,6 +21,7 @@ export {
 export * from './schema-dossiers.ts';
 export * from './schema-sandbox.ts';
 export * from './schema.ts';
+export * from './seed-about.ts';
 export * from './seed-admin.ts';
 export * from './seed-dossiers.ts';
 export {

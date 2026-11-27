@@ -5,13 +5,10 @@ import {
 } from '@aklapper/tooling/playwright';
 import { expect, test } from '@playwright/test';
 
-const IS_MAINTENANCE_MODE = process.env['PORTAL_MAINTENANCE_MODE'] === 'true';
-
 test.describe('portal global desktop workspace persistence and header launcher', () => {
   test('persists global tabs, custom titles, and secondary panes across SPA route transitions and hard reload', async ({
     page,
   }, testInfo) => {
-    test.skip(IS_MAINTENANCE_MODE, 'Global desktop workspace is bypassed in maintenance mode');
     test.skip(
       testInfo.project.name === 'mobile-chrome',
       'Desktop global workspace journey; handheld journeys are covered in mobile-layout.spec.ts',

@@ -96,11 +96,14 @@ func TestGroundingTierAndPortalNavigableRoutes(t *testing.T) {
 	if GroundingTierGeneral != "general" {
 		t.Fatalf("expected GroundingTierGeneral to be %q, got %q", "general", GroundingTierGeneral)
 	}
+	if !IsAllowedPortalNavigableRoute("/about") {
+		t.Fatal("expected /about to be an allowed navigable portal route")
+	}
 	if !IsAllowedPortalNavigableRoute("/chat") {
 		t.Fatal("expected /chat to be an allowed navigable portal route")
 	}
-	if IsAllowedPortalNavigableRoute("/ask") || IsAllowedPortalNavigableRoute("/menu") {
-		t.Fatal("expected retired /ask and /menu routes to be rejected by navigable route allow-list")
+	if IsAllowedPortalNavigableRoute("/ask") || IsAllowedPortalNavigableRoute("/menu") || IsAllowedPortalNavigableRoute("/unknown-route") {
+		t.Fatal("expected retired and unknown routes to be rejected by navigable route allow-list")
 	}
 }
 

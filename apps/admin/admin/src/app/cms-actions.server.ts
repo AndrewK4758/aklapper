@@ -1,18 +1,14 @@
-import { type AppErrorCode, SITE_CONTENT_KEYS, validateSiteContentMetadata } from '@aklapper/core';
+import type { AppErrorCode } from '@aklapper/core';
 import {
   deleteCadencePreset,
   deleteMenuItem,
-  deleteRoadmapMilestone,
   deleteTerminalCommand,
   deleteTerminalDirectoryEntry,
   deleteTerminalInitialEntry,
   getSharedDb,
-  setMaintenanceModeDefault,
   syncAgensiCatalog,
   upsertCadencePreset,
   upsertMenuItem,
-  upsertRoadmapMilestone,
-  upsertSiteContent,
   upsertTerminalCommand,
   upsertTerminalDirectoryEntry,
   upsertTerminalInitialEntry,
@@ -23,10 +19,8 @@ import type { SsrStructuredLogger } from '@aklapper/node-runtime/ssr/stream';
 import type { AdminCmsActionData } from '#pages/cms';
 
 import { handleCareerDossierIntent, isCareerDossierIntent } from './career-dossier-actions.server';
-import {
-  handleReindexQdrantIntent,
-  validatePortalAskPrivacyOutcome,
-} from './cms-reindex-privacy.server';
+import { handleReindexQdrantIntent } from './cms-reindex-privacy.server';
+import { handleUpsertSiteContentIntent } from './cms-site-content-actions.server';
 
 export interface CmsActionOutcome {
   readonly status: number;
@@ -64,6 +58,37 @@ function notFound(message: string, correlationId: string): CmsActionOutcome {
   );
 }
 
+const RETIRED_MAINTENANCE_KEY = 'portal-maintenance';
+
+function isRetiredMaintenanceTarget(value: string): boolean {
+  return value.trim().toLowerCase() === RETIRED_MAINTENANCE_KEY;
+}
+
+function blockRetiredMaintenanceMutation(
+  intent: string,
+  correlationId: string,
+  logger: SsrStructuredLogger,
+  target?: string,
+): CmsActionOutcome {
+  logger.warn(
+    {
+      seam_type: 'UNSOUND_CONDITION',
+      event: 'admin.cms.retired_maintenance_intent_blocked',
+      intent,
+      ...(target ? { target } : {}),
+      correlationId,
+    },
+    'Blocked retired maintenance or roadmap CMS mutation.',
+  );
+  return fail(
+    410,
+    'Maintenance mode and roadmap milestone controls have been retired.',
+    'ERR_VALIDATION',
+    'Reload the CMS view to use active content controls.',
+    correlationId,
+  );
+}
+
 export async function dispatchAdminCmsIntent(
   intent: string,
   formData: FormData,
@@ -79,106 +104,20 @@ export async function dispatchAdminCmsIntent(
     return handleReindexQdrantIntent(correlationId, logger);
   }
 
-  if (intent === 'set-maintenance') {
-    const enabled = formData.get('maintenanceModeDefault') === 'true';
-    const rawProgress = formData.get('rebuildProgressPercent');
-    const progress =
-      rawProgress !== null && String(rawProgress).trim() !== '' ? Number(rawProgress) : undefined;
-    const result = await setMaintenanceModeDefault(getSharedDb(), enabled, progress);
-    return ok(
-      `Maintenance mode is now ${result.maintenanceModeDefault ? 'ON' : 'OFF'} (rebuild progress ${result.rebuildProgressPercent}%).`,
-    );
+  if (
+    intent === 'set-maintenance' ||
+    intent === 'upsert-roadmap-milestone' ||
+    intent === 'delete-roadmap-milestone'
+  ) {
+    return blockRetiredMaintenanceMutation(intent, correlationId, logger);
   }
 
   if (intent === 'upsert-site-content') {
     const key = String(formData.get('key') ?? '').trim();
-    const markdownBody = String(formData.get('markdownBody') ?? '');
-    const rawJson = String(formData.get('metadataJson') ?? '{}');
-    let parsedMetadata: Record<string, unknown>;
-    try {
-      const candidate: unknown = JSON.parse(rawJson);
-      if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) {
-        logger.warn(
-          {
-            event: 'admin.cms.site_content_invalid_payload',
-            key,
-            correlationId,
-            reason: 'non_object_json',
-          },
-          'Rejected non-object site_content metadata payload.',
-        );
-        return fail(
-          400,
-          'Metadata JSON must be a JSON object.',
-          'ERR_VALIDATION',
-          'Provide a valid JSON object and submit again.',
-          correlationId,
-        );
-      }
-      parsedMetadata = candidate as Record<string, unknown>;
-    } catch {
-      logger.warn(
-        {
-          event: 'admin.cms.site_content_invalid_payload',
-          key,
-          correlationId,
-          reason: 'malformed_json',
-        },
-        'Rejected malformed site_content metadata JSON.',
-      );
-      return fail(
-        400,
-        'Invalid JSON in metadataJson.',
-        'ERR_VALIDATION',
-        'Fix JSON syntax errors and submit again.',
-        correlationId,
-      );
+    if (isRetiredMaintenanceTarget(key)) {
+      return blockRetiredMaintenanceMutation(intent, correlationId, logger, key);
     }
-
-    const validation = validateSiteContentMetadata(key, parsedMetadata);
-    if (!validation.ok) {
-      const firstIssue = validation.issues[0];
-      logger.warn(
-        {
-          event: 'admin.cms.site_content_invalid_payload',
-          key,
-          correlationId,
-          reason: 'schema_validation_failed',
-          issueCount: validation.issues.length,
-        },
-        'Rejected schema-invalid site_content metadata payload.',
-      );
-      return fail(
-        400,
-        firstIssue
-          ? `Invalid metadata for "${key}" (${firstIssue.pathKey || 'root'}): ${firstIssue.message}`
-          : `Invalid metadata payload for "${key}".`,
-        'ERR_VALIDATION',
-        'Correct the highlighted schema fields and submit again.',
-        correlationId,
-      );
-    }
-
-    if (key === SITE_CONTENT_KEYS.portalAsk) {
-      const privacyFailure = validatePortalAskPrivacyOutcome(
-        markdownBody,
-        validation.data,
-        correlationId,
-      );
-      if (privacyFailure) return privacyFailure;
-    }
-
-    const saved = await upsertSiteContent(getSharedDb(), key, markdownBody, validation.data);
-    logger.info(
-      {
-        event: 'admin.cms.site_content_upsert_committed',
-        key: saved.key,
-        updatedAt: saved.updatedAt,
-        correlationId,
-      },
-      'Committed site_content update.',
-    );
-    return ok(`Saved site_content key "${saved.key}".`);
+    return handleUpsertSiteContentIntent(formData, { correlationId, logger, adminActor });
   }
 
   if (intent === 'upsert-menu-item') {
@@ -203,8 +142,12 @@ export async function dispatchAdminCmsIntent(
   }
 
   if (intent === 'upsert-terminal-profile') {
+    const slug = String(formData.get('slug') ?? '').trim();
+    if (isRetiredMaintenanceTarget(slug)) {
+      return blockRetiredMaintenanceMutation(intent, correlationId, logger, slug);
+    }
     const saved = await upsertTerminalProfile(getSharedDb(), {
-      slug: String(formData.get('slug') ?? ''),
+      slug,
       bannerTitle: String(formData.get('bannerTitle') ?? ''),
       bannerMeta: String(formData.get('bannerMeta') ?? ''),
       osLabel: String(formData.get('osLabel') ?? 'linux'),
@@ -219,12 +162,16 @@ export async function dispatchAdminCmsIntent(
   }
 
   if (intent === 'upsert-terminal-command') {
+    const profileSlug = String(formData.get('profileSlug') ?? '').trim();
+    if (isRetiredMaintenanceTarget(profileSlug)) {
+      return blockRetiredMaintenanceMutation(intent, correlationId, logger, profileSlug);
+    }
     const rawId = formData.get('id');
     const targetRoute = String(formData.get('targetRoute') ?? '').trim();
     const errorTemplate = String(formData.get('errorTemplate') ?? '').trim();
     const saved = await upsertTerminalCommand(getSharedDb(), {
       ...(rawId ? { id: Number(rawId) } : {}),
-      profileSlug: String(formData.get('profileSlug') ?? ''),
+      profileSlug,
       name: String(formData.get('name') ?? ''),
       description: String(formData.get('description') ?? ''),
       kind: String(formData.get('kind') ?? 'static') as
@@ -253,10 +200,14 @@ export async function dispatchAdminCmsIntent(
   }
 
   if (intent === 'upsert-terminal-entry') {
+    const profileSlug = String(formData.get('profileSlug') ?? '').trim();
+    if (isRetiredMaintenanceTarget(profileSlug)) {
+      return blockRetiredMaintenanceMutation(intent, correlationId, logger, profileSlug);
+    }
     const rawId = formData.get('id');
     const saved = await upsertTerminalInitialEntry(getSharedDb(), {
       ...(rawId ? { id: Number(rawId) } : {}),
-      profileSlug: String(formData.get('profileSlug') ?? ''),
+      profileSlug,
       command: String(formData.get('command') ?? ''),
       output: String(formData.get('output') ?? ''),
       status: String(formData.get('status') ?? 'ok') as 'ok' | 'error',
@@ -276,10 +227,14 @@ export async function dispatchAdminCmsIntent(
   }
 
   if (intent === 'upsert-terminal-directory-entry') {
+    const profileSlug = String(formData.get('profileSlug') ?? '').trim();
+    if (isRetiredMaintenanceTarget(profileSlug)) {
+      return blockRetiredMaintenanceMutation(intent, correlationId, logger, profileSlug);
+    }
     const rawId = formData.get('id');
     const saved = await upsertTerminalDirectoryEntry(getSharedDb(), {
       ...(rawId ? { id: Number(rawId) } : {}),
-      profileSlug: String(formData.get('profileSlug') ?? ''),
+      profileSlug,
       name: String(formData.get('name') ?? ''),
       description: String(formData.get('description') ?? ''),
       sortOrder: Number(formData.get('sortOrder') ?? 0),
@@ -294,25 +249,6 @@ export async function dispatchAdminCmsIntent(
     return deleted
       ? ok(`Deleted terminal directory entry #${id}.`)
       : notFound(`Terminal directory entry #${id} not found.`, correlationId);
-  }
-
-  if (intent === 'upsert-roadmap-milestone') {
-    const saved = await upsertRoadmapMilestone(getSharedDb(), {
-      slug: String(formData.get('slug') ?? ''),
-      status: String(formData.get('status') ?? 'active') as 'done' | 'active' | 'queued',
-      label: String(formData.get('label') ?? ''),
-      sortOrder: Number(formData.get('sortOrder') ?? 0),
-      enabled: formData.get('enabled') === 'true',
-    });
-    return ok(`Saved roadmap milestone "${saved.slug}".`);
-  }
-
-  if (intent === 'delete-roadmap-milestone') {
-    const slug = String(formData.get('slug') ?? '').trim();
-    const deleted = await deleteRoadmapMilestone(getSharedDb(), slug);
-    return deleted
-      ? ok(`Deleted roadmap milestone "${slug}".`)
-      : notFound(`Milestone "${slug}" not found.`, correlationId);
   }
 
   if (intent === 'sync-agensi-catalog') {

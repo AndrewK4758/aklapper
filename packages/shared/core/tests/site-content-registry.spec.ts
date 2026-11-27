@@ -1,15 +1,77 @@
 import {
   AdminCmsLoaderDataSchema,
   CONTACT_FORM_DEFINITION,
+  DEFAULT_PORTAL_HOME_PORTRAIT,
+  DEFAULT_PORTAL_HOME_RESUME_SUMMARY,
   introspectSiteContentSchema,
   isKnownSiteContentKey,
+  PortalAboutContentSchema,
   PortalAskContentSchema,
+  PortalHomeContentSchema,
   SITE_CONTENT_KEYS,
   SITE_CONTENT_METADATA,
   SITE_CONTENT_SCHEMA_BY_KEY,
   type SiteContentKey,
   validateSiteContentMetadata,
 } from '../src/index.ts';
+
+const VALID_PORTAL_ABOUT_FIXTURE: Record<string, unknown> = {
+  windowTitle: 'About Andrew Klapper // Resume & Services',
+  statusBadge: { source: 'portal-about', state: 'ready', label: 'Sanitized Profile' },
+  description: 'Public-safe engineering resume and interactive platform services guide.',
+  identity: {
+    fullName: 'Andrew Klapper',
+    roleHeadline: 'Senior Full-Stack & Systems Engineer',
+    location: 'Marietta, GA',
+    githubLabel: 'github.com/AndrewK4758',
+    githubUrl: 'https://github.com/AndrewK4758',
+    websiteLabel: 'andrew-k.us',
+    websiteUrl: 'https://andrew-k.us',
+  },
+  portrait: {
+    alt: 'Andrew Klapper greyscale terminal portrait',
+    caption: 'Andrew Klapper · Marietta, GA',
+    ttyLabel: 'portrait // greyscale',
+  },
+  skillGroups: [
+    { category: 'Languages', skills: ['C# (.NET 10)', 'Go (1.26+)', 'TypeScript'] },
+    { category: 'Cloud & DevOps', skills: ['Docker', 'Kubernetes (AKS)', 'GCP'] },
+  ],
+  education: [
+    {
+      institution: 'Kennesaw State University',
+      location: 'Kennesaw, GA',
+      program: 'Professional Sales (29 credits completed)',
+    },
+  ],
+  servicesIntro: 'Explore interactive tools and services available directly in this workspace.',
+  services: [
+    {
+      id: 'chat',
+      title: 'Chat with Andrew',
+      to: '/chat',
+      badge: 'AI + JD Match',
+      summary: 'Ask grounded questions or evaluate role fit against published career dossiers.',
+      ctaLabel: 'Open Chat →',
+    },
+    {
+      id: 'agensi',
+      title: 'Agensi Storefront',
+      to: '/agensi',
+      badge: 'Skills Catalog',
+      summary: 'Browse published commercial AI agent skills and operational workflows.',
+      ctaLabel: 'Open Agensi →',
+    },
+    {
+      id: 'cadence',
+      title: 'CADENCE Builder',
+      to: '/cadence',
+      badge: 'Interactive Demo',
+      summary: 'Run deterministic or live spec-driven artifact synthesis workflows.',
+      ctaLabel: 'Open CADENCE →',
+    },
+  ],
+};
 
 const VALID_FIXTURES: Record<SiteContentKey, Record<string, unknown>> = {
   [SITE_CONTENT_KEYS.portalChrome]: {
@@ -20,7 +82,6 @@ const VALID_FIXTURES: Record<SiteContentKey, Record<string, unknown>> = {
     footerText: 'Built with Solar Forge',
     footerLinkLabel: 'GitHub',
     footerLinkUrl: 'https://github.com/AndrewK4758',
-    maintenanceModeDefault: false,
   },
   [SITE_CONTENT_KEYS.portalHome]: {
     tuiTitle: 'launcher :: home',
@@ -29,6 +90,7 @@ const VALID_FIXTURES: Record<SiteContentKey, Record<string, unknown>> = {
     description: 'Principal full-stack and platform engineer.',
     actions: [{ label: 'CADENCE Builder', to: '/cadence', variant: 'primary' }],
   },
+  [SITE_CONTENT_KEYS.portalAbout]: VALID_PORTAL_ABOUT_FIXTURE,
   [SITE_CONTENT_KEYS.portalAgensi]: {
     windowTitle: 'Agensi Skills',
     statusBadge: { source: 'agensi', state: 'ready', label: 'Indexed' },
@@ -57,16 +119,6 @@ const VALID_FIXTURES: Record<SiteContentKey, Record<string, unknown>> = {
     description: 'Send a direct message.',
     form: CONTACT_FORM_DEFINITION,
   },
-  [SITE_CONTENT_KEYS.portalMaintenance]: {
-    windowTitle: 'Maintenance',
-    statusBadge: { source: 'maintenance', state: 'scaling', label: 'Rebuilding' },
-    heading: 'Changes in Progress',
-    lead: 'Deploying portfolio upgrades.',
-    progressPercent: 72,
-    progressAriaLabel: 'Rebuild progress',
-    metaLeft: 'Cluster: games-424800',
-    metaRight: 'ETA: soon',
-  },
   [SITE_CONTENT_KEYS.adminChrome]: {
     pageTitle: 'Admin Console',
     brandLabel: 'admin.andrew-k.us',
@@ -85,9 +137,13 @@ const VALID_FIXTURES: Record<SiteContentKey, Record<string, unknown>> = {
 };
 
 describe('@aklapper/core site_content registry', () => {
-  it('registers all 11 site_content keys with schemas and display metadata', () => {
+  it('registers all 10 active site_content keys including portal-about without portal-maintenance', () => {
     const keys = Object.values(SITE_CONTENT_KEYS);
     expect(keys).toHaveLength(10);
+    expect(keys).toContain('portal-about');
+    expect(SITE_CONTENT_METADATA[SITE_CONTENT_KEYS.portalAbout].surface).toBe('portal');
+    expect(keys).not.toContain('portal-maintenance');
+    expect(isKnownSiteContentKey('portal-maintenance')).toBe(false);
     for (const key of keys) {
       expect(isKnownSiteContentKey(key)).toBe(true);
       expect(SITE_CONTENT_SCHEMA_BY_KEY[key]).toBeDefined();
@@ -97,7 +153,7 @@ describe('@aklapper/core site_content registry', () => {
     expect(isKnownSiteContentKey('custom-banner')).toBe(false);
   });
 
-  it('introspects all 11 schemas cleanly via z.toJSONSchema with cycle refs and memoization', () => {
+  it('introspects all 10 schemas cleanly via z.toJSONSchema with cycle refs and memoization', () => {
     for (const key of Object.values(SITE_CONTENT_KEYS)) {
       const schema = introspectSiteContentSchema(key);
       expect(schema.type).toBe('object');
@@ -106,22 +162,26 @@ describe('@aklapper/core site_content registry', () => {
     }
     const contactSchema = introspectSiteContentSchema(SITE_CONTENT_KEYS.portalContact);
     expect(contactSchema.properties?.['form']).toBeDefined();
+    const aboutSchema = introspectSiteContentSchema(SITE_CONTENT_KEYS.portalAbout);
+    expect(aboutSchema.properties?.['services']).toBeDefined();
   });
 
-  it('validates all 11 fixtures and preserves unknown extra keys losslessly', () => {
+  it('validates all 10 fixtures and strips unknown or retired keys on registered site_content rows', () => {
     for (const key of Object.values(SITE_CONTENT_KEYS)) {
-      const candidate = { ...VALID_FIXTURES[key], customNote: 'keep-me' };
+      const candidate = {
+        ...VALID_FIXTURES[key],
+        maintenanceModeDefault: true,
+        customNote: 'strip-me',
+      };
       const result = validateSiteContentMetadata(key, candidate);
-      expect(result).toEqual(
-        expect.objectContaining({
-          ok: true,
-          data: expect.objectContaining({ customNote: 'keep-me' }),
-        }),
-      );
+      expect(result.ok).toBe(true);
+      const data = result.ok ? result.data : {};
+      expect('maintenanceModeDefault' in data).toBe(false);
+      expect('customNote' in data).toBe(false);
     }
   });
 
-  it('reports field-level validation issues for invalid known payloads and passes unknown keys', () => {
+  it('reports field-level validation issues for invalid known payloads and passes unknown keys verbatim', () => {
     const invalidChrome = validateSiteContentMetadata(SITE_CONTENT_KEYS.portalChrome, {
       ...VALID_FIXTURES[SITE_CONTENT_KEYS.portalChrome],
       footerLinkUrl: 'not-a-valid-url',
@@ -130,17 +190,6 @@ describe('@aklapper/core site_content registry', () => {
       expect.objectContaining({
         ok: false,
         issues: expect.arrayContaining([expect.objectContaining({ pathKey: 'footerLinkUrl' })]),
-      }),
-    );
-
-    const invalidMaint = validateSiteContentMetadata(SITE_CONTENT_KEYS.portalMaintenance, {
-      ...VALID_FIXTURES[SITE_CONTENT_KEYS.portalMaintenance],
-      progressPercent: 150,
-    });
-    expect(invalidMaint).toEqual(
-      expect.objectContaining({
-        ok: false,
-        issues: expect.arrayContaining([expect.objectContaining({ pathKey: 'progressPercent' })]),
       }),
     );
 
@@ -168,16 +217,201 @@ describe('@aklapper/core site_content registry', () => {
 
     const cmsLoader = AdminCmsLoaderDataSchema.parse({
       siteContents: [],
-      maintenanceModeDefault: false,
-      rebuildProgressPercent: 50,
       menuItems: [],
       terminalProfiles: [],
       terminalCommands: [],
       terminalInitialEntries: [],
-      roadmapMilestones: [],
       agensiSkills: [],
       cadencePresets: [],
     });
     expect(cmsLoader.careerDossiers).toEqual([]);
+  });
+
+  it('hydrates default portrait and sanitized resumeSummary for legacy 5-field portal-home rows with isolated clones', () => {
+    const first = PortalHomeContentSchema.parse(VALID_FIXTURES[SITE_CONTENT_KEYS.portalHome]);
+    expect(first.portrait).toEqual(DEFAULT_PORTAL_HOME_PORTRAIT);
+    expect(first.portrait.src).toBe('/images/andrew-klapper-portrait.webp');
+    expect(first.portrait.width).toBe(440);
+    expect(first.portrait.height).toBe(520);
+    expect(first.resumeSummary).toEqual(DEFAULT_PORTAL_HOME_RESUME_SUMMARY);
+    expect(first.resumeSummary.publicEmail).toBe('andrew@andrew-k.us');
+    expect(first.resumeSummary.githubUrl).toBe('https://github.com/AndrewK4758');
+    expect(first.resumeSummary.services.map(s => s.command)).toEqual([
+      'cadence',
+      'chat',
+      'agensi',
+      'about',
+      'contact',
+    ]);
+
+    const serializedDefault = JSON.stringify(first.resumeSummary);
+    expect(serializedDefault).not.toMatch(/References|\bzsh\b|p10k|powerlevel10k/i);
+    expect(serializedDefault).not.toMatch(/\bGA\s+\d{5}\b/);
+    expect(serializedDefault).not.toMatch(/\(\d{3}\)\s*\d{3}-\d{4}/);
+
+    // Mutating returned arrays/objects must not leak into subsequent parses
+    first.resumeSummary.highlights.push('Mutated highlight');
+    first.resumeSummary.services[0]!.summary = 'Mutated service';
+    const second = PortalHomeContentSchema.parse(VALID_FIXTURES[SITE_CONTENT_KEYS.portalHome]);
+    expect(second.resumeSummary.highlights).not.toContain('Mutated highlight');
+    expect(second.resumeSummary.services[0]?.summary).not.toBe('Mutated service');
+
+    const homeJsonSchema = introspectSiteContentSchema(SITE_CONTENT_KEYS.portalHome);
+    expect(homeJsonSchema.properties?.['portrait']).toBeDefined();
+    expect(homeJsonSchema.properties?.['resumeSummary']).toBeDefined();
+  });
+
+  it('rejects non-root-relative portrait.src paths and non-HTTPS githubUrl values on portal-home', () => {
+    for (const badSrc of [
+      'https://cdn.example.invalid/photo.webp',
+      'http://cdn.example.invalid/photo.webp',
+      '//cdn.example.invalid/photo.webp',
+      '/\\cdn.example.invalid/photo.webp',
+      '/images\\photo.webp',
+      '/images/../secret.webp',
+      '/\t/attacker.example/pixel.webp',
+      '/\n/attacker.example/pixel.webp',
+      '/\r/attacker.example/pixel.webp',
+      '/images/.\t./secret.webp',
+      '/%2e%2e/secret.webp',
+      '/images/a\u0000b.webp',
+      '/images/a?b=1',
+      '/images/a#frag',
+      'javascript:alert(1)',
+      'data:image/webp;base64,AAAA',
+      'images/relative-no-leading-slash.webp',
+    ]) {
+      const result = validateSiteContentMetadata(SITE_CONTENT_KEYS.portalHome, {
+        ...VALID_FIXTURES[SITE_CONTENT_KEYS.portalHome],
+        portrait: {
+          ...DEFAULT_PORTAL_HOME_PORTRAIT,
+          src: badSrc,
+        },
+      });
+      expect(result, `expected rejection for portrait.src=${badSrc}`).toEqual(
+        expect.objectContaining({
+          ok: false,
+          issues: expect.arrayContaining([expect.objectContaining({ pathKey: 'portrait.src' })]),
+        }),
+      );
+    }
+
+    for (const badGithubUrl of [
+      'javascript:alert(1)',
+      'data:text/html,hi',
+      'http://github.com/AndrewK4758',
+      'ftp://github.com/AndrewK4758',
+      'https://user:pass@github.com/AndrewK4758',
+      'https://github.com/AndrewK4758\t/evil',
+    ]) {
+      const result = validateSiteContentMetadata(SITE_CONTENT_KEYS.portalHome, {
+        ...VALID_FIXTURES[SITE_CONTENT_KEYS.portalHome],
+        resumeSummary: {
+          ...DEFAULT_PORTAL_HOME_RESUME_SUMMARY,
+          githubUrl: badGithubUrl,
+        },
+      });
+      expect(result, `expected rejection for githubUrl=${badGithubUrl}`).toEqual(
+        expect.objectContaining({
+          ok: false,
+          issues: expect.arrayContaining([
+            expect.objectContaining({ pathKey: 'resumeSummary.githubUrl' }),
+          ]),
+        }),
+      );
+    }
+  });
+
+  it('validates portal-about defaults and rejects disallowed service routes, postal ZIP locations, and empty required framing fields', () => {
+    const parsedAbout = PortalAboutContentSchema.parse(VALID_PORTAL_ABOUT_FIXTURE);
+    expect(parsedAbout.skillsHeading).toBe('Technical Skills');
+    expect(parsedAbout.contactCtaHref).toBe('/contact');
+
+    const invalidServiceAndZip = validateSiteContentMetadata(SITE_CONTENT_KEYS.portalAbout, {
+      ...VALID_PORTAL_ABOUT_FIXTURE,
+      identity: {
+        ...(VALID_PORTAL_ABOUT_FIXTURE['identity'] as Record<string, unknown>),
+        location: 'Marietta, GA 30062',
+      },
+      services: [
+        {
+          id: 'phish',
+          title: 'Untrusted',
+          to: 'https://untrusted.example/phish',
+          badge: 'External',
+          summary: 'External link must be blocked.',
+          ctaLabel: 'Open',
+        },
+      ],
+    });
+    expect(invalidServiceAndZip).toEqual(
+      expect.objectContaining({
+        ok: false,
+        issues: expect.arrayContaining([
+          expect.objectContaining({ pathKey: 'identity.location' }),
+          expect.objectContaining({ pathKey: 'services.0.to' }),
+        ]),
+      }),
+    );
+
+    const missingRequired = validateSiteContentMetadata(SITE_CONTENT_KEYS.portalAbout, {
+      ...VALID_PORTAL_ABOUT_FIXTURE,
+      windowTitle: '   ',
+      skillGroups: [],
+    });
+    expect(missingRequired).toEqual(
+      expect.objectContaining({
+        ok: false,
+        issues: expect.arrayContaining([
+          expect.objectContaining({ pathKey: 'windowTitle' }),
+          expect.objectContaining({ pathKey: 'skillGroups' }),
+        ]),
+      }),
+    );
+
+    // Reject non-HTTP(S) URLs, embedded credentials, control chars, and education ZIP codes
+    for (const unsafeUrl of [
+      'javascript:alert(1)',
+      'data:text/html,<script>alert(1)</script>',
+      'https://user:pass@github.com/a',
+      'https://github.com/a\n',
+    ]) {
+      const invalidGithub = validateSiteContentMetadata(SITE_CONTENT_KEYS.portalAbout, {
+        ...VALID_PORTAL_ABOUT_FIXTURE,
+        identity: {
+          ...(VALID_PORTAL_ABOUT_FIXTURE['identity'] as Record<string, unknown>),
+          githubUrl: unsafeUrl,
+          websiteUrl: unsafeUrl,
+        },
+      });
+      expect(invalidGithub, `expected rejection for ${JSON.stringify(unsafeUrl)}`).toEqual(
+        expect.objectContaining({
+          ok: false,
+          issues: expect.arrayContaining([
+            expect.objectContaining({ pathKey: 'identity.githubUrl' }),
+            expect.objectContaining({ pathKey: 'identity.websiteUrl' }),
+          ]),
+        }),
+      );
+    }
+
+    const educationZip = validateSiteContentMetadata(SITE_CONTENT_KEYS.portalAbout, {
+      ...VALID_PORTAL_ABOUT_FIXTURE,
+      education: [
+        {
+          institution: 'Kennesaw State University',
+          location: 'Kennesaw 30144',
+          program: 'Professional Sales',
+        },
+      ],
+    });
+    expect(educationZip).toEqual(
+      expect.objectContaining({
+        ok: false,
+        issues: expect.arrayContaining([
+          expect.objectContaining({ pathKey: 'education.0.location' }),
+        ]),
+      }),
+    );
   });
 });

@@ -46,9 +46,16 @@ on:
         type: boolean
         default: false
       seed_content:
-        description: Bootstrap missing initial CMS/terminal seed content without deleting existing rows
+        description: Seed CMS/terminal/dossier content during migrate-db (requires DOSSIER_PRIVACY_DENYLIST secret)
         type: boolean
         default: false
+      seed_mode:
+        description: Seed mode when seed_content=true (bootstrap = missing rows only, upsert = refresh canonical seeds)
+        type: choice
+        options:
+          - bootstrap
+          - upsert
+        default: bootstrap
       deploy_cloud_run:
         description: Deploy affected services to Cloud Run (Wave 1 Go APIs -> Wave 2 SSR apps)
         type: boolean
@@ -91,6 +98,7 @@ jobs:
       migrate_db: ${{ steps.resolve.outputs.migrate_db }}
       seed_admin: ${{ steps.resolve.outputs.seed_admin }}
       seed_content: ${{ steps.resolve.outputs.seed_content }}
+      seed_mode: ${{ steps.resolve.outputs.seed_mode }}
       run_smoke_e2e: ${{ steps.resolve.outputs.run_smoke_e2e }}
       smoke_engines_json: ${{ steps.resolve.outputs.smoke_engines_json }}
       has_docker: ${{ steps.plan.outputs.has_docker }}
@@ -126,6 +134,7 @@ jobs:
           INPUT_MIGRATE_DB: ${{ inputs.migrate_db }}
           INPUT_SEED_ADMIN: ${{ inputs.seed_admin }}
           INPUT_SEED_CONTENT: ${{ inputs.seed_content }}
+          INPUT_SEED_MODE: ${{ inputs.seed_mode }}
           INPUT_RUN_SMOKE_E2E: ${{ inputs.run_smoke_e2e }}
           INPUT_SMOKE_ALL_BROWSERS: ${{ inputs.smoke_all_browsers }}
         run: |
@@ -141,6 +150,7 @@ jobs:
             MIGRATE_DB="true"
             SEED_ADMIN="false"
             SEED_CONTENT="false"
+            SEED_MODE="bootstrap"
             RUN_SMOKE_E2E="true"
             SMOKE_ALL_BROWSERS="false"
           else
@@ -151,6 +161,11 @@ jobs:
             MIGRATE_DB="${INPUT_MIGRATE_DB:-true}"
             SEED_ADMIN="${INPUT_SEED_ADMIN:-false}"
             SEED_CONTENT="${INPUT_SEED_CONTENT:-false}"
+            SEED_MODE="${INPUT_SEED_MODE:-bootstrap}"
+            if [ "$SEED_MODE" != "bootstrap" ] && [ "$SEED_MODE" != "upsert" ]; then
+              echo "::error::Unsupported seed_mode '${SEED_MODE}'; expected 'bootstrap' or 'upsert'."
+              exit 1
+            fi
             RUN_SMOKE_E2E="${INPUT_RUN_SMOKE_E2E:-true}"
             SMOKE_ALL_BROWSERS="${INPUT_SMOKE_ALL_BROWSERS:-false}"
           fi
@@ -168,6 +183,7 @@ jobs:
           echo "migrate_db=${MIGRATE_DB}" >> "$GITHUB_OUTPUT"
           echo "seed_admin=${SEED_ADMIN}" >> "$GITHUB_OUTPUT"
           echo "seed_content=${SEED_CONTENT}" >> "$GITHUB_OUTPUT"
+          echo "seed_mode=${SEED_MODE}" >> "$GITHUB_OUTPUT"
           echo "run_smoke_e2e=${RUN_SMOKE_E2E}" >> "$GITHUB_OUTPUT"
           echo "smoke_engines_json=${SMOKE_ENGINES}" >> "$GITHUB_OUTPUT"
 
@@ -304,6 +320,7 @@ jobs:
           HAS_ADMIN_IMAGE: ${{ needs.resolve-plan.outputs.has_admin_or_db_migration }}
           SEED_ADMIN: ${{ needs.resolve-plan.outputs.seed_admin }}
           SEED_CONTENT: ${{ needs.resolve-plan.outputs.seed_content }}
+          SEED_MODE: ${{ needs.resolve-plan.outputs.seed_mode }}
           ADMIN_HANDLE: ${{ vars.ADMIN_HANDLE || 'admin' }}
           IMAGE_SHA: ${{ github.sha }}
         run: |
@@ -349,6 +366,10 @@ jobs:
           gcloud run jobs execute aklapper-db-migrate --quiet --project="$GCP_PROJECT_ID" --region="$GCP_REGION" --wait
 
           if [ "$SEED_CONTENT" = "true" ]; then
+            if ! gcloud secrets versions describe latest --secret="DOSSIER_PRIVACY_DENYLIST" --project="$GCP_PROJECT_ID" >/dev/null 2>&1; then
+              echo "::error::Missing enabled Secret Manager version DOSSIER_PRIVACY_DENYLIST in project ${GCP_PROJECT_ID}; cannot execute seed_content."
+              exit 1
+            fi
             restore_default_on_exit=true
             gcloud run jobs deploy aklapper-db-migrate \
               --quiet \
@@ -357,12 +378,12 @@ jobs:
               --image="$ADMIN_IMAGE" \
               --service-account="$MIGRATOR_SA" \
               --command=node \
-              --args="node_modules/@aklapper/db/dist/seed.js,--mode=bootstrap" \
+              --args="node_modules/@aklapper/db/dist/seed.js,--mode=${SEED_MODE}" \
               --tasks=1 \
               --max-retries=0 \
               --task-timeout=5m \
               --set-env-vars="NODE_ENV=production,PG_MAX_CONNS=2" \
-              --set-secrets="DATABASE_URL=DATABASE_URL:latest" \
+              --set-secrets="DATABASE_URL=DATABASE_URL:latest,DOSSIER_PRIVACY_DENYLIST=DOSSIER_PRIVACY_DENYLIST:latest" \
               "${VPC_FLAGS[@]}"
             gcloud run jobs execute aklapper-db-migrate --quiet --project="$GCP_PROJECT_ID" --region="$GCP_REGION" --wait
           fi
@@ -556,7 +577,6 @@ jobs:
           env_vars: |
             NODE_ENV=production
             PG_MAX_CONNS=4
-            PORTAL_MAINTENANCE_MODE=${{ vars.PORTAL_MAINTENANCE_MODE || 'false' }}
             PUBLIC_PORTAL_URL=${{ vars.PUBLIC_PORTAL_URL || 'https://andrew-k.us' }}
             PUBLIC_ANALYTICS_ENDPOINT=${{ vars.PUBLIC_ANALYTICS_ENDPOINT || '' }}
             PUBLIC_GA_MEASUREMENT_ID=${{ vars.PUBLIC_GA_MEASUREMENT_ID || '' }}
@@ -582,7 +602,7 @@ jobs:
             --subnet=default
             --vpc-egress=private-ranges-only
             --service-account=${{ vars.GCP_CLOUDRUN_SERVICE_ACCOUNT || secrets.GCP_WIF_SERVICE_ACCOUNT }}
-            --remove-env-vars=DATABASE_URL,INTERNAL_AUTH_SECRET,ANALYTICS_DAILY_SALT,QDRANT_API_KEY,AGENSI_API_KEY,ANALYTICS_API_URL,CONTACT_API_URL,AUTH_API_URL,CADENCE_ADMIN_URL,K8S_WATCH_URL,VERTEX_THINKING_BUDGET
+            --remove-env-vars=DATABASE_URL,INTERNAL_AUTH_SECRET,ANALYTICS_DAILY_SALT,QDRANT_API_KEY,AGENSI_API_KEY,ANALYTICS_API_URL,CONTACT_API_URL,AUTH_API_URL,CADENCE_ADMIN_URL,K8S_WATCH_URL,VERTEX_THINKING_BUDGET,PORTAL_MAINTENANCE_MODE
             --set-secrets=DATABASE_URL=DATABASE_URL:latest,INTERNAL_AUTH_SECRET=INTERNAL_AUTH_SECRET:latest,ANALYTICS_DAILY_SALT=ANALYTICS_DAILY_SALT:latest${{ steps.optional-secrets.outputs.has_agensi_api_key == 'true' && ',AGENSI_API_KEY=AGENSI_API_KEY:latest' || '' }}
             --port=8080
             --timeout=300
@@ -864,7 +884,6 @@ jobs:
       - name: Run live Playwright @smoke suite against deployed portal
         env:
           PORTAL_BASE_URL: ${{ needs.deploy-cloud-run.outputs.portal_url }}
-          PORTAL_MAINTENANCE_MODE: ${{ vars.PORTAL_MAINTENANCE_MODE || 'false' }}
         shell: bash
         run: |
           if [ "${{ matrix.engine }}" = "chromium" ]; then

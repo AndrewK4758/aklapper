@@ -196,7 +196,22 @@ describe('Admin streaming routes, auth guards & SEO', () => {
     r3.unmount();
 
     const r4 = render(<Stub initialEntries={['/cms']} />);
-    expect(await screen.findByText(/Maintenance Mode Default/i)).toBeTruthy();
+    expect(await screen.findByRole('tab', { name: 'Site Content' })).toBeTruthy();
+    expect(screen.getByRole('tab', { name: 'Terminal' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Re-Index Qdrant Corpus' })).toBeTruthy();
+    expect(screen.queryByText(/Maintenance Mode Default/i)).toBeNull();
+    expect(screen.queryByLabelText('Maintenance Mode')).toBeNull();
+    expect(screen.queryByText(/Rebuild Progress/i)).toBeNull();
+
+    const terminalTab = screen.getByRole('tab', { name: 'Terminal' });
+    fireEvent.click(terminalTab);
+    expect(await screen.findByText('Terminal Profiles')).toBeTruthy();
+    expect(screen.queryByText(/Roadmap Milestones/i)).toBeNull();
+    const kindOptions = Array.from(document.querySelectorAll('select[name="kind"] option')).map(
+      opt => opt.getAttribute('value'),
+    );
+    expect(kindOptions).not.toContain('roadmap');
+
     const agensiTab = screen.getByRole('tab', { name: /Agensi & Presets/i });
     expect(agensiTab).toBeTruthy();
     fireEvent.click(agensiTab);
@@ -683,7 +698,7 @@ describe('Admin streaming routes, auth guards & SEO', () => {
     ]);
 
     const cmsView = render(<Stub initialEntries={['/cms']} />);
-    expect(await screen.findByText(/Maintenance Mode Default/i)).toBeTruthy();
+    expect(await screen.findByText('Qdrant Corpus Index')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Re-Index Qdrant Corpus' })).toBeTruthy();
     expect(screen.getByText(/Checking Qdrant/i)).toBeTruthy();
     qdrantCmsDeferred.resolve({

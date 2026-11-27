@@ -1,3 +1,4 @@
+import type { CareerDossier } from '@aklapper/core';
 import { Button } from '@aklapper/ui';
 import {
   SiteContentPreviewCanvas,
@@ -10,6 +11,8 @@ export interface SiteContentPreviewPaneProps {
   readonly contentKey: string;
   readonly metadata: Record<string, unknown>;
   readonly viewport: SiteContentPreviewViewport;
+  readonly careerDossiers?: readonly CareerDossier[];
+  readonly brandContactEmail?: string;
   readonly hasValidationErrors: boolean;
   readonly onViewportChange: (viewport: SiteContentPreviewViewport) => void;
   readonly onClose: () => void;
@@ -19,6 +22,8 @@ export function SiteContentPreviewPane({
   contentKey,
   metadata,
   viewport,
+  careerDossiers,
+  brandContactEmail,
   hasValidationErrors,
   onViewportChange,
   onClose,
@@ -62,7 +67,13 @@ export function SiteContentPreviewPane({
         </output>
       ) : null}
 
-      <SiteContentPreviewCanvas contentKey={contentKey} metadata={metadata} viewport={viewport} />
+      <SiteContentPreviewCanvas
+        contentKey={contentKey}
+        metadata={metadata}
+        viewport={viewport}
+        careerDossiers={careerDossiers}
+        brandContactEmail={brandContactEmail}
+      />
     </aside>
   );
 }

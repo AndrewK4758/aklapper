@@ -59,9 +59,9 @@ export {
   type SandboxedArtifactFrameProps,
 } from './components/SandboxedArtifactFrame';
 export {
-  MaintenanceProgressCard,
-  type MaintenanceProgressCardProps,
-} from './components/site-content/MaintenanceProgressCard';
+  PortalHomeTerminalIntro,
+  type PortalHomeTerminalIntroProps,
+} from './components/site-content/PortalHomeTerminalIntro';
 export {
   SiteChromePreviewBar,
   type SiteChromePreviewBarProps,
@@ -192,6 +192,18 @@ export {
 } from './components/workspaceLauncherContext';
 export { TuiWindow, type TuiWindowProps } from './components/TuiWindow';
 export {
+  DEFAULT_PORTRAIT_HEIGHT,
+  DEFAULT_PORTRAIT_PATH,
+  DEFAULT_PORTRAIT_SRC,
+  DEFAULT_PORTRAIT_WIDTH,
+  TerminalPortrait,
+  type TerminalPortraitProps,
+  type TerminalPortraitSize,
+  type TerminalPortraitVariant,
+} from './components/TerminalPortrait';
+export {
+  resetTerminalIntroBranchTelemetryForTest,
+  type TerminalIntroMountBranch,
   type TerminalVariant,
   type VcsState,
   type ZshCommandHandler,
@@ -219,12 +231,7 @@ export {
   resolveTerminalFormSubmitResult,
   startTerminalFormSession,
 } from './components/terminalFormSession';
-export {
-  buildZshCommandHandlers,
-  formatRoadmapMarker,
-  formatRoadmapMilestones,
-  type ZshCommandRuntime,
-} from './components/buildZshCommands';
+export { buildZshCommandHandlers, type ZshCommandRuntime } from './components/buildZshCommands';
 export {
   createSlot,
   cx,

@@ -7,16 +7,16 @@ import {
   type AdminRootLoaderData,
   AgensiSkillSchema,
   CadencePresetSchema,
+  CareerDossierSchema,
   MenuItemSchema,
+  type PortalAboutLoaderData,
   type PortalAgensiLoaderData,
   type PortalAskLoaderData,
   type PortalCadenceLoaderData,
   type PortalContactLoaderData,
   type PortalHomeLoaderData,
-  type PortalMaintenanceLoaderData,
   type PortalRootLoaderData,
   type QuotaStatus,
-  RoadmapMilestoneSchema,
 } from '@aklapper/core';
 import { resolveAgensiCreatorHandle } from '@aklapper/node-runtime/agensi';
 
@@ -30,15 +30,16 @@ import { type AppDatabase, getSharedDb, isReactRouterPrerender } from './client.
 import {
   loadAdminHomeData,
   loadAdminRootData,
+  loadPortalAboutData,
   loadPortalAgensiData,
   loadPortalAskData,
   loadPortalCadenceData,
   loadPortalContactData,
   loadPortalHomeData,
-  loadPortalMaintenanceData,
   loadPortalRootData,
   TERMINAL_PROFILE_SLUGS,
 } from './queries.ts';
+import { CAREER_DOSSIER_SEEDS } from './seed-dossiers.ts';
 import { getPrerenderGoldenSandboxRuns } from './seed-golden-runs.ts';
 import {
   ADMIN_ANALYTICS_SEED,
@@ -48,14 +49,13 @@ import {
   buildSeedTerminalProfile,
   CADENCE_PRESET_SEEDS,
   DEFAULT_MENU_ITEMS,
+  PORTAL_ABOUT_SEED,
   PORTAL_AGENSI_SEED,
   PORTAL_ASK_SEED,
   PORTAL_CADENCE_SEED,
   PORTAL_CHROME_SEED,
   PORTAL_CONTACT_SEED,
   PORTAL_HOME_SEED,
-  PORTAL_MAINTENANCE_SEED,
-  ROADMAP_MILESTONE_SEEDS,
 } from './seed.ts';
 
 const DEFAULT_GUEST_QUOTA: QuotaStatus = {
@@ -66,33 +66,10 @@ const DEFAULT_GUEST_QUOTA: QuotaStatus = {
   maxTokens: 40_000,
 };
 
-export function getPrerenderPortalMaintenanceData(): PortalMaintenanceLoaderData {
-  return {
-    content: PORTAL_MAINTENANCE_SEED,
-    terminal: buildSeedTerminalProfile(TERMINAL_PROFILE_SLUGS.portalMaintenance),
-    milestones: ROADMAP_MILESTONE_SEEDS.filter(m => m.enabled)
-      .toSorted((a, b) => a.sortOrder - b.sortOrder)
-      .map(m => RoadmapMilestoneSchema.parse(m)),
-  };
-}
-
-export function getPrerenderPortalRootData(
-  maintenanceModeOverride?: boolean,
-): PortalRootLoaderData {
-  const maintenanceMode = maintenanceModeOverride ?? PORTAL_CHROME_SEED.maintenanceModeDefault;
-  if (maintenanceMode) {
-    return {
-      maintenanceMode,
-      chrome: PORTAL_CHROME_SEED,
-      maintenance: getPrerenderPortalMaintenanceData(),
-    };
-  }
-
+export function getPrerenderPortalRootData(): PortalRootLoaderData {
   const { content: homeContent, terminal, contactForm } = getPrerenderPortalHomeData();
   return {
-    maintenanceMode,
     chrome: PORTAL_CHROME_SEED,
-    maintenance: null,
     terminal,
     homeContent,
     contactForm,
@@ -104,6 +81,45 @@ export function getPrerenderPortalHomeData(): PortalHomeLoaderData {
     content: PORTAL_HOME_SEED,
     terminal: buildSeedTerminalProfile(TERMINAL_PROFILE_SLUGS.portalHome),
     contactForm: PORTAL_CONTACT_SEED.form,
+  };
+}
+
+export function getPrerenderPortalAboutData(): PortalAboutLoaderData {
+  console.info(
+    JSON.stringify({
+      event: 'portal.about.loader_source_branch',
+      seamType: 'RULE_DIVERGENCE',
+      branch: 'prerender_seed_fallback',
+      dossierCount: CAREER_DOSSIER_SEEDS.length,
+    }),
+  );
+
+  return {
+    content: PORTAL_ABOUT_SEED,
+    dossiers: CAREER_DOSSIER_SEEDS.toSorted((a, b) => a.sortOrder - b.sortOrder).map(dossier =>
+      CareerDossierSchema.parse({
+        slug: dossier.slug,
+        kind: dossier.kind,
+        title: dossier.title,
+        domainLabel: dossier.domainLabel,
+        roleTitle: dossier.roleTitle,
+        timeframe: dossier.timeframe,
+        skills: [...dossier.skills],
+        summaryBody: dossier.summaryBody,
+        sections: dossier.sectionsJson.map(section => ({
+          heading: section.heading,
+          body: section.body,
+        })),
+        publishStatus: dossier.publishStatus,
+        sanitizationVerifiedAt: dossier.sanitizationVerifiedAt.toISOString(),
+        denylistHash: dossier.denylistHash,
+        sortOrder: dossier.sortOrder,
+        updatedAt: dossier.sanitizationVerifiedAt.toISOString(),
+      }),
+    ),
+    ...(PORTAL_CHROME_SEED.brandContactEmail
+      ? { brandContactEmail: PORTAL_CHROME_SEED.brandContactEmail }
+      : {}),
   };
 }
 
@@ -237,17 +253,16 @@ export async function withPrerenderFallback<T>(
   }
 }
 
-export function loadPortalRootDataWithPrerender(
-  maintenanceModeOverride?: boolean,
-): Promise<PortalRootLoaderData> {
-  return withPrerenderFallback(
-    db => loadPortalRootData(db, maintenanceModeOverride),
-    () => getPrerenderPortalRootData(maintenanceModeOverride),
-  );
+export function loadPortalRootDataWithPrerender(): Promise<PortalRootLoaderData> {
+  return withPrerenderFallback(loadPortalRootData, getPrerenderPortalRootData);
 }
 
 export function loadPortalHomeDataWithPrerender(): Promise<PortalHomeLoaderData> {
   return withPrerenderFallback(loadPortalHomeData, getPrerenderPortalHomeData);
+}
+
+export function loadPortalAboutDataWithPrerender(): Promise<PortalAboutLoaderData> {
+  return withPrerenderFallback(loadPortalAboutData, getPrerenderPortalAboutData);
 }
 
 export function loadPortalAgensiDataWithPrerender(
@@ -278,10 +293,6 @@ export function loadPortalCadenceDataWithPrerender(
 
 export function loadPortalContactDataWithPrerender(): Promise<PortalContactLoaderData> {
   return withPrerenderFallback(loadPortalContactData, getPrerenderPortalContactData);
-}
-
-export function loadPortalMaintenanceDataWithPrerender(): Promise<PortalMaintenanceLoaderData> {
-  return withPrerenderFallback(loadPortalMaintenanceData, getPrerenderPortalMaintenanceData);
 }
 
 export function loadAdminRootDataWithPrerender(): Promise<AdminRootLoaderData> {

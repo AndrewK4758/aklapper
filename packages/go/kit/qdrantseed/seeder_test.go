@@ -27,22 +27,24 @@ type simCollection struct {
 }
 
 type qdrantSimulator struct {
-	mu          sync.Mutex
-	collections map[string]*simCollection
-	requests    []string
-	failUpsert  map[string]int
-	failScroll  map[string]int
-	failDelete  map[string]int
-	dropAfter   map[string]bool
+	mu              sync.Mutex
+	collections     map[string]*simCollection
+	requests        []string
+	failUpsert      map[string]int
+	failScroll      map[string]int
+	failDelete      map[string]int
+	dropAfter       map[string]bool
+	dropAfterDelete map[string]bool
 }
 
 func newQdrantSimulator() *qdrantSimulator {
 	return &qdrantSimulator{
-		collections: make(map[string]*simCollection),
-		failUpsert:  make(map[string]int),
-		failScroll:  make(map[string]int),
-		failDelete:  make(map[string]int),
-		dropAfter:   make(map[string]bool),
+		collections:     make(map[string]*simCollection),
+		failUpsert:      make(map[string]int),
+		failScroll:      make(map[string]int),
+		failDelete:      make(map[string]int),
+		dropAfter:       make(map[string]bool),
+		dropAfterDelete: make(map[string]bool),
 	}
 }
 
@@ -257,7 +259,19 @@ func (s *qdrantSimulator) handleDeletePoints(w http.ResponseWriter, r *http.Requ
 		http.Error(w, "invalid delete point id", http.StatusBadRequest)
 		return
 	}
+	dropDelete := s.dropAfterDelete[colName]
+	if dropDelete {
+		delete(s.dropAfterDelete, colName)
+	}
 	s.mu.Unlock()
+	if dropDelete {
+		if hj, ok := w.(http.Hijacker); ok {
+			if conn, _, err := hj.Hijack(); err == nil {
+				_ = conn.Close()
+				return
+			}
+		}
+	}
 	_ = json.NewEncoder(w).Encode(map[string]any{"status": "ok"})
 }
 
@@ -432,6 +446,115 @@ func TestPortfolioDocsPrunesLegacyOrdinalsAndDeletedRows(t *testing.T) {
 	}
 	if upsertIdx == -1 || deleteIdx == -1 || deleteIdx < upsertIdx {
 		t.Fatalf("expected upsert before prune delete, requests=%v", sim.requests)
+	}
+}
+
+func TestPortfolioDocsPrunesRetiredMaintenanceAndMilestoneOrphansIdempotently(t *testing.T) {
+	t.Parallel()
+
+	staleMilestoneID := qdrant.PortfolioPointID("milestone:solar-forge-theme", 0)
+	staleMaintenanceID := qdrant.PortfolioPointID("site:portal-maintenance", 0)
+
+	seedStaleCollection := func() *qdrantSimulator {
+		sim := newQdrantSimulator()
+		sim.collections[CollectionPortfolioDocs] = &simCollection{
+			size:     768,
+			distance: "Cosine",
+			points: map[string]qdrant.Point{
+				staleMilestoneID: {
+					ID:     staleMilestoneID,
+					Vector: make([]float32, 768),
+				},
+				staleMaintenanceID: {
+					ID:     staleMaintenanceID,
+					Vector: make([]float32, 768),
+				},
+			},
+			intIDs: make(map[uint64]qdrant.Point),
+		}
+		return sim
+	}
+
+	// Happy path: SeedPortfolioDocs deletes stale milestone:* and site:portal-maintenance orphans and logs DELTA_AUDIT_GAP.
+	sim := seedStaleCollection()
+	srv := sim.server()
+	defer srv.Close()
+	var logBuf bytes.Buffer
+	opts := DefaultSeedOptions()
+	opts.LogWriter = &logBuf
+
+	res, err := SeedPortfolioDocs(context.Background(), &deterministicEmbedder{dims: 768}, &qdrant.Client{BaseURL: srv.URL, HTTPClient: srv.Client()}, pg.NewMemoryStore(), opts)
+	if err != nil {
+		t.Fatalf("SeedPortfolioDocs failed: %v", err)
+	}
+	if res.Pruned != 2 {
+		t.Fatalf("expected 2 pruned retired maintenance/milestone points, got %d", res.Pruned)
+	}
+	col := sim.collections[CollectionPortfolioDocs]
+	if _, exists := col.points[staleMilestoneID]; exists {
+		t.Fatal("expected stale milestone:solar-forge-theme point to be pruned")
+	}
+	if _, exists := col.points[staleMaintenanceID]; exists {
+		t.Fatal("expected stale site:portal-maintenance point to be pruned")
+	}
+	if len(col.points) != res.Indexed {
+		t.Fatalf("expected exact active point count %d with zero duplicates, got %d", res.Indexed, len(col.points))
+	}
+	if !strings.Contains(logBuf.String(), "DELTA_AUDIT_GAP") || !strings.Contains(logBuf.String(), `"pruned":2`) {
+		t.Fatalf("expected DELTA_AUDIT_GAP collection_reconciled log with pruned:2, got %s", logBuf.String())
+	}
+
+	// Partial failure between upsert and prune converges cleanly on retry.
+	partialSim := seedStaleCollection()
+	partialSim.failDelete[CollectionPortfolioDocs] = http.StatusInternalServerError
+	partialSrv := partialSim.server()
+	defer partialSrv.Close()
+	partialClient := &qdrant.Client{BaseURL: partialSrv.URL, HTTPClient: partialSrv.Client()}
+	partialOpts := DefaultSeedOptions()
+	partialOpts.LogWriter = &bytes.Buffer{}
+
+	if _, err := SeedPortfolioDocs(context.Background(), &deterministicEmbedder{dims: 768}, partialClient, pg.NewMemoryStore(), partialOpts); !errors.Is(err, ErrQdrantDelete) {
+		t.Fatalf("expected ErrQdrantDelete on mid-prune 500, got %v", err)
+	}
+	partialSim.mu.Lock()
+	delete(partialSim.failDelete, CollectionPortfolioDocs)
+	partialSim.mu.Unlock()
+	retryPartialRes, err := SeedPortfolioDocs(context.Background(), &deterministicEmbedder{dims: 768}, partialClient, pg.NewMemoryStore(), partialOpts)
+	if err != nil {
+		t.Fatalf("retry after mid-prune failure failed: %v", err)
+	}
+	if retryPartialRes.Pruned != 2 || len(partialSim.collections[CollectionPortfolioDocs].points) != retryPartialRes.Indexed {
+		t.Fatalf("expected clean orphan convergence after retry, res=%+v len=%d", retryPartialRes, len(partialSim.collections[CollectionPortfolioDocs].points))
+	}
+
+	// Post-commit ambiguous fault: Qdrant deletes orphans then resets TCP before HTTP 200; retry converges idempotently.
+	ambigSim := seedStaleCollection()
+	ambigSim.dropAfterDelete[CollectionPortfolioDocs] = true
+	ambigSrv := ambigSim.server()
+	defer ambigSrv.Close()
+	ambigClient := &qdrant.Client{BaseURL: ambigSrv.URL, HTTPClient: ambigSrv.Client()}
+	ambigOpts := DefaultSeedOptions()
+	ambigOpts.LogWriter = &bytes.Buffer{}
+
+	if _, err := SeedPortfolioDocs(context.Background(), &deterministicEmbedder{dims: 768}, ambigClient, pg.NewMemoryStore(), ambigOpts); !errors.Is(err, ErrQdrantDelete) {
+		t.Fatalf("expected ErrQdrantDelete when TCP resets after delete commit, got %v", err)
+	}
+	resAfterAmbig, err := SeedPortfolioDocs(context.Background(), &deterministicEmbedder{dims: 768}, ambigClient, pg.NewMemoryStore(), ambigOpts)
+	if err != nil {
+		t.Fatalf("idempotent retry after post-commit delete fault failed: %v", err)
+	}
+	if resAfterAmbig.Pruned != 0 {
+		t.Fatalf("expected 0 remaining orphans on retry after post-commit delete, got %d", resAfterAmbig.Pruned)
+	}
+	ambigCol := ambigSim.collections[CollectionPortfolioDocs]
+	if _, exists := ambigCol.points[staleMilestoneID]; exists {
+		t.Fatal("expected stale milestone point absent after post-commit fault retry")
+	}
+	if _, exists := ambigCol.points[staleMaintenanceID]; exists {
+		t.Fatal("expected stale site:portal-maintenance point absent after post-commit fault retry")
+	}
+	if len(ambigCol.points) != resAfterAmbig.Indexed {
+		t.Fatalf("expected zero duplicate vectors after retry (%d), got %d", resAfterAmbig.Indexed, len(ambigCol.points))
 	}
 }
 

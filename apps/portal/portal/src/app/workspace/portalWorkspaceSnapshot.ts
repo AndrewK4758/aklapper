@@ -17,7 +17,7 @@ export const PORTAL_WORKSPACE_SNAPSHOT_VERSION = 1 as const;
 export const PORTAL_GLOBAL_STORAGE_KEY = 'aklapper.portal.workspace.v1:global';
 export const PORTAL_LEGACY_V1_PREFIX = 'aklapper.portal.workspace.v1:';
 
-export const PORTAL_PANE_ROUTES = ['/agensi', '/chat', '/cadence', '/contact'] as const;
+export const PORTAL_PANE_ROUTES = ['/about', '/agensi', '/chat', '/cadence', '/contact'] as const;
 export type PortalPaneRoute = (typeof PORTAL_PANE_ROUTES)[number];
 export type PortalPaneViewId = 'tui' | PortalPaneRoute;
 
@@ -188,10 +188,7 @@ export type PortalWorkspaceEventName =
   | 'portal.workspace.write_failed'
   | 'portal.workspace.route_policy_branch';
 
-export type PortalWorkspaceRoutePolicyBranch =
-  | 'global-workspace'
-  | 'excluded-maintenance'
-  | 'excluded-standalone';
+export type PortalWorkspaceRoutePolicyBranch = 'global-workspace';
 
 export interface PortalWorkspaceEvent {
   readonly event: PortalWorkspaceEventName;

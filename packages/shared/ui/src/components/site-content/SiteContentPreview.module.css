@@ -77,6 +77,38 @@
     gap: var(--sf-gap-md);
   }
 
+  .homePreviewStack {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sf-gap-md);
+    min-width: var(--sf-space-0);
+  }
+
+  .terminalGreetingPreview {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sf-space-3);
+    border: var(--sf-border-width) solid var(--sf-border);
+    border-radius: var(--sf-radius-sm);
+    background: var(--sf-bg-frame);
+    padding: var(--sf-space-4);
+    min-width: var(--sf-space-0);
+  }
+
+  .terminalPromptEcho {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--sf-space-2);
+    font-family: var(--sf-font-mono), monospace;
+    font-size: var(--sf-text-xs);
+    color: var(--sf-fg-bone);
+  }
+
+  .terminalPromptGlyph {
+    color: var(--sf-p10k-prompt-ok);
+    font-weight: var(--sf-weight-bold);
+  }
+
   .heroHeading {
     margin: 0;
     font-family: var(--sf-font-display);
@@ -96,33 +128,6 @@
     display: flex;
     flex-wrap: wrap;
     gap: var(--sf-gap-sm);
-  }
-
-  .maintenanceGrid {
-    display: flex;
-    flex-direction: column;
-    gap: var(--sf-gap-md);
-  }
-
-  .maintenanceLead {
-    margin: 0;
-    color: var(--sf-fg-prop);
-    font-size: var(--sf-text-sm);
-  }
-
-  .maintenanceProgress {
-    width: 100%;
-  }
-
-  .maintenanceMetaRow {
-    display: flex;
-    align-items: var(--sf-align-center);
-    justify-content: var(--sf-justify-between);
-    gap: var(--sf-gap-sm);
-    flex-wrap: wrap;
-    font-family: var(--sf-font-mono);
-    font-size: var(--sf-text-xs);
-    color: var(--sf-fg-cmt);
   }
 
   .windowHeaderBody {
@@ -176,12 +181,133 @@
     color: var(--sf-fg-cmt);
   }
 
+  .aboutHero {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: var(--sf-gap-md);
+    align-items: var(--sf-align-start);
+  }
+
+  .aboutIdentity {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sf-gap-2xs);
+    min-width: 0;
+  }
+
+  .aboutName {
+    margin: 0;
+    font-family: var(--sf-font-display);
+    font-size: var(--sf-text-xl);
+    color: var(--sf-fg-bone);
+  }
+
+  .aboutHeadline {
+    margin: 0;
+    font-size: var(--sf-text-sm);
+    font-weight: var(--sf-weight-semibold);
+    color: var(--sf-gold);
+  }
+
+  .aboutMeta {
+    margin: 0;
+    font-family: var(--sf-font-mono);
+    font-size: var(--sf-text-xs);
+    color: var(--sf-fg-cmt);
+    overflow-wrap: anywhere;
+  }
+
+  .aboutSummary {
+    margin: 0;
+    font-size: var(--sf-text-xs);
+    line-height: var(--sf-leading-base);
+    color: var(--sf-fg-prop);
+  }
+
+  .aboutSection {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sf-gap-xs);
+    border-top: var(--sf-border-width) solid var(--sf-border-subtle);
+    padding-top: var(--sf-space-3);
+  }
+
+  .aboutSectionTitle {
+    margin: 0;
+    font-family: var(--sf-font-mono);
+    font-size: var(--sf-text-xs);
+    font-weight: var(--sf-weight-semibold);
+    text-transform: uppercase;
+    letter-spacing: var(--sf-tracking-wide);
+    color: var(--sf-gold);
+  }
+
+  .aboutSkillList,
+  .aboutDossierList {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sf-gap-xs);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .aboutSkillRow {
+    font-size: var(--sf-text-xs);
+    color: var(--sf-fg-prop);
+  }
+
+  .aboutSkillCategory {
+    color: var(--sf-fg-bone);
+  }
+
+  .aboutDossierItem {
+    border: var(--sf-border-width) solid var(--sf-border);
+    border-radius: var(--sf-radius-sm);
+    background: var(--sf-bg-panel);
+    padding: var(--sf-space-3);
+    font-size: var(--sf-text-xs);
+    color: var(--sf-fg-bone);
+  }
+
+  .aboutServiceGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(13rem, 100%), 1fr));
+    gap: var(--sf-gap-sm);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .aboutServiceCard {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sf-gap-xs);
+    border: var(--sf-border-width) solid var(--sf-border);
+    border-radius: var(--sf-radius-sm);
+    background: var(--sf-bg-panel);
+    padding: var(--sf-space-3);
+  }
+
+  .aboutServiceHeader {
+    display: flex;
+    align-items: var(--sf-align-center);
+    justify-content: var(--sf-justify-between);
+    gap: var(--sf-gap-xs);
+    flex-wrap: wrap;
+    font-size: var(--sf-text-xs);
+    color: var(--sf-fg-bone);
+  }
+
   @container sf-site-content-preview (max-width: 32rem) {
     .chromeHeader,
-    .chromeFooter,
-    .maintenanceMetaRow {
+    .chromeFooter {
       flex-direction: column;
       align-items: var(--sf-align-start);
+    }
+
+    .aboutHero {
+      grid-template-columns: minmax(0, 1fr);
     }
 
     .heroActions {

@@ -2,13 +2,14 @@ import {
   AdminAnalyticsContentSchema,
   AdminChromeContentSchema,
   AdminHomeContentSchema,
+  type CareerDossier,
+  PortalAboutContentSchema,
   PortalAgensiContentSchema,
   PortalAskContentSchema,
   PortalCadenceContentSchema,
   PortalChromeContentSchema,
   PortalContactContentSchema,
   PortalHomeContentSchema,
-  PortalMaintenanceContentSchema,
   SITE_CONTENT_KEYS,
 } from '@aklapper/core';
 
@@ -18,7 +19,8 @@ import { StatusPill } from '../../elements/StatusPill';
 import { RecursiveTuiForm } from '../RecursiveTuiForm';
 import { TuiWindow } from '../TuiWindow';
 import { ViewportProvider } from '../ViewportProvider';
-import { MaintenanceProgressCard } from './MaintenanceProgressCard';
+import { PortalAboutPreview } from './PortalAboutPreview';
+import { PortalHomeTerminalIntro } from './PortalHomeTerminalIntro';
 import { SiteChromePreviewBar } from './SiteChromePreviewBar';
 import { SiteContentWindowHeader } from './SiteContentWindowHeader';
 import { TuiHeroCard } from './TuiHeroCard';
@@ -31,9 +33,16 @@ export interface SiteContentPreviewCanvasProps {
   readonly contentKey: string;
   readonly metadata: Record<string, unknown>;
   readonly viewport: SiteContentPreviewViewport;
+  readonly careerDossiers?: readonly CareerDossier[];
+  readonly brandContactEmail?: string;
 }
 
-function renderKeyPreview(contentKey: string, metadata: Record<string, unknown>) {
+function renderKeyPreview(
+  contentKey: string,
+  metadata: Record<string, unknown>,
+  careerDossiers?: readonly CareerDossier[],
+  brandContactEmail?: string,
+) {
   switch (contentKey) {
     case SITE_CONTENT_KEYS.portalChrome: {
       const parsed = PortalChromeContentSchema.safeParse(metadata);
@@ -52,23 +61,34 @@ function renderKeyPreview(contentKey: string, metadata: Record<string, unknown>)
       if (!parsed.success) return null;
       const d = parsed.data;
       return (
-        <TuiWindow
-          title={d.tuiTitle}
-          badge={
-            <OscStatusBadge
-              source={d.tuiBadge.source}
-              state={d.tuiBadge.state}
-              label={d.tuiBadge.label}
+        <div className={styles.homePreviewStack}>
+          <div className={styles.terminalGreetingPreview}>
+            <div className={styles.terminalPromptEcho}>
+              <span className={styles.terminalPromptGlyph} aria-hidden='true'>
+                ❯
+              </span>
+              <code>ls</code>
+            </div>
+            <PortalHomeTerminalIntro portrait={d.portrait} resumeSummary={d.resumeSummary} />
+          </div>
+          <TuiWindow
+            title={d.tuiTitle}
+            badge={
+              <OscStatusBadge
+                source={d.tuiBadge.source}
+                state={d.tuiBadge.state}
+                label={d.tuiBadge.label}
+              />
+            }
+          >
+            <TuiHeroCard
+              heading={d.heading}
+              description={d.description}
+              actions={d.actions}
+              actionsAriaLabel='Portal launch actions preview'
             />
-          }
-        >
-          <TuiHeroCard
-            heading={d.heading}
-            description={d.description}
-            actions={d.actions}
-            actionsAriaLabel='Portal launch actions preview'
-          />
-        </TuiWindow>
+          </TuiWindow>
+        </div>
       );
     }
 
@@ -85,6 +105,18 @@ function renderKeyPreview(contentKey: string, metadata: Record<string, unknown>)
             actionsAriaLabel='Admin overview actions preview'
           />
         </TuiWindow>
+      );
+    }
+
+    case SITE_CONTENT_KEYS.portalAbout: {
+      const parsed = PortalAboutContentSchema.safeParse(metadata);
+      if (!parsed.success) return null;
+      return (
+        <PortalAboutPreview
+          content={parsed.data}
+          careerDossiers={careerDossiers}
+          brandContactEmail={brandContactEmail}
+        />
       );
     }
 
@@ -225,33 +257,6 @@ function renderKeyPreview(contentKey: string, metadata: Record<string, unknown>)
       );
     }
 
-    case SITE_CONTENT_KEYS.portalMaintenance: {
-      const parsed = PortalMaintenanceContentSchema.safeParse(metadata);
-      if (!parsed.success) return null;
-      const d = parsed.data;
-      return (
-        <TuiWindow
-          title={d.windowTitle}
-          badge={
-            <OscStatusBadge
-              source={d.statusBadge.source}
-              state={d.statusBadge.state}
-              label={d.statusBadge.label}
-            />
-          }
-        >
-          <MaintenanceProgressCard
-            heading={d.heading}
-            lead={d.lead}
-            progressPercent={d.progressPercent}
-            progressAriaLabel={d.progressAriaLabel}
-            metaLeft={d.metaLeft}
-            metaRight={d.metaRight}
-          />
-        </TuiWindow>
-      );
-    }
-
     case SITE_CONTENT_KEYS.adminAnalytics: {
       const parsed = AdminAnalyticsContentSchema.safeParse(metadata);
       if (!parsed.success) return null;
@@ -272,8 +277,10 @@ export function SiteContentPreviewCanvas({
   contentKey,
   metadata,
   viewport,
+  careerDossiers,
+  brandContactEmail,
 }: SiteContentPreviewCanvasProps) {
-  const rendered = renderKeyPreview(contentKey, metadata);
+  const rendered = renderKeyPreview(contentKey, metadata, careerDossiers, brandContactEmail);
   const scopedViewportMode = viewport === 'mobile' ? 'mobile-portrait' : 'desktop';
 
   return (

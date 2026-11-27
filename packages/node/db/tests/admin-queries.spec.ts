@@ -59,7 +59,7 @@ describe('@aklapper/db admin queries & mutations', () => {
     expect(db.delete).not.toHaveBeenCalled();
   });
 
-  it('validates known site_content schemas on upsertSiteContent and preserves unknown extra keys', async () => {
+  it('validates known site_content schemas on upsertSiteContent and strips unknown or retired keys', async () => {
     const { db, values } = createReturningMockDb([
       {
         key: 'admin-analytics',
@@ -67,7 +67,6 @@ describe('@aklapper/db admin queries & mutations', () => {
         metadataJson: {
           windowTitle: 'Analytics // PG19',
           description: 'Live telemetry.',
-          customNote: 'keep-me',
         },
         updatedAt: new Date('2026-11-24T12:00:00.000Z'),
       },
@@ -80,18 +79,34 @@ describe('@aklapper/db admin queries & mutations', () => {
     const saved = await upsertSiteContent(db, 'admin-analytics', '# Analytics', {
       windowTitle: 'Analytics // PG19',
       description: 'Live telemetry.',
-      customNote: 'keep-me',
+      maintenanceModeDefault: true,
+      customNote: 'strip-me',
     });
     expect(saved.key).toBe('admin-analytics');
     expect(saved.metadataJson['windowTitle']).toBe('Analytics // PG19');
-    expect(saved.metadataJson['customNote']).toBe('keep-me');
+    expect('customNote' in saved.metadataJson).toBe(false);
     expect(values).toHaveBeenCalledWith(
       expect.objectContaining({
-        metadataJson: expect.objectContaining({
+        metadataJson: {
           windowTitle: 'Analytics // PG19',
           description: 'Live telemetry.',
-          customNote: 'keep-me',
-        }),
+        },
+      }),
+    );
+
+    // Unregistered custom keys continue persisting arbitrary metadata verbatim
+    const customMock = createReturningMockDb([
+      {
+        key: 'custom-banner',
+        markdownBody: '# Banner',
+        metadataJson: { bannerText: 'keep-me' },
+        updatedAt: new Date('2026-11-24T12:00:00.000Z'),
+      },
+    ]);
+    await upsertSiteContent(customMock.db, 'custom-banner', '# Banner', { bannerText: 'keep-me' });
+    expect(customMock.values).toHaveBeenCalledWith(
+      expect.objectContaining({
+        metadataJson: { bannerText: 'keep-me' },
       }),
     );
   });

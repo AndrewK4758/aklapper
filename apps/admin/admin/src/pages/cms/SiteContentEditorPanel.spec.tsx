@@ -1,6 +1,13 @@
-import { CONTACT_FORM_DEFINITION, SITE_CONTENT_KEYS, type SiteContentRow } from '@aklapper/core';
+import {
+  type CareerDossier,
+  CONTACT_FORM_DEFINITION,
+  SITE_CONTENT_KEYS,
+  type SiteContentRow,
+} from '@aklapper/core';
+import { PORTAL_ABOUT_SEED } from '@aklapper/db';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { createRoutesStub } from 'react-router';
+import { vi } from 'vitest';
 
 import { SiteContentEditorPanel } from './SiteContentEditorPanel';
 
@@ -23,14 +30,20 @@ const SITE_ROWS: SiteContentRow[] = [
     metadataJson: {
       pageTitle: 'Andrew Klapper',
       brandLabel: 'andrew-k.us',
+      brandContactEmail: 'andrew@andrew-k.us',
       shortcutHint: 'Press m for menu',
       statusBadge: { source: 'portal', state: 'ready', label: 'Online' },
       footerText: 'Built with Solar Forge',
       footerLinkLabel: 'GitHub',
       footerLinkUrl: 'https://github.com/AndrewK4758',
-      maintenanceModeDefault: false,
     },
     updatedAt: '2026-11-24T22:00:00.000Z',
+  },
+  {
+    key: SITE_CONTENT_KEYS.portalAbout,
+    markdownBody: '# About note',
+    metadataJson: PORTAL_ABOUT_SEED,
+    updatedAt: '2026-11-26T00:00:00.000Z',
   },
   {
     key: SITE_CONTENT_KEYS.portalContact,
@@ -51,11 +64,16 @@ const SITE_ROWS: SiteContentRow[] = [
   },
 ];
 
-function renderPanel(rows: readonly SiteContentRow[] = SITE_ROWS) {
+function renderPanel(
+  rows: readonly SiteContentRow[] = SITE_ROWS,
+  careerDossiers?: readonly CareerDossier[],
+) {
   const Stub = createRoutesStub([
     {
       path: '/cms',
-      Component: () => <SiteContentEditorPanel siteContents={rows} />,
+      Component: () => (
+        <SiteContentEditorPanel siteContents={rows} careerDossiers={careerDossiers} />
+      ),
     },
   ]);
   return render(<Stub initialEntries={['/cms']} />);
@@ -196,5 +214,154 @@ describe('SiteContentEditorPanel', () => {
     expect(screen.getByText('Fieldset: Broken Fieldset')).toBeTruthy();
     expect(screen.getByText('Invalid node at index 1')).toBeTruthy();
     expect(screen.getByRole('alert')).toBeTruthy();
+  });
+
+  it('renders dedicated portal-home portrait and resumeSummary sub-editors, blocks silent default resurrection on clear, and updates desktop/mobile live preview', async () => {
+    const { container } = renderPanel();
+
+    // Hydrated legacy 5-field portal-home opens with dedicated Portrait and Resume Summary fieldsets
+    const portraitSrcInput = screen.getByLabelText('Portrait Source Path') as HTMLInputElement;
+    const bioTextarea = screen.getByLabelText('Engineering Bio') as HTMLTextAreaElement;
+    expect(portraitSrcInput.value).toBe('/images/andrew-klapper-portrait.webp');
+    expect(bioTextarea.value).toContain('Senior Full-Stack & Systems Engineer');
+
+    // Clearing a required nested field keeps empty string (no default resurrection) and disables Save
+    fireEvent.change(portraitSrcInput, { target: { value: '' } });
+    expect(portraitSrcInput.value).toBe('');
+    expect(portraitSrcInput.getAttribute('aria-invalid')).toBe('true');
+    expect(screen.getByRole('button', { name: 'Save Site Content' })).toHaveProperty(
+      'disabled',
+      true,
+    );
+
+    // Restore valid portrait src and update bio + add a highlight
+    fireEvent.change(portraitSrcInput, {
+      target: { value: '/images/andrew-klapper-portrait.webp' },
+    });
+    const customBio =
+      'Updated bio showcasing Go, TypeScript/React, and PostgreSQL 19 architecture.';
+    fireEvent.change(bioTextarea, { target: { value: customBio } });
+    fireEvent.click(screen.getByRole('button', { name: '+ Add Highlight' }));
+
+    // Round-trip Form -> Raw JSON -> Form preserves edits
+    fireEvent.click(screen.getByRole('button', { name: 'Raw JSON' }));
+    const rawJson = screen.getByLabelText('Raw Metadata JSON') as HTMLTextAreaElement;
+    expect(rawJson.value).toContain(customBio);
+    fireEvent.click(screen.getByRole('button', { name: 'Form' }));
+    expect((screen.getByLabelText('Engineering Bio') as HTMLTextAreaElement).value).toBe(customBio);
+
+    // Live Preview shows portrait + updated bio + launcher across Desktop & Mobile with single <form>
+    fireEvent.click(screen.getByRole('button', { name: 'Show Preview' }));
+    const preview = await screen.findByLabelText('Live site content preview');
+    expect(within(preview).getByText(customBio)).toBeTruthy();
+    expect(preview.querySelector('[data-terminal-portrait="true"]')).not.toBeNull();
+    expect(preview.querySelector('form')).toBeNull();
+    expect(preview.querySelector('iframe')).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Mobile' }));
+    expect(preview.querySelector('[data-preview-viewport="mobile"]')).not.toBeNull();
+    expect(container.querySelectorAll('form')).toHaveLength(1);
+    expect(screen.getByRole('button', { name: 'Save Site Content' })).toHaveProperty(
+      'disabled',
+      false,
+    );
+  });
+
+  it('renders structured portal-about sub-editors, emits mode-switch diagnostics, and excludes unpublished draft dossiers from live desktop/mobile preview', async () => {
+    const debugSpy = vi.spyOn(console, 'debug').mockImplementation(() => {});
+    const dossiers: CareerDossier[] = [
+      {
+        slug: 'published-core',
+        kind: 'profile_core',
+        title: 'Published Core Profile',
+        domainLabel: 'Systems Engineering',
+        roleTitle: 'Senior Full-Stack & Systems Engineer',
+        timeframe: 'Present',
+        skills: ['Go', 'TypeScript'],
+        summaryBody: 'Published live summary visible in preview.',
+        sections: [],
+        publishStatus: 'published',
+        sanitizationVerifiedAt: '2026-11-26T00:00:00.000Z',
+        denylistHash: 'a'.repeat(64),
+        sortOrder: 0,
+        updatedAt: '2026-11-26T00:00:00.000Z',
+      },
+      {
+        slug: 'draft-secret-role',
+        kind: 'experience',
+        title: 'Unpublished Draft Role',
+        domainLabel: 'Draft Domain',
+        roleTitle: 'Draft Engineer',
+        timeframe: 'Draft',
+        skills: ['Hidden'],
+        summaryBody: 'Unpublished draft content must never appear in preview.',
+        sections: [],
+        publishStatus: 'draft',
+        sanitizationVerifiedAt: '2026-11-26T00:00:00.000Z',
+        denylistHash: 'a'.repeat(64),
+        sortOrder: 10,
+        updatedAt: '2026-11-26T00:00:00.000Z',
+      },
+    ];
+
+    try {
+      const { container } = renderPanel(SITE_ROWS, dossiers);
+      fireEvent.click(screen.getByRole('button', { name: /portal-about/i }));
+
+      const categoryInput = screen.getByLabelText('Skill Group 1 Category') as HTMLInputElement;
+      fireEvent.change(categoryInput, { target: { value: 'Core Languages' } });
+
+      const serviceSummaryInput = screen.getByLabelText('Service 1 Summary') as HTMLTextAreaElement;
+      fireEvent.change(serviceSummaryInput, {
+        target: { value: 'Updated live chat summary for preview verification.' },
+      });
+
+      const hiddenJson = document.querySelector(
+        'input[name="metadataJson"]',
+      ) as HTMLInputElement | null;
+      const parsedHidden = JSON.parse(hiddenJson?.value ?? '{}') as {
+        skillGroups: Array<{ category: string }>;
+        services: Array<{ summary: string }>;
+      };
+      expect(parsedHidden.skillGroups[0]?.category).toBe('Core Languages');
+      expect(parsedHidden.services[0]?.summary).toBe(
+        'Updated live chat summary for preview verification.',
+      );
+
+      fireEvent.click(screen.getByRole('button', { name: 'Show Preview' }));
+      const preview = await screen.findByLabelText('Live site content preview');
+      expect(within(preview).getByText(/Core Languages/)).toBeTruthy();
+      expect(
+        within(preview).getByText('Updated live chat summary for preview verification.'),
+      ).toBeTruthy();
+      expect(within(preview).getByText('andrew@andrew-k.us')).toBeTruthy();
+      expect(within(preview).getByText('Published live summary visible in preview.')).toBeTruthy();
+      expect(within(preview).queryByText('Unpublished Draft Role')).toBeNull();
+      expect(within(preview).queryByText(/Unpublished draft content/)).toBeNull();
+      expect(preview.querySelector('form')).toBeNull();
+      expect(preview.querySelector('iframe')).toBeNull();
+
+      // Switch preview viewport to Mobile and verify draft stays excluded
+      fireEvent.click(screen.getByRole('button', { name: 'Mobile' }));
+      expect(preview.querySelector('[data-preview-viewport="mobile"]')).not.toBeNull();
+      expect(within(preview).queryByText('Unpublished Draft Role')).toBeNull();
+
+      // Toggle Raw JSON <-> Form and verify RULE_DIVERGENCE telemetry + malformed JSON guard
+      fireEvent.click(screen.getByRole('button', { name: 'Raw JSON' }));
+      expect(debugSpy.mock.calls.flat().join('\n')).toContain(
+        'admin.cms.site_content_editor_mode_branch',
+      );
+      const jsonBox = screen.getByLabelText('Raw Metadata JSON') as HTMLTextAreaElement;
+      fireEvent.change(jsonBox, { target: { value: '{ broken-about-json' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Form' }));
+      expect(screen.getByRole('alert').textContent).toMatch(/Invalid JSON/i);
+      expect(screen.getByRole('button', { name: 'Save Site Content' })).toHaveProperty(
+        'disabled',
+        true,
+      );
+      expect(container.querySelectorAll('form')).toHaveLength(1);
+    } finally {
+      debugSpy.mockRestore();
+    }
   });
 });

@@ -67,8 +67,6 @@ export const ADMIN_OVERVIEW_FIXTURE: AdminOverviewLoaderData = {
     totalSandboxRuns: 2,
     pendingGates: 1,
   },
-  maintenanceModeDefault: false,
-  rebuildProgressPercent: 60,
   security: { handle: 'admin', passkeyCount: 1, totpEnabled: false },
 };
 
@@ -148,14 +146,11 @@ export const QDRANT_FIXTURE: QdrantHealthStatus = {
 
 export const ADMIN_CMS_FIXTURE: AdminCmsLoaderData = {
   siteContents: [],
-  maintenanceModeDefault: false,
-  rebuildProgressPercent: 60,
   menuItems: ADMIN_OVERVIEW_FIXTURE.menuItems,
   terminalProfiles: [],
   terminalCommands: [],
   terminalInitialEntries: [],
   terminalDirectoryEntries: [],
-  roadmapMilestones: [],
   agensiSkills: [
     {
       slug: 'cadence-governed-agentic-sdlc-framework',

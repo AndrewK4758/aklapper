@@ -1,0 +1,182 @@
+@layer component {
+  .intro {
+    container-type: inline-size;
+    container-name: sf-home-intro;
+    min-width: var(--sf-space-0);
+    width: 100%;
+    border-left: var(--sf-border-width) solid var(--sf-border);
+    padding-left: var(--sf-space-5);
+    box-sizing: border-box;
+    cursor: default;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: minmax(
+        calc(var(--sf-size-unit) * 9.5),
+        calc(var(--sf-size-unit) * 11.75)
+      ) minmax(0, 1fr);
+    gap: var(--sf-space-5);
+    align-items: start;
+    min-width: var(--sf-space-0);
+  }
+
+  .portraitCol {
+    min-width: var(--sf-space-0);
+  }
+
+  .contentCol {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sf-space-3);
+    min-width: var(--sf-space-0);
+    font-family: var(--sf-font-mono), monospace;
+  }
+
+  .header {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sf-space-1);
+    min-width: var(--sf-space-0);
+  }
+
+  .name {
+    margin: var(--sf-space-0);
+    color: var(--sf-fg-bone);
+    font-size: var(--sf-text-lg);
+    font-weight: var(--sf-weight-bold);
+    line-height: var(--sf-leading-tight);
+    overflow-wrap: anywhere;
+  }
+
+  .roleLine {
+    margin: var(--sf-space-0);
+    color: var(--sf-gold);
+    font-size: var(--sf-text-xs);
+    font-weight: var(--sf-weight-semibold);
+    line-height: var(--sf-leading-snug);
+    overflow-wrap: anywhere;
+  }
+
+  .linksRow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--sf-space-2);
+    font-size: var(--sf-text-xs);
+    min-width: var(--sf-space-0);
+  }
+
+  .link {
+    color: var(--sf-fg-str);
+    text-decoration: underline;
+    text-underline-offset: var(--sf-space-1);
+    overflow-wrap: anywhere;
+  }
+
+  .link:hover {
+    color: var(--sf-gold);
+  }
+
+  .link:focus-visible {
+    outline: var(--sf-outline-width) solid var(--sf-focus-ring);
+    outline-offset: var(--sf-outline-offset);
+    border-radius: var(--sf-radius-xs);
+  }
+
+  .linkSep {
+    color: var(--sf-fg-cmt);
+  }
+
+  .bio {
+    margin: var(--sf-space-0);
+    color: var(--sf-fg-prop);
+    font-size: var(--sf-text-xs);
+    line-height: var(--sf-leading-base);
+    overflow-wrap: anywhere;
+  }
+
+  .block {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sf-space-1);
+    min-width: var(--sf-space-0);
+  }
+
+  .blockHeading {
+    margin: var(--sf-space-0);
+    color: var(--sf-fg-type);
+    font-size: var(--sf-text-2xs);
+    font-weight: var(--sf-weight-bold);
+    letter-spacing: var(--sf-tracking-wider);
+    text-transform: uppercase;
+  }
+
+  .highlightsList,
+  .servicesList {
+    margin: var(--sf-space-0);
+    padding-left: var(--sf-space-4);
+    display: flex;
+    flex-direction: column;
+    gap: var(--sf-space-1);
+    min-width: var(--sf-space-0);
+  }
+
+  .servicesList {
+    padding-left: var(--sf-space-0);
+    list-style: none;
+  }
+
+  .highlightItem {
+    color: var(--sf-fg-prop);
+    font-size: var(--sf-text-xs);
+    line-height: var(--sf-leading-snug);
+    overflow-wrap: anywhere;
+  }
+
+  .serviceItem {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--sf-space-2);
+    font-size: var(--sf-text-xs);
+    line-height: var(--sf-leading-snug);
+    min-width: var(--sf-space-0);
+  }
+
+  .serviceCommand {
+    color: var(--sf-gold);
+    font-family: var(--sf-font-mono), monospace;
+    font-weight: var(--sf-weight-bold);
+    white-space: nowrap;
+  }
+
+  .serviceSep {
+    color: var(--sf-fg-cmt);
+  }
+
+  .serviceSummary {
+    color: var(--sf-fg-prop);
+    flex: 1 1 calc(var(--sf-size-unit) * 10);
+    min-width: var(--sf-space-0);
+    overflow-wrap: anywhere;
+  }
+
+  @container sf-home-intro (max-width: 34rem) {
+    .intro {
+      border-left: none;
+      border-top: var(--sf-border-width) solid var(--sf-border);
+      padding-left: var(--sf-space-0);
+      padding-top: var(--sf-space-4);
+    }
+
+    .grid {
+      grid-template-columns: minmax(0, 1fr);
+      gap: var(--sf-space-4);
+    }
+
+    .portraitCol {
+      max-width: min(100%, calc(var(--sf-size-unit) * 11.5));
+    }
+  }
+}

@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 import { AgensiSkillSchema, AgensiSyncStateSchema } from './agensi.ts';
 import { CareerDossierSchema } from './career-dossiers.ts';
-import { CadencePresetSchema, MenuItemSchema, RoadmapMilestoneSchema } from './portal.ts';
+import { CadencePresetSchema, MenuItemSchema } from './portal.ts';
 import {
   TerminalCommandKindSchema,
   TerminalDirectoryEntrySchema,
@@ -66,14 +66,11 @@ export type AdminTerminalDirectoryEntryRow = z.infer<typeof AdminTerminalDirecto
 
 export const AdminCmsLoaderDataSchema = z.object({
   siteContents: z.array(SiteContentRowSchema),
-  maintenanceModeDefault: z.boolean(),
-  rebuildProgressPercent: z.number().int().min(0).max(100),
   menuItems: z.array(MenuItemSchema),
   terminalProfiles: z.array(AdminTerminalProfileRowSchema),
   terminalCommands: z.array(AdminTerminalCommandRowSchema),
   terminalInitialEntries: z.array(AdminTerminalInitialEntryRowSchema),
   terminalDirectoryEntries: z.array(AdminTerminalDirectoryEntryRowSchema).default([]),
-  roadmapMilestones: z.array(RoadmapMilestoneSchema),
   agensiSkills: z.array(AgensiSkillSchema),
   agensiSyncState: AgensiSyncStateSchema.nullable().optional(),
   cadencePresets: z.array(CadencePresetSchema),
@@ -87,9 +84,3 @@ export const SiteContentUpsertSchema = z.object({
   metadataJson: z.record(z.string(), z.unknown()),
 });
 export type SiteContentUpsertInput = z.infer<typeof SiteContentUpsertSchema>;
-
-export const MaintenanceModeUpdateSchema = z.object({
-  enabled: z.boolean(),
-  rebuildProgressPercent: z.coerce.number().int().min(0).max(100).optional(),
-});
-export type MaintenanceModeUpdateInput = z.infer<typeof MaintenanceModeUpdateSchema>;

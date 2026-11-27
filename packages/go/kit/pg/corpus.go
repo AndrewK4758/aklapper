@@ -46,8 +46,8 @@ func CuratedPortfolioDocs() []CorpusDocument {
 	}
 }
 
-// LoadCorpusDocs loads portfolio documents from PostgreSQL (site_content, agensi_skills,
-// roadmap_milestones) combined with curated portfolio dossiers for Qdrant indexing.
+// LoadCorpusDocs loads portfolio documents from PostgreSQL (active site_content, agensi_skills,
+// and published career_dossiers) combined with curated portfolio dossiers for Qdrant indexing.
 // Fails loudly on openErr or SQL/scan errors so reindex never silently indexes partial static docs.
 func (s *Store) LoadCorpusDocs(ctx context.Context) ([]CorpusDocument, error) {
 	if s != nil && s.openErr != nil {
@@ -83,12 +83,6 @@ func loadCorpusDocsFromQuerier(ctx context.Context, q rowQuerier, creatorHandle 
 	}
 	docs = append(docs, skillDocs...)
 
-	mileDocs, err := queryRoadmapMilestoneDocs(ctx, q)
-	if err != nil {
-		return nil, err
-	}
-	docs = append(docs, mileDocs...)
-
 	dossierDocs, err := queryPublishedCareerDossierChunks(ctx, q)
 	if err != nil {
 		return nil, err
@@ -99,7 +93,10 @@ func loadCorpusDocsFromQuerier(ctx context.Context, q rowQuerier, creatorHandle 
 }
 
 func querySiteContentDocs(ctx context.Context, q rowQuerier) ([]CorpusDocument, error) {
-	rows, err := q.Query(ctx, `SELECT key, markdown_body, metadata_json::text FROM site_content ORDER BY key ASC`)
+	rows, err := q.Query(
+		ctx,
+		`SELECT key, markdown_body, metadata_json::text FROM site_content WHERE key <> 'portal-maintenance' ORDER BY key ASC`,
+	)
 	if err != nil {
 		return nil, fmt.Errorf("load site_content corpus: %w", err)
 	}
@@ -161,33 +158,6 @@ func queryPublishedCreatorSkills(ctx context.Context, q rowQuerier, creatorHandl
 	}
 	if rowsErr := rows.Err(); rowsErr != nil {
 		return nil, fmt.Errorf("iterate agensi_skills corpus: %w", rowsErr)
-	}
-	return out, nil
-}
-
-func queryRoadmapMilestoneDocs(ctx context.Context, q rowQuerier) ([]CorpusDocument, error) {
-	rows, err := q.Query(ctx, `SELECT slug, status, label FROM roadmap_milestones WHERE enabled = true ORDER BY sort_order ASC`)
-	if err != nil {
-		return nil, fmt.Errorf("load roadmap_milestones corpus: %w", err)
-	}
-	defer rows.Close()
-
-	var out []CorpusDocument
-	for rows.Next() {
-		var slug, status, label string
-		if scanErr := rows.Scan(&slug, &status, &label); scanErr != nil {
-			return nil, fmt.Errorf("scan roadmap_milestones corpus: %w", scanErr)
-		}
-		out = append(out, CorpusDocument{
-			ID:       "milestone:" + slug,
-			Title:    fmt.Sprintf("Roadmap [%s] // %s", status, slug),
-			Snippet:  label,
-			Category: "roadmap_milestones",
-			Source:   "postgres",
-		})
-	}
-	if rowsErr := rows.Err(); rowsErr != nil {
-		return nil, fmt.Errorf("iterate roadmap_milestones corpus: %w", rowsErr)
 	}
 	return out, nil
 }

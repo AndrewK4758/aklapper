@@ -3,7 +3,6 @@ import { randomUUID } from 'node:crypto';
 import {
   assertSsrHealthz,
   gotoStreamedPage,
-  reloadStreamedPage,
   trackPageErrors,
   waitForStreamedReveal,
 } from '@aklapper/tooling/playwright';
@@ -101,7 +100,6 @@ test.describe('admin SSR end-to-end journeys', () => {
     ];
 
     let authenticator: { cdp: CDPSession; authenticatorId: string } | null = null;
-    let maintenanceToggledOn = false;
     const quotaCleanupState: { originalGuestMaxTurns: string | null } = {
       originalGuestMaxTurns: null,
     };
@@ -148,6 +146,7 @@ test.describe('admin SSR end-to-end journeys', () => {
       await page.getByRole('link', { name: 'Overview', exact: true }).click();
       await expect(page).toHaveURL(/\/$/);
       await expect(page.getByRole('heading', { name: /Admin Operations Console/i })).toBeVisible();
+      await expect(page.getByText('Portal Maintenance')).toHaveCount(0);
 
       await page.getByRole('button', { name: 'Security Settings' }).click();
       await expect(
@@ -223,32 +222,105 @@ test.describe('admin SSR end-to-end journeys', () => {
 
         await expect(page.getByLabel('Qdrant RAG Corpus Note (Markdown)')).toBeVisible();
         await expect(page.getByLabel('Live site content preview')).toHaveCount(0);
+
+        // Verify portal-home structured sub-editors, desktop/mobile live preview portrait load, privacy 422 guard, and save persistence
+        await page.getByRole('button', { name: /portal-home/i }).click();
+        const portraitSrcInput = page.getByLabel('Portrait Source Path');
+        const bioInput = page.getByLabel('Engineering Bio');
+        await expect(portraitSrcInput).toHaveValue('/images/andrew-klapper-portrait.webp');
+        const originalBio = await bioInput.inputValue();
+
         await page.getByRole('button', { name: 'Show Preview', exact: true }).click();
-        await expect(page.getByLabel('Live site content preview')).toBeVisible();
+        const livePreview = page.getByLabel('Live site content preview');
+        await expect(livePreview).toBeVisible();
+        const previewPortrait = livePreview.locator('[data-terminal-portrait="true"] img');
+        await expect(previewPortrait).toBeVisible();
+        await expect
+          .poll(() =>
+            previewPortrait.evaluate(img => {
+              const el = img as HTMLImageElement;
+              return el.complete && el.naturalWidth > 0;
+            }),
+          )
+          .toBe(true);
+        await expect(livePreview.locator('form')).toHaveCount(0);
         await page.getByRole('button', { name: 'Mobile', exact: true }).click();
         await expect(page.locator('[data-preview-viewport="mobile"]')).toBeVisible();
         await page.getByRole('button', { name: 'Desktop', exact: true }).click();
+
+        // Privacy 422 rejection on portal-home blocks synthetic phone / postal ZIP without echoing sensitive literals
+        await bioInput.fill(`${originalBio} Reach (555) 010-1234 in Marietta, GA 99999.`);
+        await page.getByRole('button', { name: 'Save Site Content', exact: true }).click();
+        await expect(page.getByRole('alert')).toContainText('ERR_CONSTRAINT');
+        expect(await page.getByRole('alert').innerText()).not.toContain('(555) 010-1234');
+
+        // Clean save persists across reload, then restore original bio cleanly
+        const updatedBio = `${originalBio} Verified CMS round-trip.`;
+        try {
+          await bioInput.fill(updatedBio);
+          await page.getByRole('button', { name: 'Save Site Content', exact: true }).click();
+          await expect(page.getByText(/Saved site_content key "portal-home"/i)).toBeVisible();
+          await gotoStreamedPage(page, '/cms');
+          await page.getByRole('button', { name: /portal-home/i }).click();
+          await expect(page.getByLabel('Engineering Bio')).toHaveValue(updatedBio);
+        } finally {
+          await page.getByLabel('Engineering Bio').fill(originalBio);
+          await page.getByRole('button', { name: 'Save Site Content', exact: true }).click();
+          await expect(page.getByText(/Saved site_content key "portal-home"/i)).toBeVisible();
+        }
+
         await page.getByRole('button', { name: 'Raw JSON', exact: true }).click();
         await expect(page.getByLabel('Raw Metadata JSON')).toBeVisible();
         await page.getByRole('button', { name: 'Form', exact: true }).click();
         await page.getByRole('button', { name: /portal-contact/i }).click();
         await expect(page.getByText('Contact Form Builder')).toBeVisible();
 
-        const maintSwitch = page.getByRole('switch', { name: 'Maintenance Mode' });
-        await expect(maintSwitch).toBeVisible();
-        if ((await maintSwitch.getAttribute('aria-checked')) !== 'true') {
-          await maintSwitch.click();
-          maintenanceToggledOn = true;
-          await expect(page.getByText(/Maintenance mode is now ON/i)).toBeVisible();
-          await reloadStreamedPage(page);
-          await expect(page.getByRole('switch', { name: 'Maintenance Mode' })).toHaveAttribute(
-            'aria-checked',
-            'true',
-          );
-          await page.getByRole('switch', { name: 'Maintenance Mode' }).click();
-          await expect(page.getByText(/Maintenance mode is now OFF/i)).toBeVisible();
-          maintenanceToggledOn = false;
-        }
+        // Verify AdminRootShell isolation (no portal /about nav link) and portal-about structured editor + live preview + 422 privacy gate
+        await expect(page.locator('header').getByRole('link', { name: 'About' })).toHaveCount(0);
+        await page.getByRole('button', { name: /portal-about/i }).click();
+        const skillCategoryInput = page.getByLabel('Skill Group 1 Category');
+        await expect(skillCategoryInput).toBeVisible();
+        const originalCategory = await skillCategoryInput.inputValue();
+        await skillCategoryInput.fill('Core Languages');
+
+        await page.getByRole('button', { name: 'Show Preview', exact: true }).click();
+        const previewAside = page.getByLabel('Live site content preview');
+        await expect(previewAside).toBeVisible();
+        await expect(previewAside).toContainText('Core Languages');
+        await expect(previewAside).toContainText('andrew@andrew-k.us');
+        expect(await previewAside.locator('form').count()).toBe(0);
+        expect(await previewAside.locator('iframe').count()).toBe(0);
+
+        await page.getByRole('button', { name: 'Mobile', exact: true }).click();
+        await expect(previewAside.locator('[data-preview-viewport="mobile"]')).toBeVisible();
+        await page.getByRole('button', { name: 'Desktop', exact: true }).click();
+
+        // Restore category and verify privacy rejection (synthetic phone + ZIP) returns HTTP 422 without saving
+        await skillCategoryInput.fill(originalCategory);
+        const markdownTextarea = page.getByLabel('Qdrant RAG Corpus Note (Markdown)');
+        const originalMarkdown = await markdownTextarea.inputValue();
+        await markdownTextarea.fill(
+          'Synthetic blocked contact (555) 010-1234 in Marietta, GA 30062',
+        );
+        await page.getByRole('button', { name: 'Save Site Content' }).click();
+        await expect(page.getByRole('alert')).toContainText(/privacy sanitization policy/i);
+
+        // Restore clean note and persist valid save
+        await markdownTextarea.fill(originalMarkdown);
+        await page.getByRole('button', { name: 'Save Site Content' }).click();
+        await expect(page.getByText(/Saved site_content key "portal-about"/i)).toBeVisible();
+
+        // Verify retired maintenance/roadmap controls are removed while Qdrant Re-Index remains intact
+        await expect(page.getByRole('tab', { name: 'Site Content', exact: true })).toBeVisible();
+        await expect(page.getByRole('tab', { name: 'Terminal', exact: true })).toBeVisible();
+        await expect(page.getByRole('switch', { name: /Maintenance Mode/i })).toHaveCount(0);
+        await expect(
+          page.getByText(/Rebuild Progress|Roadmap Milestones|portal-maintenance/i),
+        ).toHaveCount(0);
+        await expect(page.getByRole('button', { name: 'Re-Index Qdrant Corpus' })).toBeVisible();
+
+        await page.getByRole('tab', { name: 'Terminal', exact: true }).click();
+        await expect(page.getByText(/portal-maintenance|Roadmap Milestones/i)).toHaveCount(0);
 
         await page.getByRole('tab', { name: /Agensi & Presets/i }).click();
         await expect(page.getByRole('heading', { name: /Creator Agensi Cache/i })).toBeVisible();
@@ -332,10 +404,13 @@ test.describe('admin SSR end-to-end journeys', () => {
 
         await page.getByRole('link', { name: 'Ops', exact: true }).click();
         await expect(page).toHaveURL(/\/ops$/);
-        await expect(page.getByText('Cloud Run / Docker Runtime Health')).toBeVisible();
+        const runtimeHealthRegion = page.getByRole('region', {
+          name: 'Cloud Run / Docker Runtime Health',
+        });
+        await expect(runtimeHealthRegion).toBeVisible();
         await expect(page.getByRole('button', { name: /Wake/i })).toHaveCount(0);
         await page.getByRole('button', { name: 'Refresh Health' }).click();
-        await expect(page.getByText(/Cloud Run|Docker/i).first()).toBeVisible();
+        await expect(runtimeHealthRegion.getByText(/Cloud Run|Docker/i).first()).toBeVisible();
 
         // Sign out and sign back in via discoverable passkey (blank handle)
         await page.getByRole('button', { name: 'Sign Out' }).click();
@@ -352,17 +427,6 @@ test.describe('admin SSR end-to-end journeys', () => {
 
       expect(getErrors()).toEqual([]);
     } finally {
-      if (maintenanceToggledOn) {
-        try {
-          await gotoStreamedPage(page, '/cms');
-          const sw = page.getByRole('switch', { name: 'Maintenance Mode' });
-          if ((await sw.getAttribute('aria-checked')) === 'true') {
-            await sw.click();
-          }
-        } catch {
-          // best-effort cleanup
-        }
-      }
       if (quotaCleanupState.originalGuestMaxTurns !== null) {
         try {
           await gotoStreamedPage(page, '/quotas');

@@ -29,18 +29,33 @@ export interface RouteSeoMetaOptions {
   locale?: string;
 }
 
+const SLASH_CHAR_CODE = 47;
+
+export function trimTrailingSlashes(value: string): string {
+  let end = value.length;
+  while (end > 0 && value.charCodeAt(end - 1) === SLASH_CHAR_CODE) {
+    end -= 1;
+  }
+  return end === value.length ? value : value.slice(0, end);
+}
+
+export function normalizePathname(pathname: string): string {
+  const trimmed = trimTrailingSlashes(pathname);
+  return trimmed.length > 0 ? trimmed : '/';
+}
+
 function normalizeBaseUrl(rawUrl: string | undefined, fallback: string): string {
   const candidate = rawUrl?.trim();
-  if (!candidate) return fallback.replace(/\/+$/, '');
+  if (!candidate) return trimTrailingSlashes(fallback);
   try {
     const parsed = new URL(candidate);
     if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
       return parsed.origin;
     }
   } catch {
-    return fallback.replace(/\/+$/, '');
+    return trimTrailingSlashes(fallback);
   }
-  return fallback.replace(/\/+$/, '');
+  return trimTrailingSlashes(fallback);
 }
 
 function normalizeEndpointUrl(rawUrl: string | undefined): string | undefined {
@@ -94,9 +109,9 @@ export function readSeoRuntimeConfig(
 }
 
 export function buildCanonicalUrl(siteUrl: string, pathname: string): string {
-  const base = siteUrl.replace(/\/+$/, '');
+  const base = trimTrailingSlashes(siteUrl);
   const normalizedPath = pathname.startsWith('/') ? pathname : `/${pathname}`;
-  const cleanPath = normalizedPath === '/' ? '/' : normalizedPath.replace(/\/+$/, '');
+  const cleanPath = normalizePathname(normalizedPath);
   return `${base}${cleanPath}`;
 }
 
@@ -146,7 +161,7 @@ export function buildRouteMetaTags(options: RouteSeoMetaOptions): SeoMetaDescrip
 }
 
 export function buildPortalJsonLd(siteUrl: string): Record<string, unknown> {
-  const base = siteUrl.replace(/\/+$/, '');
+  const base = trimTrailingSlashes(siteUrl);
   return {
     '@context': 'https://schema.org',
     '@graph': [

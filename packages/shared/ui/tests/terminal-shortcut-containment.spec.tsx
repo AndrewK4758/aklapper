@@ -263,12 +263,12 @@ describe('TerminalWorkspace capture-level readline dispatch and isolation', () =
       <TerminalWorkspace
         terminal={BASE_TERMINAL}
         primaryPane={{
-          title: 'maintenance',
+          title: 'embedded-status',
           content: (
             <div>
-              <button type='button'>Maintenance Heading Focus Target</button>
+              <button type='button'>Embedded Heading Focus Target</button>
               <ZshP10kTerminal
-                bannerTitle='Maintenance Terminal'
+                bannerTitle='Embedded Status Terminal'
                 bannerMeta='readonly'
                 osLabel='⚡'
                 directory='~'
@@ -279,7 +279,7 @@ describe('TerminalWorkspace capture-level readline dispatch and isolation', () =
                 initialEntries={[
                   {
                     command: 'status',
-                    output: 'MAINTENANCE_SCROLLBACK_ENTRY',
+                    output: 'EMBEDDED_SCROLLBACK_ENTRY',
                     status: 'ok',
                     durationLabel: '1ms',
                     timestamp: '00:00:00',
@@ -294,13 +294,13 @@ describe('TerminalWorkspace capture-level readline dispatch and isolation', () =
       />,
     );
 
-    expect(screen.getByText('MAINTENANCE_SCROLLBACK_ENTRY')).toBeTruthy();
-    const headingButton = screen.getByText('Maintenance Heading Focus Target');
+    expect(screen.getByText('EMBEDDED_SCROLLBACK_ENTRY')).toBeTruthy();
+    const headingButton = screen.getByText('Embedded Heading Focus Target');
     headingButton.focus();
 
     const ctrlL = dispatchWindowKey({ key: 'l', code: 'KeyL', ctrlKey: true }, headingButton);
     expect(ctrlL.defaultPrevented).toBe(true);
-    expect(screen.queryByText('MAINTENANCE_SCROLLBACK_ENTRY')).toBeNull();
+    expect(screen.queryByText('EMBEDDED_SCROLLBACK_ENTRY')).toBeNull();
   });
 
   it('never mutates hidden shellLayer terminal when a docked TUI view is active', () => {

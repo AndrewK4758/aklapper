@@ -1,6 +1,10 @@
 import { extractPrivacySanitizationFindings } from '@aklapper/core';
 import { classifyServerError } from '@aklapper/core/server-errors';
-import { sanitizePortalAskSiteContent } from '@aklapper/node-runtime/privacy';
+import {
+  sanitizePortalAboutSiteContent,
+  sanitizePortalAskSiteContent,
+  sanitizePortalHomeSiteContent,
+} from '@aklapper/node-runtime/privacy';
 import { logDiagnosticError, type SsrStructuredLogger } from '@aklapper/node-runtime/ssr/stream';
 
 import type { AdminCmsActionData } from '#pages/cms';
@@ -53,13 +57,13 @@ export async function handleReindexQdrantIntent(
   };
 }
 
-export function validatePortalAskPrivacyOutcome(
-  markdownBody: string,
-  metadata: Record<string, unknown>,
+function runSiteContentPrivacyCheck(
+  runSanitizer: () => void,
+  message: string,
   correlationId: string,
 ): ReindexPrivacyOutcome | null {
   try {
-    sanitizePortalAskSiteContent(markdownBody, metadata, undefined, correlationId);
+    runSanitizer();
     return null;
   } catch (error) {
     const findings = extractPrivacySanitizationFindings(error);
@@ -70,7 +74,7 @@ export function validatePortalAskPrivacyOutcome(
       status: 422,
       payload: {
         ok: false,
-        message: 'Portal Ask content failed privacy sanitization policy.',
+        message,
         code: 'ERR_CONSTRAINT',
         action: 'Remove sensitive or denylisted terms and retry.',
         correlationId,
@@ -78,4 +82,46 @@ export function validatePortalAskPrivacyOutcome(
       },
     };
   }
+}
+
+export function validatePortalAskPrivacyOutcome(
+  markdownBody: string,
+  metadata: Record<string, unknown>,
+  correlationId: string,
+): ReindexPrivacyOutcome | null {
+  return runSiteContentPrivacyCheck(
+    () => {
+      sanitizePortalAskSiteContent(markdownBody, metadata, undefined, correlationId);
+    },
+    'Portal Ask content failed privacy sanitization policy.',
+    correlationId,
+  );
+}
+
+export function validatePortalHomePrivacyOutcome(
+  markdownBody: string,
+  metadata: Record<string, unknown>,
+  correlationId: string,
+): ReindexPrivacyOutcome | null {
+  return runSiteContentPrivacyCheck(
+    () => {
+      sanitizePortalHomeSiteContent(markdownBody, metadata, undefined, correlationId);
+    },
+    'Portal Home content failed privacy sanitization policy.',
+    correlationId,
+  );
+}
+
+export function validatePortalAboutPrivacyOutcome(
+  markdownBody: string,
+  metadata: Record<string, unknown>,
+  correlationId: string,
+): ReindexPrivacyOutcome | null {
+  return runSiteContentPrivacyCheck(
+    () => {
+      sanitizePortalAboutSiteContent(markdownBody, metadata, undefined, correlationId);
+    },
+    'Portal About content failed privacy sanitization policy.',
+    correlationId,
+  );
 }

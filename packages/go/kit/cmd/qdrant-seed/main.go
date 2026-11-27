@@ -47,9 +47,7 @@ func parseCollectionsFlag(raw string) ([]string, error) {
 
 func envLookup(env map[string]string, key string) string {
 	if env != nil {
-		if val, ok := env[key]; ok {
-			return val
-		}
+		return env[key]
 	}
 	return os.Getenv(key)
 }

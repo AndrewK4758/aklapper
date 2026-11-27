@@ -83,11 +83,6 @@
     gap: var(--sf-space-4);
   }
 
-  .maintenanceActive {
-    border-color: var(--sf-warn);
-    background: var(--sf-warn-bg);
-  }
-
   .meterBlock {
     display: grid;
     gap: var(--sf-space-3);

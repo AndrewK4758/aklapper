@@ -7,9 +7,6 @@ const baseConfig = createSsrPlaywrightConfig({
   defaultPort: 4300,
   baseUrlEnvVar: 'PORTAL_BASE_URL',
   portEnvVar: 'PORTAL_PORT',
-  extraEnv: {
-    PORTAL_MAINTENANCE_MODE: process.env['PORTAL_MAINTENANCE_MODE'] ?? 'false',
-  },
 });
 
 export default defineConfig({

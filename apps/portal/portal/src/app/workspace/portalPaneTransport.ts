@@ -35,6 +35,7 @@ import {
 export { generateClientCorrelationId };
 
 export const PORTAL_PANE_ROUTE_IDS: Readonly<Record<PortalPaneRoute, string>> = {
+  '/about': 'routes/about',
   '/agensi': 'routes/agensi',
   '/chat': 'routes/chat',
   '/cadence': 'routes/cadence',

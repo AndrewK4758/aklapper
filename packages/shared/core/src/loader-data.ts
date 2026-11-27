@@ -1,6 +1,8 @@
+import type { PortalAboutContent } from './about.ts';
 import type { AgensiCatalogMeta, AgensiSkill } from './agensi.ts';
 import type { AskServiceStatus } from './ask.ts';
 import type { AuthSession, QuotaStatus } from './auth.ts';
+import type { CareerDossier } from './career-dossiers.ts';
 import type { FormDefinition } from './forms.ts';
 import type {
   AdminChromeContent,
@@ -15,21 +17,11 @@ import type {
   PortalChromeContent,
   PortalContactContent,
   PortalHomeContent,
-  PortalMaintenanceContent,
-  RoadmapMilestone,
 } from './portal.ts';
 import type { TerminalProfileData } from './terminal.ts';
 
-export interface PortalMaintenanceLoaderData {
-  content: PortalMaintenanceContent;
-  terminal: TerminalProfileData;
-  milestones: readonly RoadmapMilestone[];
-}
-
 export interface PortalRootLoaderData {
-  maintenanceMode: boolean;
   chrome: PortalChromeContent;
-  maintenance: PortalMaintenanceLoaderData | null;
   terminal?: TerminalProfileData;
   homeContent?: PortalHomeContent;
   contactForm?: FormDefinition;
@@ -40,6 +32,12 @@ export interface PortalHomeLoaderData {
   content: PortalHomeContent;
   terminal: TerminalProfileData;
   contactForm: FormDefinition;
+}
+
+export interface PortalAboutLoaderData {
+  content: PortalAboutContent;
+  dossiers: readonly CareerDossier[];
+  brandContactEmail?: string;
 }
 
 export interface PortalAgensiLoaderData {
