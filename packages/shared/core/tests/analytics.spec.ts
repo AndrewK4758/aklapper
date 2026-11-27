@@ -292,4 +292,82 @@ describe('@aklapper/core/analytics', () => {
     });
     expect(legacyInboxItem.success).toBe(true);
   });
+
+  it('caps sessionId to 128 chars, rejects NUL bytes, strips long document.referrer query/hash, and normalizes trailing slashes', () => {
+    const oversizedSession = AnalyticsBatchSchema.safeParse({
+      sessionId: 's'.repeat(129),
+      events: [
+        {
+          type: 'page_view',
+          name: 'portal_page_view',
+          path: '/about',
+          timestamp: '2026-11-27T00:00:00.000Z',
+        },
+      ],
+    });
+    expect(oversizedSession.success).toBe(false);
+
+    const nulSession = AnalyticsBatchSchema.safeParse({
+      sessionId: 'sess_\u0000bad',
+      events: [
+        {
+          type: 'page_view',
+          name: 'portal_page_view',
+          path: '/about',
+          timestamp: '2026-11-27T00:00:00.000Z',
+        },
+      ],
+    });
+    expect(nulSession.success).toBe(false);
+
+    const nulEventMeta = AnalyticsBatchSchema.safeParse({
+      sessionId: 'sess_ok',
+      events: [
+        {
+          type: 'interaction',
+          name: 'pane_open',
+          path: '/about',
+          metadata: { detail: 'bad\u0000value' },
+          timestamp: '2026-11-27T00:00:00.000Z',
+        },
+      ],
+    });
+    expect(nulEventMeta.success).toBe(false);
+
+    // Client referrer strips query/hash/userinfo and caps to <= 1024 chars; trailing slash normalized
+    const origReferrerDescriptor = Object.getOwnPropertyDescriptor(document, 'referrer');
+    try {
+      const longReferrer = `https://user:pass@www.google.com/${'a'.repeat(1400)}?q=${'secret'.repeat(200)}#frag`;
+      Object.defineProperty(document, 'referrer', {
+        value: longReferrer,
+        configurable: true,
+      });
+      window.history.replaceState({}, '', '/about/');
+      const sent: AnalyticsBatch[] = [];
+      const client = createAnalyticsClient({
+        endpoint: '/api/analytics/ingest',
+        respectPrivacySignals: false,
+        transport: (_url, payload) => {
+          sent.push(payload);
+        },
+      });
+      client.track({ type: 'page_view', name: 'portal_page_view', path: '/about' });
+      client.flush();
+
+      expect(sent).toHaveLength(1);
+      expect(sent[0]?.landingPath).toBe('/about');
+      expect(sent[0]?.referrer).toBeDefined();
+      expect((sent[0]?.referrer ?? '').length).toBeLessThanOrEqual(1024);
+      expect(sent[0]?.referrer).not.toContain('secret');
+      expect(sent[0]?.referrer).not.toContain('user:pass');
+      expect(sent[0]?.referrer).not.toContain('#frag');
+      expect(AnalyticsBatchSchema.safeParse(sent[0]).success).toBe(true);
+    } finally {
+      if (origReferrerDescriptor) {
+        Object.defineProperty(document, 'referrer', origReferrerDescriptor);
+      } else {
+        Object.defineProperty(document, 'referrer', { value: '', configurable: true });
+      }
+    }
+  });
 });

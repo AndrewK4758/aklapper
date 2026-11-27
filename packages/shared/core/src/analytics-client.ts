@@ -51,6 +51,7 @@ interface ClientLandingAttribution {
 
 const DEFAULT_PROMPT_FLUSH_DELAY_MS = 300;
 const WIRE_PARAM_MAX_LEN = 512;
+const CLIENT_REFERRER_MAX_LEN = 1024;
 const IMMEDIATE_FLUSH_EVENT_NAMES = new Set<string>([
   'about_outbound_click',
   'agensi_outbound_click',
@@ -63,10 +64,23 @@ export function isPrivacyOptOut(): boolean {
 }
 
 export function normalizeAnalyticsPathname(pathname: string): string {
-  const trimmed = pathname.trim();
+  const trimmed = pathname.replaceAll('\0', '').trim();
   if (!trimmed) return '/';
-  const normalized = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
-  return normalized.slice(0, WIRE_PARAM_MAX_LEN);
+  const withLeadingSlash = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
+  const withoutTrailingSlash = withLeadingSlash.replace(/\/+$/, '') || '/';
+  return withoutTrailingSlash.slice(0, WIRE_PARAM_MAX_LEN);
+}
+
+export function sanitizeClientReferrer(rawReferrer: string | null | undefined): string | undefined {
+  const trimmed = rawReferrer?.replaceAll('\0', '').trim() ?? '';
+  if (!trimmed) return undefined;
+  try {
+    const parsed = new URL(trimmed);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return undefined;
+    return `${parsed.protocol}//${parsed.host}${parsed.pathname}`.slice(0, CLIENT_REFERRER_MAX_LEN);
+  } catch {
+    return undefined;
+  }
 }
 
 function readBoundedSearchParam(params: URLSearchParams, key: string): string | undefined {
@@ -187,7 +201,7 @@ export function createAnalyticsClient(options: AnalyticsClientOptions): Analytic
     if (!enabled || queue.length === 0) return;
     const events = queue.splice(0, queue.length);
     const referrer =
-      typeof document !== 'undefined' && document.referrer ? document.referrer : undefined;
+      typeof document !== 'undefined' ? sanitizeClientReferrer(document.referrer) : undefined;
     const payload: AnalyticsBatch = {
       sessionId: currentSessionId,
       ...(referrer ? { referrer } : {}),
@@ -245,7 +259,7 @@ export function createAnalyticsClient(options: AnalyticsClientOptions): Analytic
       track({
         type: 'web_vital',
         name,
-        path: window.location.pathname,
+        path: normalizeAnalyticsPathname(window.location.pathname || '/'),
         value: Math.round(value * 100) / 100,
       });
     };

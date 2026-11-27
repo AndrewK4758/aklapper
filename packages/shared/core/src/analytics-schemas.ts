@@ -12,25 +12,33 @@ import { AdminAnalyticsContentSchema } from './portal.ts';
 
 export * from './analytics-admin-schemas.ts';
 
+function withoutNul(schema: z.ZodString): z.ZodString {
+  return schema.refine(value => !value.includes('\0'), 'String must not contain NUL bytes');
+}
+
+const AnalyticsMetadataValueSchema = z.union([withoutNul(z.string()), z.number(), z.boolean()]);
+
 export const AnalyticsEventSchema = z.object({
   type: z.enum(['page_view', 'interaction', 'web_vital', 'error']),
-  name: z.string().min(1).max(120),
-  path: z.string().min(1).max(512),
+  name: withoutNul(z.string().trim().min(1).max(120)),
+  path: withoutNul(z.string().trim().min(1).max(512)),
   value: z.number().optional(),
-  metadata: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])).optional(),
+  metadata: z
+    .record(withoutNul(z.string().min(1).max(64)), AnalyticsMetadataValueSchema)
+    .optional(),
   timestamp: z.iso.datetime(),
 });
 export type AnalyticsEvent = z.infer<typeof AnalyticsEventSchema>;
 
 export const AnalyticsBatchSchema = z.object({
-  sessionId: z.string().min(1),
-  referrer: z.string().max(1024).optional(),
-  landingPath: z.string().max(512).optional(),
-  refParam: z.string().max(512).optional(),
-  utmSource: z.string().max(512).optional(),
-  utmMedium: z.string().max(512).optional(),
-  utmCampaign: z.string().max(512).optional(),
-  utmContent: z.string().max(512).optional(),
+  sessionId: withoutNul(z.string().trim().min(1).max(128)),
+  referrer: withoutNul(z.string().max(1024)).optional(),
+  landingPath: withoutNul(z.string().max(512)).optional(),
+  refParam: withoutNul(z.string().max(512)).optional(),
+  utmSource: withoutNul(z.string().max(512)).optional(),
+  utmMedium: withoutNul(z.string().max(512)).optional(),
+  utmCampaign: withoutNul(z.string().max(512)).optional(),
+  utmContent: withoutNul(z.string().max(512)).optional(),
   events: z.array(AnalyticsEventSchema).min(1).max(50),
 });
 export type AnalyticsBatch = z.infer<typeof AnalyticsBatchSchema>;

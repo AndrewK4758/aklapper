@@ -302,6 +302,21 @@ describe('@aklapper/node-runtime/analytics', () => {
     const sanitizedLong = sanitizeCampaignValue(`  abc\u0000\u001f${'z'.repeat(200)}  `);
     expect(sanitizedLong).toHaveLength(120);
     expect(sanitizedLong?.startsWith('abcz')).toBe(true);
+
+    // Oversized (>253-char DNS limit) referrer hostname falls back safely to direct
+    const hugeHost = `${'sub.'.repeat(70)}example.com`;
+    expect(hugeHost.length).toBeGreaterThan(253);
+    expect(normalizeReferrer(`https://${hugeHost}/landing`, ['andrew-k.us'])).toEqual({
+      referrer: null,
+      referrerHost: null,
+      referrerCategory: 'direct',
+    });
+
+    // Trailing slashes strip consistently while preserving root '/'
+    expect(extractCampaignParams('https://andrew-k.us/about/?ref=recruiter').landingPath).toBe(
+      '/about',
+    );
+    expect(extractCampaignParams('https://andrew-k.us///').landingPath).toBe('/');
   });
 
   it('computes stable 32-hex daily-salted visitor_hash values sensitive to IP, UA, and daily salt', () => {

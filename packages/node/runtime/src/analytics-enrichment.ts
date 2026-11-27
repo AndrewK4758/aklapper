@@ -43,6 +43,7 @@ const HEADLESS_OR_SCRAPER_RE =
 const CAMPAIGN_VALUE_MAX_LEN = 120;
 const PATH_MAX_LEN = 512;
 const REFERRER_MAX_LEN = 512;
+const DNS_HOSTNAME_MAX_LEN = 253;
 
 const SEARCH_HOSTS = new Set([
   'bing.com',
@@ -203,7 +204,7 @@ export function normalizeReferrer(
   }
 
   const host = parsed.hostname.toLowerCase().replace(/^www\./, '');
-  if (!host) {
+  if (!host || host.length > DNS_HOSTNAME_MAX_LEN) {
     return { referrer: null, referrerHost: null, referrerCategory: 'direct' };
   }
 
@@ -241,16 +242,18 @@ export function sanitizeCampaignValue(raw: string | null | undefined): string | 
 }
 
 export function normalizeLandingPath(rawPath: string | null | undefined): string {
-  const trimmed = rawPath?.trim() ?? '';
-  if (!trimmed) return '/';
+  const cleaned = rawPath?.replaceAll('\0', '').trim() ?? '';
+  if (!cleaned) return '/';
+  let pathname: string;
   try {
-    const parsed = new URL(trimmed, 'https://andrew-k.us');
-    const pathname = parsed.pathname || '/';
-    return pathname.slice(0, PATH_MAX_LEN);
+    const parsed = new URL(cleaned, 'https://andrew-k.us');
+    pathname = parsed.pathname || '/';
   } catch {
-    const stripped = trimmed.split(/[?#]/, 1)[0]?.trim() || '/';
-    return (stripped.startsWith('/') ? stripped : `/${stripped}`).slice(0, PATH_MAX_LEN);
+    const stripped = cleaned.split(/[?#]/, 1)[0]?.trim() || '/';
+    pathname = stripped.startsWith('/') ? stripped : `/${stripped}`;
   }
+  const withoutTrailingSlash = pathname.replace(/\/+$/, '') || '/';
+  return withoutTrailingSlash.slice(0, PATH_MAX_LEN);
 }
 
 export function extractCampaignParams(rawUrl: string): CampaignParams {
@@ -269,7 +272,7 @@ export function extractCampaignParams(rawUrl: string): CampaignParams {
   }
 
   return {
-    landingPath: (parsed.pathname || '/').slice(0, PATH_MAX_LEN),
+    landingPath: normalizeLandingPath(parsed.pathname),
     refParam: sanitizeCampaignValue(parsed.searchParams.get('ref')),
     utmSource: sanitizeCampaignValue(parsed.searchParams.get('utm_source')),
     utmMedium: sanitizeCampaignValue(parsed.searchParams.get('utm_medium')),
