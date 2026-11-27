@@ -197,7 +197,7 @@ async function probeSingleService(
   const startedAt = Date.now();
   const result = await proxyJson<Record<string, unknown>>({
     baseUrl: trimmedUrl,
-    path: '/healthz',
+    path: '/health',
     method: 'GET',
     timeoutMs,
     oidcAuth: targetOidcAuth,
@@ -221,7 +221,7 @@ async function probeSingleService(
       status: 'healthy',
       latencyMs,
       checkedAt,
-      detail: 'HTTP 200 /healthz',
+      detail: 'HTTP 200 /health',
     };
   }
 
@@ -234,7 +234,7 @@ async function probeSingleService(
     result.error === 'GCP_OIDC_TOKEN_UNAVAILABLE';
   const status: RuntimeServiceHealthState = isOffline ? 'offline' : 'degraded';
   const detail = result.ok
-    ? 'Upstream /healthz returned non-JSON payload'
+    ? 'Upstream /health returned non-JSON payload'
     : result.error === 'UPSTREAM_TIMEOUT'
       ? `Probe timed out after ${timeoutMs}ms`
       : `Upstream returned HTTP ${result.status}`;

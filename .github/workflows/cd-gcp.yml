@@ -61,7 +61,7 @@ on:
         type: boolean
         default: true
       run_smoke_e2e:
-        description: Run post-deploy IAP edge, WIF /healthz, and Playwright portal @smoke verification
+        description: Run post-deploy IAP edge, WIF /health, and Playwright portal @smoke verification
         type: boolean
         default: true
       smoke_all_browsers:
@@ -97,7 +97,7 @@ jobs:
       deploy_cloud_run: ${{ steps.resolve.outputs.deploy_cloud_run }}
       migrate_db: ${{ steps.resolve.outputs.migrate_db }}
       seed_admin: ${{ steps.resolve.outputs.seed_admin }}
-      seed_content: ${{ steps.resolve.outputs.seed_content }}
+      seed_content: ${{ steps.seed-plan.outputs.seed_content }}
       seed_mode: ${{ steps.resolve.outputs.seed_mode }}
       run_smoke_e2e: ${{ steps.resolve.outputs.run_smoke_e2e }}
       smoke_engines_json: ${{ steps.resolve.outputs.smoke_engines_json }}
@@ -199,6 +199,20 @@ jobs:
             node --conditions=@aklapper/source packages/tooling/src/ci-plan.ts --all "--migrate-db=${MIGRATE_DB}"
           else
             node --conditions=@aklapper/source packages/tooling/src/ci-plan.ts --base="$BASE_REF" --head=HEAD "--migrate-db=${MIGRATE_DB}"
+          fi
+
+      - name: Finalize seed_content for push DB migrations
+        id: seed-plan
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          RESOLVED_SEED_CONTENT: ${{ steps.resolve.outputs.seed_content }}
+          HAS_DB_MIGRATION: ${{ steps.plan.outputs.has_db_migration }}
+        run: |
+          if [ "$EVENT_NAME" = "push" ] && [ "$HAS_DB_MIGRATION" = "true" ]; then
+            echo "seed_content=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "seed_content=${RESOLVED_SEED_CONTENT}" >> "$GITHUB_OUTPUT"
           fi
 
   ci-gate:
@@ -902,7 +916,7 @@ jobs:
           create_credentials_file: false
           export_environment_variables: false
 
-      - name: Verify Direct IAP edge protection on admin & WIF /healthz across all 4 services
+      - name: Verify Direct IAP edge protection on admin & WIF /health across all 4 services
         if: matrix.engine == 'chromium'
         shell: bash
         env:
@@ -936,7 +950,7 @@ jobs:
             echo "{\"event\":\"cd.post_deploy_smoke.verified\",\"seam\":\"DELTA_AUDIT_GAP\",\"service\":\"admin-iap-edge\",\"httpStatus\":${unauth_status}}"
           fi
 
-          # 2. Verify WIF-authenticated /healthz on all 4 Cloud Run services.
+          # 2. Verify WIF-authenticated /health on all 4 Cloud Run services (/healthz is reserved by Cloud Run GFE).
           probe_service() {
             local svc="$1"
             local url="$2"
@@ -953,7 +967,7 @@ jobs:
               exit 1
             fi
             local status
-            status="$(curl -sS -o /dev/null -w '%{http_code}' -H "Authorization: Bearer ${token}" "${url%/}/healthz" || echo '000')"
+            status="$(curl -sS -o /dev/null -w '%{http_code}' -H "Authorization: Bearer ${token}" "${url%/}/health" || echo '000')"
             if [ "$status" != "200" ]; then
               if [ "$svc" = "admin" ] && { [ "$status" = "302" ] || [ "$status" = "401" ] || [ "$status" = "403" ]; }; then
                 local ready
@@ -965,7 +979,7 @@ jobs:
                 echo "{\"event\":\"cd.post_deploy_smoke.verified\",\"seam\":\"DELTA_AUDIT_GAP\",\"service\":\"admin\",\"mode\":\"iap_ready_fallback\",\"httpStatus\":${status}}"
                 return
               fi
-              echo "::error::Health check failed for ${svc} (${url%/}/healthz) with HTTP ${status}"
+              echo "::error::Health check failed for ${svc} (${url%/}/health) with HTTP ${status}"
               exit 1
             fi
             echo "{\"event\":\"cd.post_deploy_smoke.verified\",\"seam\":\"DELTA_AUDIT_GAP\",\"service\":\"${svc}\",\"httpStatus\":${status}}"

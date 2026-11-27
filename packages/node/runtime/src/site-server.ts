@@ -287,7 +287,9 @@ export async function createSsrServer(options: SsrServerOptions): Promise<SsrSer
     globIgnore: servePrerenderedStatic ? [] : ['**/*.html', '**/*.data'],
   });
 
-  app.get('/healthz', async () => ({ status: 'ok', service: serviceName }));
+  const healthHandler = async () => ({ status: 'ok', service: serviceName });
+  app.get('/health', healthHandler);
+  app.get('/healthz', healthHandler);
 
   app.setNotFoundHandler((request, reply) => {
     const { correlationId } = extractCorrelationId(request.headers);
