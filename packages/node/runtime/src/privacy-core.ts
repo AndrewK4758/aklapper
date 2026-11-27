@@ -236,12 +236,10 @@ export function scanTextForPrivacyFindings(
   }
 
   if (lines.length > 1) {
-    const normalizedJoined = stripInvisibleAndNormalize(
-      lines
-        .map(line => line.trim())
-        .filter(Boolean)
-        .join(' '),
-    );
+    const normalizedJoined = lines
+      .map(line => stripInvisibleAndNormalize(line).trim())
+      .filter(Boolean)
+      .join(' ');
     for (const rule of rules) {
       if (matchedPatternRules.has(rule.ruleId)) {
         continue;

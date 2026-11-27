@@ -578,11 +578,14 @@ describe('@aklapper/node-runtime/privacy fail-closed sanitization', () => {
     for (const [payload, expectedRuleId] of [
       ['Marietta, GA\n30062', 'pii.us_postal_zip'],
       ['Marietta, GA\n\n\n\n\n30062', 'pii.us_postal_zip'],
+      ['Marietta, GA\n\u200b\n\u200b\n\u200b\n\u200b\n30062', 'pii.us_postal_zip'],
       ['ZIP\n30062', 'pii.us_postal_zip'],
       ['(555)\n010-1234', 'pii.us_phone'],
       ['(555) \n010-1234', 'pii.us_phone'],
       ['(555)\n 010-1234', 'pii.us_phone'],
       ['(555)\n\n010-1234', 'pii.us_phone'],
+      ['(555)\n\u200b\n010-1234', 'pii.us_phone'],
+      ['(555) \u200b\n010-1234', 'pii.us_phone'],
     ] as const) {
       const findings = scanTextForPrivacyFindings(payload, 'description', emptyDenylist);
       expect(
@@ -623,20 +626,39 @@ describe('@aklapper/node-runtime/privacy fail-closed sanitization', () => {
     }
 
     // Hygiene: andrew@andrew-k.us is rejected on portal-about and career dossiers, and mixed multiline emails fail on portal-home
-    expect(() =>
-      sanitizePortalAboutSiteContent('Contact andrew@andrew-k.us directly.', { description: 'OK' }),
-    ).toThrow(PrivacySanitizationError);
-    expect(() =>
-      sanitizeCareerDossierPayload({
-        ...CLEAN_DOSSIER,
-        summaryBody: 'Reach andrew@andrew-k.us for architecture details.',
-      }),
-    ).toThrow(PrivacySanitizationError);
-    expect(() =>
-      sanitizePortalHomeSiteContent('andrew@andrew-k.us\nreference.contact@example.com', {
-        heading: 'Clean',
-      }),
-    ).toThrow(PrivacySanitizationError);
+    for (const runEmailRejection of [
+      () =>
+        sanitizePortalAboutSiteContent(
+          'Contact andrew@andrew-k.us directly.',
+          { description: 'OK' },
+          '',
+        ),
+      () =>
+        sanitizeCareerDossierPayload(
+          {
+            ...CLEAN_DOSSIER,
+            summaryBody: 'Reach andrew@andrew-k.us for architecture details.',
+          },
+          { rawDenylist: '' },
+        ),
+      () =>
+        sanitizePortalHomeSiteContent(
+          'andrew@andrew-k.us\nreference.contact@example.com',
+          { heading: 'Clean' },
+          '',
+        ),
+    ]) {
+      let emailErr: unknown = null;
+      try {
+        runEmailRejection();
+      } catch (error) {
+        emailErr = error;
+      }
+      expect(emailErr).toBeInstanceOf(PrivacySanitizationError);
+      expect((emailErr as PrivacySanitizationError).findings).toEqual(
+        expect.arrayContaining([expect.objectContaining({ ruleId: 'pii.email_address' })]),
+      );
+    }
 
     // Rule already matched on a single line MUST NOT emit a duplicate multiline finding
     const singleLinePlusMultiline = scanTextForPrivacyFindings(

@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import * as rootUiExports from '../src/index';
 import {
@@ -63,8 +63,24 @@ describe('@aklapper/ui/terminal-portrait', () => {
     expect(container.querySelector('[data-portrait-fallback="true"]')).not.toBeNull();
     expect(screen.getByRole('img', { name: 'Broken portrait' }).textContent).toContain('AK');
 
-    rerender(<TerminalPortrait src={DEFAULT_PORTRAIT_SRC} alt='Recovered portrait' />);
-    expect(container.querySelector('img')).not.toBeNull();
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      rerender(<TerminalPortrait src={DEFAULT_PORTRAIT_SRC} alt='Recovered portrait' />);
+      const recoveredImg = container.querySelector('img');
+      expect(recoveredImg).not.toBeNull();
+      fireEvent.error(recoveredImg!);
+      const fallbackLog = warnSpy.mock.calls
+        .map(call => JSON.parse(String(call[0])) as Record<string, unknown>)
+        .find(entry => entry['event'] === 'portal.home.portrait_load_fallback');
+      expect(fallbackLog).toEqual(
+        expect.objectContaining({
+          event: 'portal.home.portrait_load_fallback',
+          hasCustomSrc: false,
+        }),
+      );
+    } finally {
+      warnSpy.mockRestore();
+    }
   });
 
   it('rejects control chars, whitespace, encoded traversal, query/hash, and external custom portrait sources cleanly', () => {
