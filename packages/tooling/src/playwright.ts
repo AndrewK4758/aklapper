@@ -133,7 +133,7 @@ export async function assertSsrHealthz(
   request: APIRequestContext,
   expectedService: string,
 ): Promise<void> {
-  const response = await request.get('/healthz');
+  const response = await request.get('/health');
   expect(response.ok()).toBe(true);
   const body = (await response.json()) as { status?: string; service?: string };
   expect(body).toEqual({ status: 'ok', service: expectedService });

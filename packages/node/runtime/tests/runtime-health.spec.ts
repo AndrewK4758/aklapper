@@ -11,8 +11,12 @@ describe('@aklapper/node-runtime/runtime-health', () => {
 
   it('serves cached snapshot within TTL window without waking scale-to-zero containers', async () => {
     let fetchCalls = 0;
-    const mockFetch: typeof fetch = async () => {
+    const requestedUrls: string[] = [];
+    const mockFetch: typeof fetch = async input => {
       fetchCalls += 1;
+      requestedUrls.push(
+        typeof input === 'string' ? input : input instanceof URL ? input.href : input.url,
+      );
       return Response.json({ status: 'ok', service: 'ai-ask' });
     };
 
@@ -30,6 +34,7 @@ describe('@aklapper/node-runtime/runtime-health', () => {
 
     expect(first.cached).toBe(false);
     expect(fetchCalls).toBe(1);
+    expect(requestedUrls).toEqual(['http://127.0.0.1:8083/health']);
     expect(first.services.find(s => s.service === 'ai-ask')?.status).toBe('healthy');
 
     const second = await probeRuntimeServices({

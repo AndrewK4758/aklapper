@@ -69,7 +69,7 @@ export async function startMockAiAndQdrantServer(): Promise<RunningMockAiAndQdra
     const urlPath = (req.url ?? '/').split('?')[0] ?? '/';
     const method = req.method ?? 'GET';
 
-    if (method === 'GET' && urlPath === '/healthz') {
+    if (method === 'GET' && (urlPath === '/health' || urlPath === '/healthz')) {
       writeJsonResponse(res, 200, { status: 'ok' });
       return;
     }

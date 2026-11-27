@@ -39,10 +39,14 @@ func TestCadenceDemoEndToEnd(t *testing.T) {
 		"QDRANT_URL=http://127.0.0.1:1",
 	)
 
-	t.Run("GET /healthz returns cadence-demo health", func(t *testing.T) {
+	t.Run("GET /health and /healthz return cadence-demo health", func(t *testing.T) {
+		resH, healthH := e2etest.DoJSON[httpkit.HealthResponse](t, http.MethodGet, baseURL+"/health", nil, nil)
+		if resH.StatusCode != http.StatusOK || !healthH.OK || healthH.Service != "cadence-demo" {
+			t.Fatalf("unexpected health response (status %d): %+v", resH.StatusCode, healthH)
+		}
 		res, health := e2etest.DoJSON[httpkit.HealthResponse](t, http.MethodGet, baseURL+"/healthz", nil, nil)
 		if res.StatusCode != http.StatusOK || !health.OK || health.Service != "cadence-demo" {
-			t.Fatalf("unexpected health response (status %d): %+v", res.StatusCode, health)
+			t.Fatalf("unexpected healthz response (status %d): %+v", res.StatusCode, health)
 		}
 	})
 

@@ -98,7 +98,7 @@ describe('@aklapper/node-runtime/ssr', () => {
     expect(res.headers.get('Vary')).toBe('*');
   });
 
-  it('serves /healthz and bridges SSR GET headers including multi-value Set-Cookie', async () => {
+  it('serves /health and /healthz and bridges SSR GET headers including multi-value Set-Cookie', async () => {
     const buildDir = await createFixtureBuildDir();
     activeHandlerRef.current = async request => {
       const resHeaders = new Headers({ 'content-type': 'text/plain; charset=utf-8' });
@@ -118,9 +118,13 @@ describe('@aklapper/node-runtime/ssr', () => {
     });
 
     try {
-      const health = await server.app.inject({ method: 'GET', url: '/healthz' });
+      const health = await server.app.inject({ method: 'GET', url: '/health' });
       expect(health.statusCode).toBe(200);
       expect(health.json()).toEqual({ status: 'ok', service: 'test-ssr' });
+
+      const healthz = await server.app.inject({ method: 'GET', url: '/healthz' });
+      expect(healthz.statusCode).toBe(200);
+      expect(healthz.json()).toEqual({ status: 'ok', service: 'test-ssr' });
 
       const page = await server.app.inject({ method: 'GET', url: '/contact' });
       expect(page.statusCode).toBe(200);
