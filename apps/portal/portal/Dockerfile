@@ -27,6 +27,7 @@ RUN pnpm --config.shamefully-hoist=true --filter @aklapper/portal deploy --prod 
   && cp -r /workspace/packages/node/db/dist /prod/portal/node_modules/@aklapper/db/dist \
   && cp -r /workspace/packages/node/db/drizzle /prod/portal/node_modules/@aklapper/db/drizzle \
   && cp -r /workspace/packages/node/runtime/dist /prod/portal/node_modules/@aklapper/node-runtime/dist
+COPY apps/portal/portal/data/geolite2 /prod/portal/data/geolite2
 
 FROM node:26-slim AS runtime
 WORKDIR /app
