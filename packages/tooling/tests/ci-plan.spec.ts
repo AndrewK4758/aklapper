@@ -239,6 +239,7 @@ describe('@aklapper/tooling CI/CD affected planner', () => {
     expect(workflow).toContain('${url%/}/health');
     expect(workflow).not.toContain('${url%/}/healthz');
     expect(workflow).toContain('Finalize seed_content for push DB migrations');
+    expect(workflow).toContain('NODE_OPTIONS: --conditions=@aklapper/source');
     expect(workflow).toContain('^https://[A-Za-z0-9-]+(\\.[A-Za-z0-9-]+)*\\.run\\.app$');
     expect(workflow).toContain('--grep @smoke');
     expect(workflow).toContain('seed_mode:');
