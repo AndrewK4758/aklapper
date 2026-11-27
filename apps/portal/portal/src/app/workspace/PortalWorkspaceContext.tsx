@@ -1,3 +1,4 @@
+import { trackPaneOpen } from '@aklapper/core/analytics';
 import {
   type TerminalNavTarget,
   WorkspaceLauncherContext,
@@ -49,6 +50,7 @@ export function PortalWorkspaceProvider({
     const unsubAdd = portalWorkspaceStore.onPaneViewsAdded(views => {
       for (const { paneId, routePath } of views) {
         portalPaneStreamStore.prewarm(paneId, routePath);
+        trackPaneOpen(routePath, 'desktop');
       }
     });
     const unsubRemove = portalWorkspaceStore.onPaneViewsRemoved(views => {

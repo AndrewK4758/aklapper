@@ -18,6 +18,8 @@ const {
   loadPortalContactDataMock,
   insertContactSubmissionMock,
   handleAnalyticsIngestRequestMock,
+  resolveOrCreateContactAnalyticsSessionMock,
+  recordContactSubmittedAnalyticsEventMock,
 } = vi.hoisted(() => ({
   getSharedDbMock: vi.fn<() => Record<string, never>>(() => ({})),
   consumeRateLimitMock: vi.fn<
@@ -29,8 +31,35 @@ const {
   >(async () => ({ allowed: true, remaining: 19, retryAfterSeconds: 60 })),
   loadPortalContactDataMock: vi.fn<() => Promise<PortalContactLoaderData>>(),
   insertContactSubmissionMock:
-    vi.fn<(db: unknown, submission: ContactFormSubmission) => Promise<ContactSubmissionSummary>>(),
-  handleAnalyticsIngestRequestMock: vi.fn<(request: Request) => Promise<Response>>(),
+    vi.fn<
+      (
+        db: unknown,
+        submission: ContactFormSubmission,
+        link?: { analyticsSessionId?: string | null; guestSessionId?: string | null },
+      ) => Promise<ContactSubmissionSummary>
+    >(),
+  handleAnalyticsIngestRequestMock:
+    vi.fn<(request: Request, options?: Record<string, unknown>) => Promise<Response>>(),
+  resolveOrCreateContactAnalyticsSessionMock: vi.fn<
+    (
+      db: unknown,
+      request: Request,
+      options?: Record<string, unknown>,
+    ) => Promise<{
+      analyticsSessionId: string | null;
+      guestSessionId: string | null;
+      linkMethod: string;
+      spoofRejected: boolean;
+    }>
+  >(async () => ({
+    analyticsSessionId: 'sess_default_linked',
+    guestSessionId: null,
+    linkMethod: 'verified_client_session',
+    spoofRejected: false,
+  })),
+  recordContactSubmittedAnalyticsEventMock: vi.fn<
+    (db: unknown, sessionId: string | null | undefined) => Promise<void>
+  >(async () => undefined),
 }));
 
 vi.mock('@aklapper/db', async importOriginal => {
@@ -41,6 +70,8 @@ vi.mock('@aklapper/db', async importOriginal => {
     consumeRateLimit: consumeRateLimitMock,
     loadPortalContactData: loadPortalContactDataMock,
     insertContactSubmission: insertContactSubmissionMock,
+    resolveOrCreateContactAnalyticsSession: resolveOrCreateContactAnalyticsSessionMock,
+    recordContactSubmittedAnalyticsEvent: recordContactSubmittedAnalyticsEventMock,
   };
 });
 
@@ -52,9 +83,13 @@ vi.mock('@aklapper/db/analytics', async importOriginal => {
   };
 });
 
+import { bootstrapDocumentAnalytics, resetAnalyticsBootstrap } from '@aklapper/core/analytics';
+import { GUEST_SESSION_COOKIE_NAME, signGuestSessionCookie } from '@aklapper/node-runtime/auth';
+
 import {
   processContactSubmission,
   resetContactRateLimiterForTest,
+  resolveClientKey,
 } from '../contact-submission.server';
 import { submitPortalContactForm } from '../terminalForms';
 import { action as analyticsIngestAction } from './api.analytics.ingest';
@@ -245,6 +280,7 @@ describe('processContactSubmission & resource action routes', () => {
         email: 'grace@example.com',
         attachment: expect.objectContaining({ filename: 'spec.txt', sha256: expectedSha }),
       }),
+      { analyticsSessionId: 'sess_default_linked', guestSessionId: null },
     );
   });
 
@@ -473,6 +509,212 @@ describe('processContactSubmission & resource action routes', () => {
       ).toBe(true);
     } finally {
       stderrSpy.mockRestore();
+    }
+  });
+
+  it('unifies client IP resolution via resolveAnalyticsClientIp across XFF, X-Real-IP, and default fallback', () => {
+    expect(
+      resolveClientKey(
+        makeRequest(async () => new FormData(), {
+          'x-forwarded-for': '198.51.100.1, 203.0.113.42',
+        }),
+      ),
+    ).toBe('203.0.113.42');
+    expect(
+      resolveClientKey(makeRequest(async () => new FormData(), { 'x-real-ip': '198.51.100.9' })),
+    ).toBe('198.51.100.9');
+    expect(resolveClientKey(makeRequest(async () => new FormData()))).toBe('127.0.0.1');
+  });
+
+  it('passes server-authoritative portal app and fail-open passive guestSessionId in /api/analytics/ingest', async () => {
+    const origSecret = process.env['INTERNAL_AUTH_SECRET'];
+    try {
+      process.env['INTERNAL_AUTH_SECRET'] = 'test-analytics-secret-0123456789abcdef';
+      const signedGuest = signGuestSessionCookie('guest_passive_123');
+      handleAnalyticsIngestRequestMock.mockResolvedValueOnce(
+        Response.json({ accepted: 1, sessionId: 'sess_p1', ipHash: 'h1' }, { status: 202 }),
+      );
+
+      const res = await analyticsIngestAction({
+        request: new Request('https://andrew-k.us/api/analytics/ingest', {
+          method: 'POST',
+          headers: { cookie: `${GUEST_SESSION_COOKIE_NAME}=${signedGuest}` },
+        }),
+        params: {},
+        context: new RouterContextProvider(),
+        url: new URL('https://andrew-k.us/api/analytics/ingest'),
+        pattern: '/api/analytics/ingest',
+      });
+      expect(res.status).toBe(202);
+      expect(handleAnalyticsIngestRequestMock).toHaveBeenCalledWith(
+        expect.any(Request),
+        expect.objectContaining({
+          app: 'portal',
+          guestSessionId: 'guest_passive_123',
+        }),
+      );
+
+      // Missing INTERNAL_AUTH_SECRET degrades passive guestSessionId to null without throwing
+      delete process.env['INTERNAL_AUTH_SECRET'];
+      handleAnalyticsIngestRequestMock.mockResolvedValueOnce(
+        Response.json({ accepted: 1, sessionId: 'sess_p2', ipHash: 'h2' }, { status: 202 }),
+      );
+      const resNoSecret = await analyticsIngestAction({
+        request: new Request('https://andrew-k.us/api/analytics/ingest', {
+          method: 'POST',
+          headers: { cookie: `${GUEST_SESSION_COOKIE_NAME}=${signedGuest}` },
+        }),
+        params: {},
+        context: new RouterContextProvider(),
+        url: new URL('https://andrew-k.us/api/analytics/ingest'),
+        pattern: '/api/analytics/ingest',
+      });
+      expect(resNoSecret.status).toBe(202);
+      expect(handleAnalyticsIngestRequestMock).toHaveBeenLastCalledWith(
+        expect.any(Request),
+        expect.objectContaining({
+          app: 'portal',
+          guestSessionId: null,
+        }),
+      );
+    } finally {
+      if (origSecret === undefined) delete process.env['INTERNAL_AUTH_SECRET'];
+      else process.env['INTERNAL_AUTH_SECRET'] = origSecret;
+    }
+  });
+
+  it('links verified analytics session, emits commit audit without PII, and stays HTTP 201 when analytics linking throws', async () => {
+    const infoCalls: Array<Record<string, unknown>> = [];
+    const logger: SsrStructuredLogger = {
+      info: vi.fn<(obj: Record<string, unknown>, msg?: string) => void>(obj => {
+        infoCalls.push(obj);
+      }),
+      warn: vi.fn<(obj: Record<string, unknown>, msg?: string) => void>(),
+      error: vi.fn<(obj: Record<string, unknown>, msg?: string) => void>(),
+    };
+    loadPortalContactDataMock.mockResolvedValue(CONTACT_LOADER_FIXTURE);
+    resolveOrCreateContactAnalyticsSessionMock.mockResolvedValueOnce({
+      analyticsSessionId: 'sess_verified_99',
+      guestSessionId: 'guest_chat_99',
+      linkMethod: 'verified_client_session',
+      spoofRejected: false,
+    });
+    insertContactSubmissionMock.mockResolvedValueOnce({
+      id: '33333333-3333-4333-8333-333333333333',
+      name: 'Ada Lovelace',
+      email: 'ada@example.com',
+      phone: null,
+      attachmentName: null,
+      attachmentSizeBytes: null,
+      attachmentSha256: null,
+      createdAt: '2026-11-27T01:00:00.000Z',
+    });
+
+    const fd = makeValidFormData();
+    fd.set('analyticsSessionId', 'sess_verified_99');
+    const okRes = await processContactSubmission(
+      makeRequest(async () => fd, { 'x-forwarded-for': '203.0.113.55' }),
+      { correlationId: 'corr-link-ok', logger },
+    );
+    expect(okRes.status).toBe(201);
+    expect(resolveOrCreateContactAnalyticsSessionMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      expect.objectContaining({
+        candidateSessionId: 'sess_verified_99',
+        correlationId: 'corr-link-ok',
+      }),
+    );
+    expect(insertContactSubmissionMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ name: 'Ada Lovelace', email: 'ada@example.com' }),
+      { analyticsSessionId: 'sess_verified_99', guestSessionId: 'guest_chat_99' },
+    );
+    expect(recordContactSubmittedAnalyticsEventMock).toHaveBeenCalledWith(
+      expect.anything(),
+      'sess_verified_99',
+    );
+    const auditRecord = infoCalls.find(
+      c => c['event'] === 'portal.contact.analytics_link_committed',
+    );
+    expect(auditRecord).toMatchObject({
+      seam_type: 'DELTA_AUDIT_GAP',
+      event: 'portal.contact.analytics_link_committed',
+      submissionId: '33333333-3333-4333-8333-333333333333',
+      linkMethod: 'verified_client_session',
+      linkedSessionPresent: true,
+      guestSessionLinked: true,
+      correlationId: 'corr-link-ok',
+    });
+    expect(JSON.stringify(auditRecord)).not.toContain('ada@example.com');
+    expect(JSON.stringify(auditRecord)).not.toContain('203.0.113.55');
+
+    // Fail-open: analytics resolver throwing must NEVER block HTTP 201 commit
+    resolveOrCreateContactAnalyticsSessionMock.mockRejectedValueOnce(
+      new Error('analytics db timeout'),
+    );
+    insertContactSubmissionMock.mockResolvedValueOnce({
+      id: '44444444-4444-4444-8444-444444444444',
+      name: 'Ada Lovelace',
+      email: 'ada@example.com',
+      phone: null,
+      attachmentName: null,
+      attachmentSizeBytes: null,
+      attachmentSha256: null,
+      createdAt: '2026-11-27T01:05:00.000Z',
+    });
+    const failOpenRes = await processContactSubmission(
+      makeRequest(async () => makeValidFormData()),
+      { correlationId: 'corr-link-fail-open', logger },
+    );
+    expect(failOpenRes.status).toBe(201);
+    expect(insertContactSubmissionMock).toHaveBeenLastCalledWith(
+      expect.anything(),
+      expect.objectContaining({ email: 'ada@example.com' }),
+      { analyticsSessionId: null, guestSessionId: null },
+    );
+  });
+
+  it('attaches active in-memory analyticsSessionId in submitPortalContactForm without mutating caller FormData unexpectedly', async () => {
+    const metaEndpoint = document.createElement('meta');
+    metaEndpoint.name = 'aklapper-analytics-endpoint';
+    metaEndpoint.content = '/api/analytics/ingest';
+    const metaApp = document.createElement('meta');
+    metaApp.name = 'aklapper-analytics-app';
+    metaApp.content = 'portal';
+    document.head.append(metaEndpoint, metaApp);
+
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValueOnce(
+      Response.json(
+        {
+          ok: true,
+          submission: {
+            id: '66666666-6666-4666-8666-666666666666',
+            name: 'Ada Lovelace',
+            email: 'ada@example.com',
+            phone: null,
+            attachmentName: null,
+            attachmentSizeBytes: null,
+            attachmentSha256: null,
+            createdAt: '2026-11-27T01:10:00.000Z',
+          },
+        },
+        { status: 201 },
+      ),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    try {
+      const client = bootstrapDocumentAnalytics(document);
+      expect(client).not.toBeNull();
+      const fd = makeValidFormData();
+      const res = await submitPortalContactForm(fd);
+      expect(res.ok).toBe(true);
+      const sentBody = fetchMock.mock.calls[0]?.[1]?.body as FormData;
+      expect(sentBody.get('analyticsSessionId')).toBe(client?.sessionId);
+    } finally {
+      resetAnalyticsBootstrap();
+      document.head.innerHTML = '';
     }
   });
 });

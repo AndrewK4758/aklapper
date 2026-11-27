@@ -1,7 +1,8 @@
 import type { ContactActionResult, PortalContactContent } from '@aklapper/core';
-import { render, screen } from '@testing-library/react';
+import { bootstrapDocumentAnalytics, resetAnalyticsBootstrap } from '@aklapper/core/analytics';
+import { act, render, screen } from '@testing-library/react';
 import { createMemoryRouter, RouterProvider } from 'react-router';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { PortalContactPage } from './index';
 
@@ -32,6 +33,12 @@ const CONTENT: PortalContactContent = {
 };
 
 describe('portal/pages/contact', () => {
+  afterEach(() => {
+    resetAnalyticsBootstrap();
+    document.head.innerHTML = '';
+    vi.restoreAllMocks();
+  });
+
   it('renders a transmission receipt after submission', () => {
     const onClose = vi.fn<() => void>();
     const successResult: ContactActionResult = {
@@ -101,5 +108,57 @@ describe('portal/pages/contact', () => {
     expect(alert.textContent).toContain('ERR_DB_UNAVAILABLE');
     expect(alert.textContent).toContain('Retry shortly or share ID.');
     expect(alert.textContent).toContain('corr-contact-503');
+  });
+
+  it('keeps hidden analyticsSessionId synchronized reactively via useSyncExternalStore when canonical sessionId reconciles', async () => {
+    vi.useFakeTimers();
+    try {
+      const metaEndpoint = document.createElement('meta');
+      metaEndpoint.name = 'aklapper-analytics-endpoint';
+      metaEndpoint.content = '/api/analytics/ingest';
+      const metaApp = document.createElement('meta');
+      metaApp.name = 'aklapper-analytics-app';
+      metaApp.content = 'portal';
+      document.head.append(metaEndpoint, metaApp);
+
+      vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            accepted: 1,
+            sessionId: 'sess_reconciled_contact',
+            ipHash: 'h_contact',
+          }),
+          { status: 202, headers: { 'content-type': 'application/json' } },
+        ),
+      );
+
+      const client = bootstrapDocumentAnalytics(document);
+      const router = createMemoryRouter([
+        {
+          path: '/',
+          element: (
+            <PortalContactPage
+              content={CONTENT}
+              isSubmitting={false}
+              onClose={vi.fn<() => void>()}
+            />
+          ),
+        },
+      ]);
+
+      const { container } = render(<RouterProvider router={router} />);
+      const hiddenInput = container.querySelector<HTMLInputElement>(
+        'input[name="analyticsSessionId"]',
+      );
+      expect(hiddenInput).not.toBeNull();
+      expect(hiddenInput?.value).toBe(client?.sessionId);
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(350);
+      });
+      expect(hiddenInput?.value).toBe('sess_reconciled_contact');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

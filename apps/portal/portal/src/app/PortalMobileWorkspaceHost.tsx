@@ -1,4 +1,5 @@
 import type { PortalRootLoaderData } from '@aklapper/core';
+import { trackPaneOpen } from '@aklapper/core/analytics';
 import { OscStatusBadge, SolarForgeEmblem } from '@aklapper/ui';
 import { type MobileNavItem, MobileTuiWorkspace } from '@aklapper/ui/mobile-tui-workspace';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
@@ -78,6 +79,7 @@ export function PortalMobileWorkspaceHost({
     if (isPortalPaneRoute(viewId)) {
       portalPaneStreamStore.prewarm(MOBILE_PANE_ID, viewId);
     }
+    trackPaneOpen(viewId, 'mobile');
     setPaneStack(prev => [...prev, viewId]);
   };
 

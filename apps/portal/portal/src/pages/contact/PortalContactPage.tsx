@@ -1,4 +1,5 @@
 import type { ContactActionResult, PortalContactContent } from '@aklapper/core';
+import { getActiveAnalyticsSessionId, subscribeAnalyticsSessionId } from '@aklapper/core/analytics';
 import {
   Button,
   OscStatusBadge,
@@ -8,7 +9,7 @@ import {
   TuiWindow,
   usePaneNavigation,
 } from '@aklapper/ui';
-import { type JSX, useState } from 'react';
+import { type JSX, useState, useSyncExternalStore } from 'react';
 import { Form, Link } from 'react-router';
 
 import styles from './PortalContactPage.module.css';
@@ -36,6 +37,11 @@ export function PortalContactPage({
 }: PortalContactPageProps) {
   const paneNav = usePaneNavigation();
   const [dismissedId, setDismissedId] = useState<string | null>(null);
+  const analyticsSessionId = useSyncExternalStore(
+    subscribeAnalyticsSessionId,
+    getActiveAnalyticsSessionId,
+    () => '',
+  );
 
   const confirmedSubmission =
     actionData?.ok && actionData.submission.id !== dismissedId ? actionData.submission : null;
@@ -127,6 +133,7 @@ export function PortalContactPage({
             renderForm={({ className, onSubmit, children }) => {
               const formBody = (
                 <>
+                  <input type='hidden' name='analyticsSessionId' value={analyticsSessionId} />
                   <input
                     type='text'
                     name='website'
