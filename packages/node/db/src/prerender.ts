@@ -4,9 +4,6 @@ import {
   type AdminAnalyticsSummaryData,
   type AdminHomeLoaderData,
   type AdminRootLoaderData,
-  AgensiSkillSchema,
-  CadencePresetSchema,
-  CareerDossierSchema,
   MenuItemSchema,
   type PortalAboutLoaderData,
   type PortalAgensiLoaderData,
@@ -15,8 +12,18 @@ import {
   type PortalContactLoaderData,
   type PortalHomeLoaderData,
   type PortalRootLoaderData,
-  type QuotaStatus,
 } from '@aklapper/core';
+import {
+  buildSeedTerminalProfile,
+  getPrerenderPortalAboutData,
+  getPrerenderPortalAgensiData as getCorePrerenderPortalAgensiData,
+  getPrerenderPortalAskData,
+  getPrerenderPortalCadenceData,
+  getPrerenderPortalContactData,
+  getPrerenderPortalHomeData,
+  getPrerenderPortalRootData,
+  TERMINAL_PROFILE_SLUGS,
+} from '@aklapper/core/prerender';
 import { resolveAgensiCreatorHandle } from '@aklapper/node-runtime/agensi';
 
 import {
@@ -40,137 +47,25 @@ import {
   loadPortalContactData,
   loadPortalHomeData,
   loadPortalRootData,
-  TERMINAL_PROFILE_SLUGS,
 } from './queries.ts';
-import { CAREER_DOSSIER_SEEDS } from './seed-dossiers.ts';
-import { getPrerenderGoldenSandboxRuns } from './seed-golden-runs.ts';
 import {
   ADMIN_ANALYTICS_SEED,
   ADMIN_CHROME_SEED,
   ADMIN_HOME_SEED,
-  AGENSI_SKILL_SEEDS,
-  buildSeedTerminalProfile,
-  CADENCE_PRESET_SEEDS,
   DEFAULT_MENU_ITEMS,
-  PORTAL_ABOUT_SEED,
-  PORTAL_AGENSI_SEED,
-  PORTAL_ASK_SEED,
-  PORTAL_CADENCE_SEED,
-  PORTAL_CHROME_SEED,
-  PORTAL_CONTACT_SEED,
-  PORTAL_HOME_SEED,
 } from './seed.ts';
 
-const DEFAULT_GUEST_QUOTA: QuotaStatus = {
-  role: 'guest',
-  turnsUsed: 0,
-  maxTurns: 10,
-  tokensUsed: 0,
-  maxTokens: 40_000,
+export {
+  getPrerenderPortalAboutData,
+  getPrerenderPortalAskData,
+  getPrerenderPortalCadenceData,
+  getPrerenderPortalContactData,
+  getPrerenderPortalHomeData,
+  getPrerenderPortalRootData,
 };
 
-export function getPrerenderPortalRootData(): PortalRootLoaderData {
-  const { content: homeContent, terminal, contactForm } = getPrerenderPortalHomeData();
-  return {
-    chrome: PORTAL_CHROME_SEED,
-    terminal,
-    homeContent,
-    contactForm,
-  };
-}
-
-export function getPrerenderPortalHomeData(): PortalHomeLoaderData {
-  return {
-    content: PORTAL_HOME_SEED,
-    terminal: buildSeedTerminalProfile(TERMINAL_PROFILE_SLUGS.portalHome),
-    contactForm: PORTAL_CONTACT_SEED.form,
-  };
-}
-
-export function getPrerenderPortalAboutData(): PortalAboutLoaderData {
-  console.info(
-    JSON.stringify({
-      event: 'portal.about.loader_source_branch',
-      seamType: 'RULE_DIVERGENCE',
-      branch: 'prerender_seed_fallback',
-      dossierCount: CAREER_DOSSIER_SEEDS.length,
-    }),
-  );
-
-  return {
-    content: PORTAL_ABOUT_SEED,
-    dossiers: CAREER_DOSSIER_SEEDS.toSorted((a, b) => a.sortOrder - b.sortOrder).map(dossier =>
-      CareerDossierSchema.parse({
-        slug: dossier.slug,
-        kind: dossier.kind,
-        title: dossier.title,
-        domainLabel: dossier.domainLabel,
-        roleTitle: dossier.roleTitle,
-        timeframe: dossier.timeframe,
-        skills: [...dossier.skills],
-        summaryBody: dossier.summaryBody,
-        sections: dossier.sectionsJson.map(section => ({
-          heading: section.heading,
-          body: section.body,
-        })),
-        publishStatus: dossier.publishStatus,
-        sanitizationVerifiedAt: dossier.sanitizationVerifiedAt.toISOString(),
-        denylistHash: dossier.denylistHash,
-        sortOrder: dossier.sortOrder,
-        updatedAt: dossier.sanitizationVerifiedAt.toISOString(),
-      }),
-    ),
-    ...(PORTAL_CHROME_SEED.brandContactEmail
-      ? { brandContactEmail: PORTAL_CHROME_SEED.brandContactEmail }
-      : {}),
-  };
-}
-
 export function getPrerenderPortalAgensiData(): PortalAgensiLoaderData {
-  const creatorHandle = resolveAgensiCreatorHandle();
-  return {
-    content: PORTAL_AGENSI_SEED,
-    skills: AGENSI_SKILL_SEEDS.toSorted((a, b) => a.sortOrder - b.sortOrder).map(skill =>
-      AgensiSkillSchema.parse({
-        ...skill,
-        tags: [...skill.tags],
-        creatorHandle,
-        isPublished: true,
-        syncedAt: null,
-        source: 'prerender',
-      }),
-    ),
-    catalogMeta: {
-      mode: 'prerender',
-      creatorHandle,
-      syncedAt: null,
-    },
-  };
-}
-
-export function getPrerenderPortalAskData(): PortalAskLoaderData {
-  return {
-    content: PORTAL_ASK_SEED,
-    quota: DEFAULT_GUEST_QUOTA,
-  };
-}
-
-export function getPrerenderPortalCadenceData(): PortalCadenceLoaderData {
-  return {
-    content: PORTAL_CADENCE_SEED,
-    presets: CADENCE_PRESET_SEEDS.toSorted((a, b) => a.sortOrder - b.sortOrder).map(preset =>
-      CadencePresetSchema.parse(preset),
-    ),
-    quota: DEFAULT_GUEST_QUOTA,
-    recentRuns: [],
-    goldenRuns: getPrerenderGoldenSandboxRuns(),
-  };
-}
-
-export function getPrerenderPortalContactData(): PortalContactLoaderData {
-  return {
-    content: PORTAL_CONTACT_SEED,
-  };
+  return getCorePrerenderPortalAgensiData(resolveAgensiCreatorHandle());
 }
 
 export function getPrerenderAdminRootData(): AdminRootLoaderData {

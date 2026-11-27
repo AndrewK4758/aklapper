@@ -31,7 +31,12 @@ export interface ListCadenceRunsInput {
 
 export interface ListCadenceRunsResult {
   readonly runs: readonly CadenceRunResult[];
+  readonly goldenRuns: readonly CadenceRunResult[];
   readonly quota?: QuotaStatus;
+}
+
+export interface ClearCadenceSessionRunsResult {
+  readonly deletedCount: number;
 }
 
 export interface ApproveSpecGateResult {
@@ -95,7 +100,20 @@ export async function listCadenceRuns(
   const quota = mapProtoQuotaToDomain(res.quota);
   return {
     runs: res.runs.map(r => mapProtoCadenceRunToDomain(r, meta.logger)),
+    goldenRuns: res.goldenRuns.map(r => mapProtoCadenceRunToDomain(r, meta.logger)),
     ...(quota ? { quota } : {}),
+  };
+}
+
+export async function clearCadenceSessionRuns(
+  meta: GrpcCallMetadata,
+): Promise<ClearCadenceSessionRunsResult> {
+  const client = createCadenceServiceClient(meta);
+  const res = await invokeUnaryWithAuth('/cadence.v1.CadenceService/ClearSessionRuns', meta, opts =>
+    client.clearSessionRuns({}, opts),
+  );
+  return {
+    deletedCount: res.deletedCount,
   };
 }
 

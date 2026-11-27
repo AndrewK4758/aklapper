@@ -16,18 +16,20 @@ import {
 } from '../request-context.ts';
 import {
   GRPC_CATALOG_BY_CODE,
+  mapProtoFieldErrorsToDomain,
   mapProtoQuotaToDomain,
   resolveConnectCatalogEntry,
   scrubDiagnosticCause,
 } from './error-catalog.ts';
 import { ErrorDetailEnvelopeSchema, type ErrorDetailEnvelope } from './gen/common/v1/error_pb.ts';
 
-export { mapProtoQuotaToDomain } from './error-catalog.ts';
+export { mapProtoFieldErrorsToDomain, mapProtoQuotaToDomain } from './error-catalog.ts';
 
 export interface ClassifiedGrpcFailure {
   readonly publicError: PublicAppError;
   readonly diagnostic: DiagnosticAppError;
   readonly quota?: QuotaStatus;
+  readonly retryAfterSeconds?: number;
   readonly isFallbackTransportError: boolean;
 }
 
@@ -188,6 +190,13 @@ export function classifyGrpcError(
   if (error instanceof ConnectError) {
     const envelope = extractErrorDetailEnvelope(error);
     const quota = mapProtoQuotaToDomain(envelope?.quota);
+    const fieldErrors = mapProtoFieldErrorsToDomain(envelope?.error);
+    const retryAfterSeconds =
+      typeof envelope?.retryAfterSeconds === 'number' &&
+      Number.isInteger(envelope.retryAfterSeconds) &&
+      envelope.retryAfterSeconds > 0
+        ? envelope.retryAfterSeconds
+        : undefined;
     const { entry, isTransportFallback } = resolveConnectCatalogEntry(
       error,
       envelope,
@@ -200,6 +209,7 @@ export function classifyGrpcError(
         message: entry.message,
         action: entry.action,
         correlationId,
+        ...(fieldErrors ? { fieldErrors } : {}),
       }),
       { correlationId, source: ctx.source },
     );
@@ -223,6 +233,7 @@ export function classifyGrpcError(
       publicError,
       diagnostic,
       ...(quota ? { quota } : {}),
+      ...(retryAfterSeconds !== undefined ? { retryAfterSeconds } : {}),
       isFallbackTransportError: isTransportFallback,
     };
   }

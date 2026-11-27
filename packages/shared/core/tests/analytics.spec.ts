@@ -370,4 +370,102 @@ describe('@aklapper/core/analytics', () => {
       }
     }
   });
+
+  it('enforces metadata key, value, serialized byte, finite number, and 64 KiB batch bounds while allowing client error reporter & Agensi metadata', () => {
+    const baseEvent = {
+      type: 'error' as const,
+      name: 'client_error',
+      path: '/about',
+      timestamp: '2026-11-27T00:00:00.000Z',
+    };
+
+    // Valid createClientErrorReporter 5-key payload (with 128-char correlationId) and Agensi { slug } pass
+    expect(
+      AnalyticsBatchSchema.safeParse({
+        sessionId: 'sess_bounds_ok',
+        events: [
+          {
+            ...baseEvent,
+            metadata: {
+              app: 'portal',
+              source: 'route_boundary',
+              code: 'ERR_UPSTREAM_UNAVAILABLE',
+              status: 503,
+              correlationId: 'c'.repeat(128),
+            },
+          },
+          {
+            type: 'interaction',
+            name: 'agensi_outbound_click',
+            path: '/agensi',
+            metadata: { slug: 'cadence-governed-agentic-sdlc-framework' },
+            timestamp: '2026-11-27T00:00:00.000Z',
+          },
+        ],
+      }).success,
+    ).toBe(true);
+
+    // >16 metadata keys rejected
+    const seventeenKeys: Record<string, string> = {};
+    for (let i = 0; i < 17; i++) {
+      seventeenKeys[`k${i}`] = 'v';
+    }
+    expect(
+      AnalyticsBatchSchema.safeParse({
+        sessionId: 'sess_too_many_keys',
+        events: [{ ...baseEvent, metadata: seventeenKeys }],
+      }).success,
+    ).toBe(false);
+
+    // >256-char string value rejected
+    expect(
+      AnalyticsBatchSchema.safeParse({
+        sessionId: 'sess_long_val',
+        events: [{ ...baseEvent, metadata: { detail: 'x'.repeat(257) } }],
+      }).success,
+    ).toBe(false);
+
+    // >2048 B serialized per-event metadata rejected
+    const denseMeta: Record<string, string> = {};
+    for (let i = 0; i < 10; i++) {
+      denseMeta[`field_${i}`] = 'a'.repeat(240);
+    }
+    expect(
+      AnalyticsBatchSchema.safeParse({
+        sessionId: 'sess_dense_meta',
+        events: [{ ...baseEvent, metadata: denseMeta }],
+      }).success,
+    ).toBe(false);
+
+    // Non-finite numbers rejected
+    expect(
+      AnalyticsBatchSchema.safeParse({
+        sessionId: 'sess_nan',
+        events: [{ ...baseEvent, value: Number.NaN }],
+      }).success,
+    ).toBe(false);
+    expect(
+      AnalyticsBatchSchema.safeParse({
+        sessionId: 'sess_inf',
+        events: [{ ...baseEvent, metadata: { n: Number.POSITIVE_INFINITY } }],
+      }).success,
+    ).toBe(false);
+
+    // >64 KiB serialized batch rejected (50 events × ~1.6 KiB each > 64 KiB)
+    const bigMeta: Record<string, string> = {};
+    for (let i = 0; i < 7; i++) {
+      bigMeta[`m${i}`] = 'z'.repeat(220);
+    }
+    const bigEvents = Array.from({ length: 50 }, (_, idx) => ({
+      ...baseEvent,
+      name: `ev_${idx}`,
+      metadata: bigMeta,
+    }));
+    expect(
+      AnalyticsBatchSchema.safeParse({
+        sessionId: 'sess_over_64k',
+        events: bigEvents,
+      }).success,
+    ).toBe(false);
+  });
 });

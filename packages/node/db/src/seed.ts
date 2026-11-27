@@ -3,21 +3,29 @@ import {
   type AdminAnalyticsContent,
   type AdminChromeContent,
   type AdminHomeContent,
-  buildSplitHelpLines,
-  cloneDefaultPortalHomePortrait,
-  cloneDefaultPortalHomeResumeSummary,
-  CONTACT_FORM_DEFINITION,
-  formatTerminalDirectoryListing,
   type MenuItem,
-  PORTAL_CHROME_SHORTCUT_HINT,
-  PORTAL_READLINE_HELP_LINES,
-  type PortalAgensiContent,
-  type PortalChromeContent,
-  type PortalContactContent,
-  type PortalHomeContent,
   type TerminalProfileData,
-  TerminalProfileDataSchema,
 } from '@aklapper/core';
+import {
+  AGENSI_SKILL_SEEDS,
+  buildSeedTerminalProfile,
+  CADENCE_PRESET_SEEDS,
+  CAREER_DOSSIER_SEEDS,
+  type CareerDossierSeedEntry,
+  PORTAL_ABOUT_SEED,
+  PORTAL_AGENSI_SEED,
+  PORTAL_ASK_SEED,
+  PORTAL_CADENCE_SEED,
+  PORTAL_CHROME_SEED,
+  PORTAL_CONTACT_SEED,
+  PORTAL_HOME_ABOUT_ACTION,
+  PORTAL_HOME_SEED,
+  TERMINAL_COMMAND_SEEDS,
+  TERMINAL_DIRECTORY_ENTRY_SEEDS,
+  TERMINAL_INITIAL_ENTRY_SEEDS,
+  TERMINAL_PROFILE_SEEDS,
+  TERMINAL_PROFILE_SLUGS,
+} from '@aklapper/core/prerender';
 import { resolveAgensiCreatorHandle } from '@aklapper/node-runtime/agensi';
 import { loadWorkspaceEnv } from '@aklapper/node-runtime/env';
 import {
@@ -30,7 +38,7 @@ import {
 import { and, eq, inArray, sql } from 'drizzle-orm';
 
 import { type AppDatabase, createDb, createDbPool } from './client.ts';
-import { resolveTerminalLsOutput, SITE_CONTENT_KEYS, TERMINAL_PROFILE_SLUGS } from './queries.ts';
+import { SITE_CONTENT_KEYS } from './queries.ts';
 import {
   agensiSkills,
   cadencePresets,
@@ -45,18 +53,10 @@ import {
   terminalInitialEntries,
   terminalProfiles,
 } from './schema.ts';
-import { PORTAL_ABOUT_SEED } from './seed-about.ts';
 import { seedAdminUserFromEnv, type SeedAdminUserResult } from './seed-admin.ts';
-import {
-  CAREER_DOSSIER_SEEDS,
-  type CareerDossierSeedEntry,
-  PORTAL_ASK_SEED,
-} from './seed-dossiers.ts';
-import {
-  CADENCE_GOLDEN_RUN_SEEDS,
-  CADENCE_PRESET_SEEDS,
-  PORTAL_CADENCE_SEED,
-} from './seed-golden-runs.ts';
+import { CADENCE_GOLDEN_RUN_SEEDS } from './seed-golden-runs.ts';
+
+export { buildSeedTerminalProfile, PORTAL_CHROME_SEED };
 
 export const DEFAULT_MENU_ITEMS: readonly MenuItem[] = [
   {
@@ -106,74 +106,6 @@ export const DEFAULT_MENU_ITEMS: readonly MenuItem[] = [
     enabled: true,
   },
 ];
-
-export const PORTAL_CHROME_SEED: PortalChromeContent = {
-  pageTitle: 'andrew-k.us — Andrew Klapper',
-  brandLabel: 'Andrew Klapper Portfolio',
-  brandContactEmail: 'andrew@andrew-k.us',
-  shortcutHint: PORTAL_CHROME_SHORTCUT_HINT,
-  statusBadge: {
-    source: 'cloud-run',
-    state: 'idle',
-    label: 'Idle (on-demand services)',
-  },
-  footerText: 'Andrew Klapper · Personal Portfolio',
-  footerLinkLabel: 'agensi.io/creators/aklapper',
-  footerLinkUrl: 'https://agensi.io/creators/aklapper',
-};
-
-const PORTAL_HOME_ABOUT_ACTION = {
-  label: 'About & Resume → /about',
-  to: '/about',
-  variant: 'default',
-} as const;
-
-const PORTAL_HOME_SEED: PortalHomeContent = {
-  tuiTitle: 'Portfolio Launcher',
-  tuiBadge: {
-    source: 'cloud-run',
-    state: 'idle',
-    label: 'Idle (on-demand services)',
-  },
-  heading: 'Andrew Klapper — Portfolio',
-  description:
-    "Explore interactive demos, chat with Andrew's AI about his work and experience, browse published Agensi skills, or send a direct message. Use the launcher below or the terminal above to navigate.",
-  actions: [
-    PORTAL_HOME_ABOUT_ACTION,
-    { label: 'CADENCE Builder → /cadence', to: '/cadence', variant: 'primary' },
-    { label: 'Chat with Andrew → /chat', to: '/chat', variant: 'default' },
-    { label: 'Agensi Storefront → /agensi', to: '/agensi', variant: 'default' },
-    { label: 'Contact → /contact', to: '/contact', variant: 'default' },
-  ],
-  portrait: cloneDefaultPortalHomePortrait(),
-  resumeSummary: cloneDefaultPortalHomeResumeSummary(),
-};
-
-const PORTAL_AGENSI_SEED: PortalAgensiContent = {
-  windowTitle: 'Agensi Storefront — Published Skills',
-  statusBadge: {
-    source: 'agensi-catalog',
-    state: 'ready',
-    label: 'Catalog live',
-  },
-  description:
-    'Published AI agent skills, engineering workflows, and operational blueprints available on agensi.io/creators/aklapper.',
-  searchPlaceholder: 'Filter skills by name, summary, or tag...',
-  emptyStateLabel: 'No skills match the current search or tag filters.',
-  outboundCtaLabel: 'View on Agensi →',
-};
-
-const PORTAL_CONTACT_SEED: PortalContactContent = {
-  windowTitle: 'Contact — Send a Message',
-  statusBadge: {
-    source: 'postgres-19',
-    state: 'ready',
-    label: 'Ready',
-  },
-  description:
-    'Send a direct message to Andrew Klapper. All fields are validated before submission.',
-  form: CONTACT_FORM_DEFINITION,
-};
 
 const ADMIN_CHROME_SEED: AdminChromeContent = {
   pageTitle: 'admin.andrew-k.us — Admin Console',
@@ -256,524 +188,12 @@ const SITE_CONTENT_SEEDS: ReadonlyArray<{
   },
 ];
 
-const TERMINAL_PROFILE_SEEDS = [
-  {
-    slug: TERMINAL_PROFILE_SLUGS.portalHome,
-    bannerTitle: 'Solar Forge Terminal // tty1',
-    bannerMeta:
-      'tty1 · type "about", "tui", "cadence", "chat", "agensi", or "contact" · Tab autocomplete',
-    osLabel: '⚡',
-    directory: '~/projects/aklapper',
-    vcsBranch: 'portfolio_v2',
-    vcsState: 'clean' as const,
-    contextLabel: 'guest@andrew-k.us',
-    placeholder: 'type a command (help, ls, about, tui, cadence, chat, agensi, contact, cd ...)',
-    quickCommands: [
-      'help',
-      'ls',
-      'about',
-      'tui',
-      'cadence',
-      'chat',
-      'agensi',
-      'contact',
-      'status',
-      'clear',
-    ],
-  },
-  {
-    slug: TERMINAL_PROFILE_SLUGS.adminOps,
-    bannerTitle: 'Solar Forge Ops Terminal // admin',
-    bannerMeta: 'ops tty · type "help" or press Tab',
-    osLabel: '⚡',
-    directory: '~/admin.andrew-k.us',
-    vcsBranch: 'ops-isolated',
-    vcsState: 'clean' as const,
-    contextLabel: 'admin@andrew-k.us',
-    placeholder: 'type an ops command (help, analytics, cms, inbox, quotas, ops, status, clear)',
-    quickCommands: ['help', 'analytics', 'cms', 'inbox', 'quotas', 'ops', 'status'],
-  },
-] as const;
-
-const TERMINAL_DIRECTORY_ENTRY_SEEDS = [
-  {
-    profileSlug: TERMINAL_PROFILE_SLUGS.portalHome,
-    name: 'about',
-    description: 'Resume & platform services guide',
-    sortOrder: 1,
-    enabled: true,
-  },
-  {
-    profileSlug: TERMINAL_PROFILE_SLUGS.portalHome,
-    name: 'tui',
-    description: 'TUI version',
-    sortOrder: 2,
-    enabled: true,
-  },
-  {
-    profileSlug: TERMINAL_PROFILE_SLUGS.portalHome,
-    name: 'cadence',
-    description: 'Agentic workflow example',
-    sortOrder: 3,
-    enabled: true,
-  },
-  {
-    profileSlug: TERMINAL_PROFILE_SLUGS.portalHome,
-    name: 'chat',
-    description: "Chat with Andrew's AI",
-    sortOrder: 4,
-    enabled: true,
-  },
-  {
-    profileSlug: TERMINAL_PROFILE_SLUGS.portalHome,
-    name: 'agensi',
-    description: 'Published AI skills',
-    sortOrder: 5,
-    enabled: true,
-  },
-  {
-    profileSlug: TERMINAL_PROFILE_SLUGS.portalHome,
-    name: 'contact',
-    description: 'Connect with me',
-    sortOrder: 6,
-    enabled: true,
-  },
-] as const;
-
-const PORTAL_HOME_DIRECTORY_LISTING = formatTerminalDirectoryListing(
-  TERMINAL_DIRECTORY_ENTRY_SEEDS.filter(
-    entry => entry.profileSlug === TERMINAL_PROFILE_SLUGS.portalHome && entry.enabled,
-  ).toSorted((a, b) => a.sortOrder - b.sortOrder),
-);
-
-const TERMINAL_INITIAL_ENTRY_SEEDS = [
-  {
-    profileSlug: TERMINAL_PROFILE_SLUGS.portalHome,
-    command: 'ls',
-    output: PORTAL_HOME_DIRECTORY_LISTING,
-    status: 'ok' as const,
-    durationLabel: '6ms',
-    timestampLabel: '00:00:00',
-    sortOrder: 0,
-  },
-  {
-    profileSlug: TERMINAL_PROFILE_SLUGS.adminOps,
-    command: 'status',
-    output: 'admin.andrew-k.us :: isolated ops console ready · split panes enabled.',
-    status: 'ok' as const,
-    durationLabel: '3ms',
-    timestampLabel: '00:00:00',
-    sortOrder: 0,
-  },
-] as const;
-
-const TERMINAL_COMMAND_SEEDS = [
-  {
-    profileSlug: TERMINAL_PROFILE_SLUGS.portalHome,
-    name: 'help',
-    description: 'list available portal commands',
-    kind: 'static' as const,
-    output: [
-      'Available terminal commands:',
-      '  ls         — list portal routes & workspaces',
-      '  about      — open /about resume & platform services guide',
-      '  tui        — open TUI launcher in a split pane',
-      '  cadence    — open /cadence artifact sandbox',
-      "  chat       — open /chat to chat with Andrew's AI & JD match",
-      '  agensi     — open /agensi commercial skills storefront',
-      '  contact    — run inline terminal contact form (or "contact --tui" / "--help")',
-      '  cd <route> — navigate to /about, /cadence, /chat, /agensi, or /contact',
-      '  status     — inspect cluster & service state',
-      '  whoami     — display active terminal session',
-      '  clear      — clear terminal scrollback',
-      '',
-      ...PORTAL_READLINE_HELP_LINES,
-      ...buildSplitHelpLines({ includeTui: true }),
-    ].join('\n'),
-    targetRoute: null,
-    allowedRoutes: [] as string[],
-    errorTemplate: null,
-    sortOrder: 1,
-  },
-  {
-    profileSlug: TERMINAL_PROFILE_SLUGS.portalHome,
-    name: 'ls',
-    description: 'list portal routes & workspaces',
-    kind: 'static' as const,
-    output: PORTAL_HOME_DIRECTORY_LISTING,
-    targetRoute: null,
-    allowedRoutes: [] as string[],
-    errorTemplate: null,
-    sortOrder: 2,
-  },
-  {
-    profileSlug: TERMINAL_PROFILE_SLUGS.portalHome,
-    name: 'about',
-    description: 'open /about resume & platform services guide',
-    kind: 'navigate' as const,
-    output: 'opening /about ...',
-    targetRoute: '/about',
-    allowedRoutes: [] as string[],
-    errorTemplate: null,
-    sortOrder: 3,
-  },
-  {
-    profileSlug: TERMINAL_PROFILE_SLUGS.portalHome,
-    name: 'tui',
-    description: 'open TUI launcher in current pane (--split / --tab)',
-    kind: 'tui' as const,
-    output: 'opening TUI launcher ... (Esc back · q exit · --split / --tab)',
-    targetRoute: null,
-    allowedRoutes: [] as string[],
-    errorTemplate: null,
-    sortOrder: 4,
-  },
-  {
-    profileSlug: TERMINAL_PROFILE_SLUGS.portalHome,
-    name: 'cadence',
-    description: 'open /cadence artifact sandbox',
-    kind: 'navigate' as const,
-    output: 'opening /cadence ...',
-    targetRoute: '/cadence',
-    allowedRoutes: [] as string[],
-    errorTemplate: null,
-    sortOrder: 5,
-  },
-  {
-    profileSlug: TERMINAL_PROFILE_SLUGS.portalHome,
-    name: 'chat',
-    description: "open /chat to chat with Andrew's AI & JD match",
-    kind: 'navigate' as const,
-    output: 'opening /chat ...',
-    targetRoute: '/chat',
-    allowedRoutes: [] as string[],
-    errorTemplate: null,
-    sortOrder: 6,
-  },
-  {
-    profileSlug: TERMINAL_PROFILE_SLUGS.portalHome,
-    name: 'agensi',
-    description: 'open /agensi published skills storefront',
-    kind: 'navigate' as const,
-    output: 'opening /agensi ...',
-    targetRoute: '/agensi',
-    allowedRoutes: [] as string[],
-    errorTemplate: null,
-    sortOrder: 7,
-  },
-  {
-    profileSlug: TERMINAL_PROFILE_SLUGS.portalHome,
-    name: 'contact',
-    description: 'run inline terminal contact form (or "contact --tui" / "--help")',
-    kind: 'navigate' as const,
-    output: 'opening /contact ...',
-    targetRoute: '/contact',
-    allowedRoutes: [] as string[],
-    errorTemplate: null,
-    sortOrder: 8,
-  },
-  {
-    profileSlug: TERMINAL_PROFILE_SLUGS.portalHome,
-    name: 'cd',
-    description: 'navigate to /about, /cadence, /chat, /agensi, or /contact',
-    kind: 'cd' as const,
-    output: 'cd /{{target}}',
-    targetRoute: null,
-    allowedRoutes: ['about', 'cadence', 'chat', 'agensi', 'contact'],
-    errorTemplate:
-      'cd: no such route: {{input}}\nTry: cd about | cd cadence | cd chat | cd agensi | cd contact',
-    sortOrder: 9,
-  },
-  {
-    profileSlug: TERMINAL_PROFILE_SLUGS.portalHome,
-    name: 'status',
-    description: 'inspect runtime & service state',
-    kind: 'static' as const,
-    output: 'cloud-run: scale-to-0 ready · portal-ssr: online · theme: solar-forge',
-    targetRoute: null,
-    allowedRoutes: [] as string[],
-    errorTemplate: null,
-    sortOrder: 10,
-  },
-  {
-    profileSlug: TERMINAL_PROFILE_SLUGS.portalHome,
-    name: 'whoami',
-    description: 'display active terminal session',
-    kind: 'static' as const,
-    output: 'guest@andrew-k.us (tty1)',
-    targetRoute: null,
-    allowedRoutes: [] as string[],
-    errorTemplate: null,
-    sortOrder: 11,
-  },
-  {
-    profileSlug: TERMINAL_PROFILE_SLUGS.portalHome,
-    name: 'clear',
-    description: 'clear terminal scrollback',
-    kind: 'clear' as const,
-    output: '',
-    targetRoute: null,
-    allowedRoutes: [] as string[],
-    errorTemplate: null,
-    sortOrder: 12,
-  },
-  {
-    profileSlug: TERMINAL_PROFILE_SLUGS.adminOps,
-    name: 'help',
-    description: 'list available ops commands',
-    kind: 'static' as const,
-    output: [
-      'Available admin ops commands:',
-      '  help      — list available ops commands',
-      '  home      — open Operations Overview (/)',
-      '  analytics — open Telemetry & CWV Dashboard (/analytics)',
-      '  cms       — open Postgres 19 CMS (/cms)',
-      '  inbox     — open Contact Inbox & Attachments (/inbox)',
-      '  quotas    — open Quota Policies & Buckets (/quotas)',
-      '  ops       — open Cluster SSE & Sandbox Audit (/ops)',
-      '  status    — print isolated ops status',
-      '  whoami    — print active ops identity',
-      '  clear     — clear terminal scrollback',
-      ...buildSplitHelpLines({ includeTui: false }),
-    ].join('\n'),
-    targetRoute: null,
-    allowedRoutes: [] as string[],
-    errorTemplate: null,
-    sortOrder: 1,
-  },
-  {
-    profileSlug: TERMINAL_PROFILE_SLUGS.adminOps,
-    name: 'home',
-    description: 'open Operations Overview (/)',
-    kind: 'navigate' as const,
-    output: 'opening / ...',
-    targetRoute: '/',
-    allowedRoutes: [] as string[],
-    errorTemplate: null,
-    sortOrder: 2,
-  },
-  {
-    profileSlug: TERMINAL_PROFILE_SLUGS.adminOps,
-    name: 'analytics',
-    description: 'open Telemetry & CWV Dashboard (/analytics)',
-    kind: 'navigate' as const,
-    output: 'opening /analytics ...',
-    targetRoute: '/analytics',
-    allowedRoutes: [] as string[],
-    errorTemplate: null,
-    sortOrder: 3,
-  },
-  {
-    profileSlug: TERMINAL_PROFILE_SLUGS.adminOps,
-    name: 'cms',
-    description: 'open Postgres 19 CMS (/cms)',
-    kind: 'navigate' as const,
-    output: 'opening /cms ...',
-    targetRoute: '/cms',
-    allowedRoutes: [] as string[],
-    errorTemplate: null,
-    sortOrder: 4,
-  },
-  {
-    profileSlug: TERMINAL_PROFILE_SLUGS.adminOps,
-    name: 'inbox',
-    description: 'open Contact Inbox (/inbox)',
-    kind: 'navigate' as const,
-    output: 'opening /inbox ...',
-    targetRoute: '/inbox',
-    allowedRoutes: [] as string[],
-    errorTemplate: null,
-    sortOrder: 5,
-  },
-  {
-    profileSlug: TERMINAL_PROFILE_SLUGS.adminOps,
-    name: 'quotas',
-    description: 'open Quota Policies & Rate-Limit Buckets (/quotas)',
-    kind: 'navigate' as const,
-    output: 'opening /quotas ...',
-    targetRoute: '/quotas',
-    allowedRoutes: [] as string[],
-    errorTemplate: null,
-    sortOrder: 6,
-  },
-  {
-    profileSlug: TERMINAL_PROFILE_SLUGS.adminOps,
-    name: 'ops',
-    description: 'open Cluster SSE & Sandbox Ops (/ops)',
-    kind: 'navigate' as const,
-    output: 'opening /ops ...',
-    targetRoute: '/ops',
-    allowedRoutes: [] as string[],
-    errorTemplate: null,
-    sortOrder: 7,
-  },
-  {
-    profileSlug: TERMINAL_PROFILE_SLUGS.adminOps,
-    name: 'status',
-    description: 'print isolated ops status',
-    kind: 'static' as const,
-    output:
-      'SURFACE : admin.andrew-k.us (noindex, nofollow, noarchive)\nAUTH    : WebAuthn passkey gate · Postgres 19 telemetry active',
-    targetRoute: null,
-    allowedRoutes: [] as string[],
-    errorTemplate: null,
-    sortOrder: 8,
-  },
-  {
-    profileSlug: TERMINAL_PROFILE_SLUGS.adminOps,
-    name: 'whoami',
-    description: 'print active ops identity',
-    kind: 'static' as const,
-    output: 'admin@andrew-k.us (isolated ops shell)',
-    targetRoute: null,
-    allowedRoutes: [] as string[],
-    errorTemplate: null,
-    sortOrder: 9,
-  },
-  {
-    profileSlug: TERMINAL_PROFILE_SLUGS.adminOps,
-    name: 'clear',
-    description: 'clear terminal scrollback',
-    kind: 'clear' as const,
-    output: '',
-    targetRoute: null,
-    allowedRoutes: [] as string[],
-    errorTemplate: null,
-    sortOrder: 10,
-  },
-] as const;
-
 const RETIRED_PLACEHOLDER_SKILL_SLUGS = [
   'cadence-sdlc',
   'gke-scale-to-zero-go',
   'grounded-qdrant-rag',
   'solar-forge-react-ssr',
   'pg19-quota-guardrails',
-] as const;
-
-const AGENSI_SKILL_SEEDS = [
-  {
-    slug: 'cadence-governed-agentic-sdlc-framework',
-    name: 'CADENCE: Governed Agentic SDLC Framework',
-    summary:
-      'Complete 7-phase, provider-neutral agentic SDLC framework with 12 specialist roles, CHORD behavioral specs, strict BDD/TDD, zero-spec /tmp fault-injection review, expand/contract migrations, and 4 human approval gates.',
-    tags: [
-      'agents-orchestration',
-      'code-quality-review',
-      'testing-debugging',
-      'workflow-automation',
-      'security',
-      'sdlc',
-      'tdd',
-      'architecture',
-      'specifications',
-    ],
-    url: 'https://agensi.io/skills/cadence-governed-agentic-sdlc-framework',
-    sortOrder: 1,
-    creatorHandle: 'aklapper',
-    isPublished: true,
-    source: 'seed' as const,
-  },
-  {
-    slug: 'cadence-triage-risk-classifier',
-    name: 'CADENCE Triage & Risk Classifier',
-    summary:
-      'Classifies engineering tasks across 4 axes, runs bounded 20-file codebase recon, catches hidden sibling callers, and initializes structured ticket specs before coding starts.',
-    tags: [
-      'agents-orchestration',
-      'workflow-automation',
-      'code-quality-review',
-      'triage',
-      'planning',
-      'software-engineering',
-    ],
-    url: 'https://agensi.io/skills/cadence-triage-risk-classifier',
-    sortOrder: 2,
-    creatorHandle: 'aklapper',
-    isPublished: true,
-    source: 'seed' as const,
-  },
-  {
-    slug: 'local-gpu-coprocessor-offload-for-coding-agents-fastmcp',
-    name: 'Local GPU Coprocessor Offload for Coding Agents (FastMCP)',
-    summary:
-      'Strictly read-only local GPU FastMCP server (AST semantic search, 30-line fast-path log compaction with /tmp raw escape hatches, and deterministic + LLM pre-PR diff review) to slash frontier token costs.',
-    tags: [
-      'llm-ops',
-      'agents-orchestration',
-      'testing-debugging',
-      'code-quality-review',
-      'local-llm',
-      'mcp',
-      'llama-cpp',
-      'ollama',
-    ],
-    url: 'https://agensi.io/skills/local-gpu-coprocessor-offload-for-coding-agents-fastmcp',
-    sortOrder: 3,
-    creatorHandle: 'aklapper',
-    isPublished: true,
-    source: 'seed' as const,
-  },
-  {
-    slug: 'cadence-safe-database-migration-author-expand-contract',
-    name: 'CADENCE Safe Database Migration Author (Expand/Contract)',
-    summary:
-      'Zero-downtime expand/contract database migration author and auditor for EF Core, Alembic, Prisma, Drizzle, Room, and raw SQL with DDL/DML separation, idempotency guards, and rollback proof.',
-    tags: [
-      'data-databases',
-      'apis-backend',
-      'code-quality-review',
-      'devops-cloud',
-      'migrations',
-      'sql',
-      'zero-downtime',
-    ],
-    url: 'https://agensi.io/skills/cadence-safe-database-migration-author-expand-contract',
-    sortOrder: 4,
-    creatorHandle: 'aklapper',
-    isPublished: true,
-    source: 'seed' as const,
-  },
-  {
-    slug: 'cadence-chord-specification-spec-challenger',
-    name: 'CADENCE CHORD Specification & Spec Challenger',
-    summary:
-      'Produces unranked multi-option design exploration, 6W×4L + CHORD behavioral specs, observability seams, Gherkin test plans, evidence manifests, and a 7-check Pre-Gate-1 Spec Challenger before coding.',
-    tags: [
-      'agents-orchestration',
-      'code-quality-review',
-      'technical-documentation',
-      'testing-debugging',
-      'architecture',
-      'specifications',
-      'bdd',
-    ],
-    url: 'https://agensi.io/skills/cadence-chord-specification-spec-challenger',
-    sortOrder: 5,
-    creatorHandle: 'aklapper',
-    isPublished: true,
-    source: 'seed' as const,
-  },
-  {
-    slug: 'cadence-adversarial-pre-pr-review-gate',
-    name: 'CADENCE Adversarial Pre-PR Review Gate',
-    summary:
-      'Three-lens pre-PR review combining contract review, a zero-spec Cold Breaker that runs disposable /tmp fault-injection probes across 7 break vectors, and a security/concurrency audit.',
-    tags: [
-      'code-quality-review',
-      'security',
-      'testing-debugging',
-      'code-review',
-      'adversarial-testing',
-      'pre-pr',
-      'concurrency',
-    ],
-    url: 'https://agensi.io/skills/cadence-adversarial-pre-pr-review-gate',
-    sortOrder: 6,
-    creatorHandle: 'aklapper',
-    isPublished: true,
-    source: 'seed' as const,
-  },
 ] as const;
 
 const QUOTA_POLICY_SEEDS = [
@@ -790,54 +210,6 @@ const QUOTA_POLICY_SEEDS = [
     maxDailyGlobalTokens: 2_000_000,
   },
 ] as const;
-
-export function buildSeedTerminalProfile(slug: string): TerminalProfileData {
-  const profile = TERMINAL_PROFILE_SEEDS.find(item => item.slug === slug);
-  if (!profile) {
-    throw new Error(`Missing seed terminal profile: slug="${slug}"`);
-  }
-
-  const directoryEntries = TERMINAL_DIRECTORY_ENTRY_SEEDS.filter(
-    entry => entry.profileSlug === slug && entry.enabled,
-  ).toSorted((a, b) => a.sortOrder - b.sortOrder);
-  const directoryListing =
-    directoryEntries.length > 0 ? formatTerminalDirectoryListing(directoryEntries) : null;
-
-  return TerminalProfileDataSchema.parse({
-    slug: profile.slug,
-    bannerTitle: profile.bannerTitle,
-    bannerMeta: profile.bannerMeta,
-    osLabel: profile.osLabel,
-    directory: profile.directory,
-    vcsBranch: profile.vcsBranch,
-    vcsState: profile.vcsState,
-    contextLabel: profile.contextLabel,
-    placeholder: profile.placeholder,
-    quickCommands: [...profile.quickCommands],
-    initialEntries: TERMINAL_INITIAL_ENTRY_SEEDS.filter(entry => entry.profileSlug === slug)
-      .toSorted((a, b) => a.sortOrder - b.sortOrder)
-      .map(entry => ({
-        command: entry.command,
-        output: resolveTerminalLsOutput(entry.command, entry.output, directoryListing),
-        status: entry.status,
-        durationLabel: entry.durationLabel,
-        timestamp: entry.timestampLabel,
-        sortOrder: entry.sortOrder,
-      })),
-    commands: TERMINAL_COMMAND_SEEDS.filter(cmd => cmd.profileSlug === slug)
-      .toSorted((a, b) => a.sortOrder - b.sortOrder)
-      .map(cmd => ({
-        name: cmd.name,
-        description: cmd.description,
-        kind: cmd.kind,
-        output: resolveTerminalLsOutput(cmd.name, cmd.output, directoryListing),
-        targetRoute: cmd.targetRoute,
-        allowedRoutes: [...cmd.allowedRoutes],
-        errorTemplate: cmd.errorTemplate,
-        sortOrder: cmd.sortOrder,
-      })),
-  });
-}
 
 export const ADMIN_OPS_TERMINAL_PROFILE: TerminalProfileData = buildSeedTerminalProfile(
   TERMINAL_PROFILE_SLUGS.adminOps,

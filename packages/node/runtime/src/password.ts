@@ -9,9 +9,11 @@ export const ARGON2ID_DEFAULTS = Object.freeze({
 } as const);
 
 export const AUTH_LOG_REDACT_PATHS: readonly string[] = [
+  'req.remoteAddress',
   'req.headers.cookie',
   'req.headers.authorization',
   'req.headers["x-internal-auth"]',
+  'req.headers["x-internal-client-ip"]',
   'req.headers["x-bootstrap-token"]',
   'req.headers["x-api-key"]',
   'res.headers["set-cookie"]',
@@ -21,6 +23,7 @@ export const AUTH_LOG_REDACT_PATHS: readonly string[] = [
   'totpKey',
   'apiKey',
   'agensiApiKey',
+  '*.clientIp',
   '*.password',
   '*.passwordHashArgon2',
   '*.secret',

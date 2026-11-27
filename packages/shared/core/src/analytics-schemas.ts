@@ -12,35 +12,64 @@ import { AdminAnalyticsContentSchema } from './portal.ts';
 
 export * from './analytics-admin-schemas.ts';
 
+const utf8Encoder = new TextEncoder();
+
+export const ANALYTICS_MAX_METADATA_KEYS = 16;
+export const ANALYTICS_MAX_METADATA_STRING_CHARS = 256;
+export const ANALYTICS_MAX_EVENT_METADATA_BYTES = 2_048;
+export const ANALYTICS_MAX_BATCH_BYTES = 64 * 1024;
+
+function utf8ByteLength(value: string): number {
+  return utf8Encoder.encode(value).byteLength;
+}
+
 function withoutNul(schema: z.ZodString): z.ZodString {
   return schema.refine(value => !value.includes('\0'), 'String must not contain NUL bytes');
 }
 
-const AnalyticsMetadataValueSchema = z.union([withoutNul(z.string()), z.number(), z.boolean()]);
+const AnalyticsMetadataValueSchema = z.union([
+  withoutNul(z.string().max(ANALYTICS_MAX_METADATA_STRING_CHARS)),
+  z.number().finite(),
+  z.boolean(),
+]);
+
+const AnalyticsEventMetadataSchema = z
+  .record(withoutNul(z.string().min(1).max(64)), AnalyticsMetadataValueSchema)
+  .refine(
+    meta => Object.keys(meta).length <= ANALYTICS_MAX_METADATA_KEYS,
+    `Metadata cannot exceed ${ANALYTICS_MAX_METADATA_KEYS} keys`,
+  )
+  .refine(
+    meta => utf8ByteLength(JSON.stringify(meta)) <= ANALYTICS_MAX_EVENT_METADATA_BYTES,
+    `Serialized metadata cannot exceed ${ANALYTICS_MAX_EVENT_METADATA_BYTES} bytes`,
+  );
 
 export const AnalyticsEventSchema = z.object({
   type: z.enum(['page_view', 'interaction', 'web_vital', 'error']),
   name: withoutNul(z.string().trim().min(1).max(120)),
   path: withoutNul(z.string().trim().min(1).max(512)),
-  value: z.number().optional(),
-  metadata: z
-    .record(withoutNul(z.string().min(1).max(64)), AnalyticsMetadataValueSchema)
-    .optional(),
+  value: z.number().finite().optional(),
+  metadata: AnalyticsEventMetadataSchema.optional(),
   timestamp: z.iso.datetime(),
 });
 export type AnalyticsEvent = z.infer<typeof AnalyticsEventSchema>;
 
-export const AnalyticsBatchSchema = z.object({
-  sessionId: withoutNul(z.string().trim().min(1).max(128)),
-  referrer: withoutNul(z.string().max(1024)).optional(),
-  landingPath: withoutNul(z.string().max(512)).optional(),
-  refParam: withoutNul(z.string().max(512)).optional(),
-  utmSource: withoutNul(z.string().max(512)).optional(),
-  utmMedium: withoutNul(z.string().max(512)).optional(),
-  utmCampaign: withoutNul(z.string().max(512)).optional(),
-  utmContent: withoutNul(z.string().max(512)).optional(),
-  events: z.array(AnalyticsEventSchema).min(1).max(50),
-});
+export const AnalyticsBatchSchema = z
+  .object({
+    sessionId: withoutNul(z.string().trim().min(1).max(128)),
+    referrer: withoutNul(z.string().max(1024)).optional(),
+    landingPath: withoutNul(z.string().max(512)).optional(),
+    refParam: withoutNul(z.string().max(512)).optional(),
+    utmSource: withoutNul(z.string().max(512)).optional(),
+    utmMedium: withoutNul(z.string().max(512)).optional(),
+    utmCampaign: withoutNul(z.string().max(512)).optional(),
+    utmContent: withoutNul(z.string().max(512)).optional(),
+    events: z.array(AnalyticsEventSchema).min(1).max(50),
+  })
+  .refine(
+    batch => utf8ByteLength(JSON.stringify(batch)) <= ANALYTICS_MAX_BATCH_BYTES,
+    `Serialized analytics batch cannot exceed ${ANALYTICS_MAX_BATCH_BYTES} bytes`,
+  );
 export type AnalyticsBatch = z.infer<typeof AnalyticsBatchSchema>;
 
 export const CwvMetricNameSchema = z.enum(['LCP', 'INP', 'CLS', 'TTFB']);
