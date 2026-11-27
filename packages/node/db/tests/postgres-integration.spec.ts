@@ -27,8 +27,12 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import {
   type AppDatabase,
+  analyticsEvents,
+  analyticsSessions,
   askTurns,
+  bindGuestSessionToAnalyticsSession,
   CADENCE_PRESET_SEEDS,
+  capturePortalSsrHit,
   CAREER_DOSSIER_SEEDS,
   careerDossiers,
   claimPendingSandboxRun,
@@ -37,10 +41,12 @@ import {
   consumeQuotaForSession,
   consumeTotpBackupCode,
   ContactDbConstraintError,
+  contactSubmissions,
   createDb,
   createDbPool,
   createPendingSandboxRunWithQuota,
   deleteCareerDossier,
+  deleteContactSubmission,
   deleteTerminalDirectoryEntry,
   dispatchAuthAction,
   extractPgConstraintViolation,
@@ -57,13 +63,17 @@ import {
   getUserTotpSecret,
   GoldenRunImmutableError,
   handleAdminAuthBffRequest,
+  handleAnalyticsIngestRequest,
   insertContactSubmission,
   isNodeDevUnlimitedEnabled,
   listAdminSandboxRuns,
   listCareerDossiers,
+  listContactSubmissions,
   listGoldenSandboxRuns,
   listPublishedCareerDossiers,
   listSandboxRunsForSession,
+  loadAdminAnalyticsBreakdowns,
+  loadAdminAnalyticsData,
   loadAdminAnalyticsSummary,
   loadAdminCmsData,
   loadAdminOverviewData,
@@ -74,7 +84,9 @@ import {
   pruneExpiredAskTurns,
   publishCareerDossier,
   rateLimitBuckets,
+  recordContactSubmittedAnalyticsEvent,
   resetRateLimitBucket,
+  resolveOrCreateContactAnalyticsSession,
   roadmapMilestones,
   sandboxRuns,
   seedDatabase,
@@ -227,6 +239,10 @@ describe('@aklapper/db PostgreSQL 19 integration (ephemeral container)', () => {
     const pastExpiry = new Date(now.getTime() - 60_000);
 
     try {
+      const agedAttemptId = '33333333-3333-4333-8333-333333333333';
+      const created20mAgo = new Date(now.getTime() - 20 * 60_000);
+      const created91dAgo = new Date(now.getTime() - 91 * 86_400_000);
+
       await db.insert(askTurns).values([
         {
           attemptId: activeAttemptId,
@@ -258,28 +274,56 @@ describe('@aklapper/db PostgreSQL 19 integration (ephemeral container)', () => {
           role: 'guest',
           mode: 'qa',
           promptHash: 'b'.repeat(64),
-          status: 'running',
+          status: 'completed',
           tokensReserved: 512,
-          tokensUsed: 0,
+          tokensUsed: 120,
+          promptText: 'Recent terminal turn past 15m recovery TTL',
           correlationId: 'corr-pg-turn-2',
+          createdAt: created20mAgo,
+          leaseExpiresAt: pastExpiry,
+          expiresAt: pastExpiry,
+        },
+        {
+          attemptId: agedAttemptId,
+          sessionId: 'guest_turn_owner',
+          role: 'guest',
+          mode: 'qa',
+          promptHash: 'c'.repeat(64),
+          status: 'completed',
+          tokensReserved: 512,
+          tokensUsed: 80,
+          promptText: 'Aged terminal turn past 90d retention window',
+          correlationId: 'corr-pg-turn-3',
+          createdAt: created91dAgo,
           leaseExpiresAt: pastExpiry,
           expiresAt: pastExpiry,
         },
       ]);
 
-      const owned = await getAskTurnByAttemptId(db, activeAttemptId, 'guest_turn_owner');
+      const owned = await getAskTurnByAttemptId(db, activeAttemptId, 'guest_turn_owner', now);
       expect(owned?.status).toBe('completed');
       expect(owned?.response?.tokensUsed).toBe(320);
 
-      const crossSession = await getAskTurnByAttemptId(db, activeAttemptId, 'guest_other');
+      const crossSession = await getAskTurnByAttemptId(db, activeAttemptId, 'guest_other', now);
       expect(crossSession).toBeNull();
 
-      const pruned = await pruneExpiredAskTurns(db, now);
+      // Recovery lookup strictly enforces 15-minute expires_at TTL even while row is retained for analytics
+      expect(await getAskTurnByAttemptId(db, expiredAttemptId, 'guest_turn_owner', now)).toBeNull();
+
+      // 90-day terminal pruning deletes only rows created > 90 days ago, keeping 20m-old row for analytics
+      const pruned = await pruneExpiredAskTurns(db, now, 90);
       expect(pruned).toBeGreaterThanOrEqual(1);
-      expect(await getAskTurnByAttemptId(db, expiredAttemptId, 'guest_turn_owner')).toBeNull();
+      const remainingRows = await pool.query<{ attempt_id: string }>(
+        `SELECT attempt_id FROM ask_turns WHERE attempt_id IN ($1, $2)`,
+        [expiredAttemptId, agedAttemptId],
+      );
+      expect(remainingRows.rows.map(r => r.attempt_id)).toEqual([expiredAttemptId]);
     } finally {
       await db.delete(askTurns).where(eq(askTurns.attemptId, activeAttemptId));
       await db.delete(askTurns).where(eq(askTurns.attemptId, expiredAttemptId));
+      await db
+        .delete(askTurns)
+        .where(eq(askTurns.attemptId, '33333333-3333-4333-8333-333333333333'));
     }
   });
 
@@ -2463,6 +2507,425 @@ describe('@aklapper/db PostgreSQL 19 integration (ephemeral container)', () => {
       }
       await pool.query(`DROP DATABASE IF EXISTS "${isolatedDbName}" WITH (FORCE)`);
       rmSync(tempPre0010Dir, { recursive: true, force: true });
+    }
+  });
+
+  it('serializes concurrent SSR and client ingest under advisory locks, enforces portal/bot separation, cross-filters Admin Analytics, verifies Contact linking & Inbox PII purge', async () => {
+    const testSalt = `pg-analytics-e2e-${Date.now()}`;
+    const env = { ANALYTICS_DAILY_SALT: testSalt, PUBLIC_PORTAL_URL: 'https://andrew-k.us' };
+    const now = new Date();
+    const humanIp = '198.51.100.88';
+    const humanUa =
+      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36';
+    const botIp = '198.51.100.89';
+    const attackerIp = '203.0.113.77';
+    const guestSessionId = `guest_link_${Date.now()}`;
+    const attemptId = '88888888-8888-4888-8888-888888888888';
+
+    const createdSessionIds: string[] = [];
+    const createdContactIds: string[] = [];
+
+    try {
+      // 1. Concurrent disjoint-session_id SSR hit + client hydration batch race for the same visitor
+      const ssrRequest = new Request(
+        'https://andrew-k.us/?ref=recruiter&utm_source=linkedin&utm_medium=social&utm_campaign=fall26&secret=drop',
+        {
+          method: 'GET',
+          headers: {
+            host: 'andrew-k.us',
+            'x-forwarded-for': humanIp,
+            'x-cloud-country': 'US',
+            'x-cloud-region': 'GA',
+            'user-agent': humanUa,
+            referer: 'https://www.linkedin.com/feed/update/999?token=strip',
+          },
+        },
+      );
+      const clientBatchRequest = new Request('https://andrew-k.us/api/analytics/ingest', {
+        method: 'POST',
+        headers: {
+          host: 'andrew-k.us',
+          'content-type': 'application/json',
+          'x-forwarded-for': humanIp,
+          'x-cloud-country': 'US',
+          'x-cloud-region': 'GA',
+          'user-agent': humanUa,
+          referer: 'https://andrew-k.us/about',
+        },
+        body: JSON.stringify({
+          sessionId: `client_disjoint_${Date.now()}`,
+          landingPath: '/',
+          events: [
+            {
+              type: 'page_view',
+              name: 'portal_page_view',
+              path: '/',
+              metadata: { app: 'portal', navigation: 'initial' },
+              timestamp: now.toISOString(),
+            },
+            {
+              type: 'web_vital',
+              name: 'LCP',
+              path: '/',
+              value: 920,
+              timestamp: now.toISOString(),
+            },
+            {
+              type: 'web_vital',
+              name: 'INP',
+              path: '/',
+              value: 45,
+              timestamp: now.toISOString(),
+            },
+            {
+              type: 'web_vital',
+              name: 'CLS',
+              path: '/',
+              value: 0.02,
+              timestamp: now.toISOString(),
+            },
+            {
+              type: 'web_vital',
+              name: 'TTFB',
+              path: '/',
+              value: 140,
+              timestamp: now.toISOString(),
+            },
+          ],
+        }),
+      });
+
+      const [ssrRes, clientRes] = await Promise.all([
+        capturePortalSsrHit(db, ssrRequest, { pathname: '/', env, now }),
+        handleAnalyticsIngestRequest(clientBatchRequest, { db, env, app: 'portal', now }),
+      ]);
+      expect(ssrRes).not.toBeNull();
+      expect(clientRes.status).toBe(202);
+      const clientBody = (await clientRes.json()) as { accepted: number; sessionId: string };
+      expect(clientBody.sessionId).toBe(ssrRes?.sessionId);
+      const canonicalSessionId = ssrRes!.sessionId;
+      createdSessionIds.push(canonicalSessionId);
+
+      // Verify coupled tuple: 1 session row, intact first-touch attribution, and 1 deduplicated page_view
+      const sessionRows = await pool.query<{
+        session_id: string;
+        app: string;
+        is_bot: boolean;
+        referrer_host: string | null;
+        referrer_category: string | null;
+        ref_param: string | null;
+        utm_campaign: string | null;
+      }>(
+        `SELECT session_id, app, is_bot, referrer_host, referrer_category, ref_param, utm_campaign FROM analytics_sessions WHERE session_id = $1`,
+        [canonicalSessionId],
+      );
+      expect(sessionRows.rows).toHaveLength(1);
+      expect(sessionRows.rows[0]?.app).toBe('portal');
+      expect(sessionRows.rows[0]?.is_bot).toBe(false);
+      expect(sessionRows.rows[0]?.referrer_host).toBe('linkedin.com');
+      expect(sessionRows.rows[0]?.referrer_category).toBe('social');
+      expect(sessionRows.rows[0]?.ref_param).toBe('recruiter');
+      expect(sessionRows.rows[0]?.utm_campaign).toBe('fall26');
+      // Enrich city/org for geo + org assertion
+      await pool.query(
+        `UPDATE analytics_sessions SET city = 'Atlanta', asn_org = 'Acme Recruiting Fiber' WHERE session_id = $1`,
+        [canonicalSessionId],
+      );
+
+      // Ensure first-touch referrer/campaign is preserved even if client won first or SSR won first
+      // Trigger a second interaction batch with 20 non-web_vital events to test bounded 15-event trail
+      const trailEvents = Array.from({ length: 20 }, (_, idx) => ({
+        type: idx === 0 ? ('page_view' as const) : ('interaction' as const),
+        name: idx === 0 ? 'portal_page_view' : idx % 2 === 0 ? 'pane_open' : 'terminal_command',
+        path: idx === 0 ? '/about' : idx % 2 === 0 ? '/about' : '/',
+        metadata: idx % 2 === 0 ? { surface: 'desktop' } : { command: 'about' },
+        timestamp: new Date(now.getTime() + (idx + 1) * 1000).toISOString(),
+      }));
+      const secondBatchRes = await handleAnalyticsIngestRequest(
+        new Request('https://andrew-k.us/api/analytics/ingest', {
+          method: 'POST',
+          headers: {
+            host: 'andrew-k.us',
+            'content-type': 'application/json',
+            'x-forwarded-for': humanIp,
+            'user-agent': humanUa,
+          },
+          body: JSON.stringify({
+            sessionId: canonicalSessionId,
+            events: trailEvents,
+          }),
+        }),
+        { db, env, app: 'portal', now: new Date(now.getTime() + 25_000) },
+      );
+      expect(secondBatchRes.status).toBe(202);
+
+      // Verify exactly 1 root '/' page_view (SSR + initial client deduplicated!) and 1 '/about' page_view
+      const rootPvCount = await pool.query<{ cnt: number }>(
+        `SELECT COUNT(*)::int AS cnt FROM analytics_events WHERE session_id = $1 AND type = 'page_view' AND path = '/'`,
+        [canonicalSessionId],
+      );
+      expect(rootPvCount.rows[0]?.cnt).toBe(1);
+
+      // 2. Bind guest session to portal analytics session + persist an ask_turns row
+      const boundSessionId = await bindGuestSessionToAnalyticsSession(
+        db,
+        new Request('https://andrew-k.us/chat', {
+          headers: { host: 'andrew-k.us', 'x-forwarded-for': humanIp, 'user-agent': humanUa },
+        }),
+        guestSessionId,
+        { env, now: new Date(now.getTime() + 30_000) },
+      );
+      expect(boundSessionId).toBe(canonicalSessionId);
+
+      await db.insert(askTurns).values({
+        attemptId,
+        sessionId: guestSessionId,
+        role: 'guest',
+        mode: 'jd_match',
+        promptHash: 'd'.repeat(64),
+        status: 'completed',
+        tokensReserved: 500,
+        tokensUsed: 250,
+        promptText: 'Staff platform engineer role evaluating distributed Go and TypeScript',
+        correlationId: 'corr-analytics-ask-1',
+        leaseExpiresAt: new Date(now.getTime() + 60_000),
+        expiresAt: new Date(now.getTime() + 900_000),
+      });
+
+      // 3. Ingest a bot portal session and an admin session
+      const botRes = await capturePortalSsrHit(
+        db,
+        new Request('https://andrew-k.us/', {
+          headers: { host: 'andrew-k.us', 'x-forwarded-for': botIp, 'user-agent': 'Googlebot/2.1' },
+        }),
+        { pathname: '/', env, now },
+      );
+      expect(botRes).not.toBeNull();
+      createdSessionIds.push(botRes!.sessionId);
+
+      const adminIngestRes = await handleAnalyticsIngestRequest(
+        new Request('https://admin.andrew-k.us/api/analytics/ingest', {
+          method: 'POST',
+          headers: {
+            host: 'admin.andrew-k.us',
+            'content-type': 'application/json',
+            'x-forwarded-for': humanIp,
+            'user-agent': humanUa,
+          },
+          body: JSON.stringify({
+            sessionId: `admin_sess_${Date.now()}`,
+            events: [
+              {
+                type: 'page_view',
+                name: 'admin_page_view',
+                path: '/analytics',
+                metadata: { app: 'portal' }, // spoofed; must persist as admin
+                timestamp: now.toISOString(),
+              },
+            ],
+          }),
+        }),
+        { db, env, app: 'admin', now },
+      );
+      const adminIngestBody = (await adminIngestRes.json()) as { sessionId: string };
+      createdSessionIds.push(adminIngestBody.sessionId);
+
+      // 4. Verified /contact linking: legitimate match, spoof rejection, fallback upsert, and PG 23503 FK retry
+      const warnEvents: Record<string, unknown>[] = [];
+      const logger = {
+        info: () => {},
+        warn: (obj: Record<string, unknown>) => warnEvents.push(obj),
+        error: () => {},
+      };
+
+      const validLink = await resolveOrCreateContactAnalyticsSession(
+        db,
+        new Request('https://andrew-k.us/contact', {
+          method: 'POST',
+          headers: { host: 'andrew-k.us', 'x-forwarded-for': humanIp, 'user-agent': humanUa },
+        }),
+        { candidateSessionId: canonicalSessionId, guestSessionId, env, logger, now },
+      );
+      expect(validLink.analyticsSessionId).toBe(canonicalSessionId);
+      expect(validLink.linkMethod).toBe('verified_client_session');
+      expect(validLink.spoofRejected).toBe(false);
+
+      // Spoof attempt from attacker targeting victim's session & admin's session
+      const spoofLink = await resolveOrCreateContactAnalyticsSession(
+        db,
+        new Request('https://andrew-k.us/contact', {
+          method: 'POST',
+          headers: {
+            host: 'andrew-k.us',
+            'x-forwarded-for': attackerIp,
+            'user-agent': 'Mozilla/5.0 Firefox/131.0',
+          },
+        }),
+        { candidateSessionId: canonicalSessionId, env, logger, now },
+      );
+      expect(spoofLink.spoofRejected).toBe(true);
+      expect(spoofLink.analyticsSessionId).not.toBe(canonicalSessionId);
+      expect(spoofLink.linkMethod).toBe('fallback_upserted');
+      if (spoofLink.analyticsSessionId) createdSessionIds.push(spoofLink.analyticsSessionId);
+      expect(warnEvents).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            seam_type: 'UNSOUND_CONDITION',
+            event: 'portal.contact.analytics_session_spoof_rejected',
+          }),
+        ]),
+      );
+
+      // Insert linked contact submission + unlinked legacy submission + PG 23503 retry submission
+      const linkedContact = await insertContactSubmission(
+        db,
+        {
+          name: 'Ada Lovelace',
+          email: 'ada@example.com',
+          phone: null,
+          message: 'Interested in staff architecture consulting engagement.',
+          attachment: null,
+        },
+        { analyticsSessionId: canonicalSessionId, guestSessionId },
+      );
+      createdContactIds.push(linkedContact.id);
+      await recordContactSubmittedAnalyticsEvent(
+        db,
+        canonicalSessionId,
+        new Date(now.getTime() + 40_000),
+      );
+
+      const fkRetryContact = await insertContactSubmission(
+        db,
+        {
+          name: 'Grace Hopper',
+          email: 'grace@example.com',
+          phone: null,
+          message: 'Testing fail-open retry when analytics session row is missing.',
+          attachment: null,
+        },
+        { analyticsSessionId: 'non-existent-analytics-session-id', guestSessionId: null },
+      );
+      createdContactIds.push(fkRetryContact.id);
+      expect(fkRetryContact.name).toBe('Grace Hopper');
+
+      // 5. Verify UTC-midnight prior-day grace salt matching
+      const preMidnight = new Date('2026-11-27T23:55:00.000Z');
+      const postMidnight = new Date('2026-11-28T00:05:00.000Z');
+      const midnightIp = '198.51.100.120';
+      const midnightSsr = await capturePortalSsrHit(
+        db,
+        new Request('https://andrew-k.us/about', {
+          headers: { host: 'andrew-k.us', 'x-forwarded-for': midnightIp, 'user-agent': humanUa },
+        }),
+        { pathname: '/about', env, now: preMidnight },
+      );
+      expect(midnightSsr).not.toBeNull();
+      createdSessionIds.push(midnightSsr!.sessionId);
+
+      const postMidnightLink = await resolveOrCreateContactAnalyticsSession(
+        db,
+        new Request('https://andrew-k.us/contact', {
+          method: 'POST',
+          headers: { host: 'andrew-k.us', 'x-forwarded-for': midnightIp, 'user-agent': humanUa },
+        }),
+        { env, now: postMidnight },
+      );
+      expect(postMidnightLink.analyticsSessionId).toBe(midnightSsr!.sessionId);
+      expect(postMidnightLink.linkMethod).toBe('visitor_hash_match');
+
+      // 6. Verify Admin Analytics queries: Top Paths non-inflation, filters, bounded 15-event trail, ask feed, Overview parity
+      const filtered = await loadAdminAnalyticsData(db, {
+        window: '24h',
+        country: 'US',
+        identified: 'true',
+        bots: 'exclude',
+      });
+      expect(filtered.totalSessions).toBeGreaterThanOrEqual(1);
+      expect(filtered.identifiedLeads).toBeGreaterThanOrEqual(1);
+      expect(filtered.botSessionsExcluded).toBeGreaterThanOrEqual(1);
+
+      // Top Paths excludes web_vital rows (root '/' has 1 page_view, NOT 5 with 4 web vitals!)
+      const rootPathRow = filtered.topPaths.find(row => row.label === '/');
+      expect(rootPathRow?.count).toBe(1);
+      expect(rootPathRow?.uniqueVisitors).toBe(1);
+
+      const visitor = filtered.recentVisitors?.find(v => v.sessionId === canonicalSessionId);
+      expect(visitor).toBeDefined();
+      expect(visitor?.contactName).toBe('Ada Lovelace');
+      expect(visitor?.contactId).toBe(linkedContact.id);
+      expect(visitor?.askTurnCount).toBe(1);
+      expect(visitor?.trail.length).toBeLessThanOrEqual(15);
+      expect(visitor?.trail.length).toBe(15);
+
+      const askItem = filtered.askTurnsFeed?.find(a => a.attemptId === attemptId);
+      expect(askItem).toBeDefined();
+      expect(askItem?.mode).toBe('jd_match');
+      expect(askItem?.contactName).toBe('Ada Lovelace');
+      expect(askItem?.asnOrg).toBe('Acme Recruiting Fiber');
+
+      const botsOnly = await loadAdminAnalyticsBreakdowns(db, { window: '24h', bots: 'only' });
+      expect(botsOnly.recentVisitors?.every(v => v.isBot)).toBe(true);
+      expect(botsOnly.recentVisitors?.some(v => v.sessionId === botRes!.sessionId)).toBe(true);
+      expect(botsOnly.recentVisitors?.some(v => v.sessionId === adminIngestBody.sessionId)).toBe(
+        false,
+      );
+
+      // Admin Home 24h KPIs match /analytics?window=24h (portal human only)
+      const [overview, summary24h] = await Promise.all([
+        loadAdminOverviewData(db),
+        loadAdminAnalyticsSummary(db, '24h'),
+      ]);
+      expect(overview.metrics.sessions24h).toBe(summary24h.totalSessions);
+
+      // 7. Verify Admin Inbox visitorContext + beyond-page-1 selectedItem + PII purge on delete
+      const inboxPage = await listContactSubmissions(db, {
+        page: 1,
+        pageSize: 1,
+        selectedId: linkedContact.id,
+      });
+      expect(inboxPage.selectedId).toBe(linkedContact.id);
+      expect(inboxPage.selectedItem?.id).toBe(linkedContact.id);
+      expect(inboxPage.selectedItem?.visitorContext?.analyticsSessionId).toBe(canonicalSessionId);
+      expect(inboxPage.selectedItem?.visitorContext?.asnOrg).toBe('Acme Recruiting Fiber');
+      expect(inboxPage.selectedItem?.visitorContext?.askTurnCount).toBe(1);
+      expect(inboxPage.selectedItem?.visitorContext?.latestAskPromptExcerpt).toContain(
+        'Staff platform engineer',
+      );
+      expect(inboxPage.selectedItem?.visitorContext?.viewedPaths).toEqual(
+        expect.arrayContaining(['/', '/about']),
+      );
+
+      // Unlinked submission has null visitorContext; invalid selectedId does not throw
+      const inboxInvalidSel = await listContactSubmissions(db, {
+        selectedId: 'not-a-valid-uuid',
+      });
+      expect(inboxInvalidSel.selectedId).toBeNull();
+      const unlinkedItem = inboxInvalidSel.items.find(item => item.id === fkRetryContact.id);
+      expect(unlinkedItem?.visitorContext).toBeNull();
+
+      // Deleting linked contact removes PII from Admin Analytics immediately while retaining session
+      expect(await deleteContactSubmission(db, linkedContact.id)).toBe(true);
+      const afterDelete = await loadAdminAnalyticsBreakdowns(db, {
+        window: '24h',
+        bots: 'exclude',
+      });
+      const visitorAfterDelete = afterDelete.recentVisitors?.find(
+        v => v.sessionId === canonicalSessionId,
+      );
+      expect(visitorAfterDelete).toBeDefined();
+      expect(visitorAfterDelete?.contactName).toBeNull();
+      expect(visitorAfterDelete?.contactEmail).toBeNull();
+      expect(visitorAfterDelete?.contactId).toBeNull();
+    } finally {
+      await db.delete(askTurns).where(eq(askTurns.attemptId, attemptId));
+      for (const cid of createdContactIds) {
+        await db.delete(contactSubmissions).where(eq(contactSubmissions.id, cid));
+      }
+      for (const sid of createdSessionIds) {
+        await db.delete(analyticsEvents).where(eq(analyticsEvents.sessionId, sid));
+        await db.delete(analyticsSessions).where(eq(analyticsSessions.sessionId, sid));
+      }
     }
   });
 });

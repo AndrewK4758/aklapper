@@ -180,7 +180,19 @@ describe('db prerender fallback loaders', () => {
     expect(JSON.stringify(portalHome.terminal)).not.toMatch(/ghostty/i);
 
     expect(getPrerenderAdminHomeData().menuItems.some(item => item.adminOnly)).toBe(true);
-    expect(getPrerenderAdminAnalyticsData().summary).toEqual({ totalSessions: 0, totalEvents: 0 });
+    const prerenderAnalytics = getPrerenderAdminAnalyticsData({ window: '30d', bots: 'include' });
+    expect(prerenderAnalytics.summary).toEqual({ totalSessions: 0, totalEvents: 0 });
+    expect(prerenderAnalytics.window).toBe('30d');
+    expect(prerenderAnalytics.filters).toEqual({
+      window: '30d',
+      bots: 'include',
+      identified: 'all',
+    });
+    expect(prerenderAnalytics.uniqueVisitors).toBe(0);
+    expect(prerenderAnalytics.dailyTrend).toEqual([]);
+    expect(prerenderAnalytics.recentVisitors).toEqual([]);
+    expect(prerenderAnalytics.askTurnsFeed).toEqual([]);
+    expect(prerenderAnalytics.conversionFunnel).toEqual([]);
   });
 
   it('uses seed fallback during React Router prerender builds when DATABASE_URL is unset', async () => {

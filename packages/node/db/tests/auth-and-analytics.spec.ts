@@ -1100,9 +1100,74 @@ describe('@aklapper/db auth & analytics BFF services', () => {
       expect(queryMocks.ingestAnalyticsBatch).toHaveBeenCalledWith(
         FAKE_DB,
         expect.objectContaining({ sessionId: 'sess-1' }),
-        expect.objectContaining({ country: 'US', region: 'GA', ipHash: expect.any(String) }),
+        expect.objectContaining({
+          app: 'portal',
+          country: 'US',
+          region: 'GA',
+          ipHash: expect.any(String),
+          visitorHash: expect.stringMatching(/^[a-f0-9]{32}$/),
+        }),
       );
       expect(fetchSpy).not.toHaveBeenCalled();
+
+      // Server-authoritative app ignores client spoofed metadata.app and normalizes attribution/bots
+      queryMocks.ingestAnalyticsBatch.mockResolvedValueOnce({
+        accepted: 1,
+        sessionId: 'sess-admin-1',
+        ipHash: 'b'.repeat(24),
+      });
+      const adminRes = await handleAnalyticsIngestRequest(
+        new Request('https://admin.andrew-k.us/api/analytics/ingest', {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+            'x-forwarded-for': '198.51.100.42',
+            'user-agent':
+              'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Chrome/130.0.0.0 Safari/537.36',
+          },
+          body: JSON.stringify({
+            sessionId: 'sess-client-spoof',
+            referrer: 'https://www.linkedin.com/feed/update/123?secret=tok',
+            landingPath: '/about',
+            refParam: 'recruiter',
+            utmCampaign: 'c'.repeat(200),
+            events: [
+              {
+                type: 'page_view',
+                name: 'portal_page_view',
+                path: '/about',
+                metadata: { app: 'portal', navigation: 'initial' },
+                timestamp: '2026-11-27T12:00:00.000Z',
+              },
+            ],
+          }),
+        }),
+        { db: FAKE_DB, env: legacyEnv, app: 'admin', guestSessionId: 'guest_sess_123' },
+      );
+      expect(adminRes.status).toBe(202);
+      expect(await adminRes.json()).toEqual({
+        accepted: 1,
+        sessionId: 'sess-admin-1',
+        ipHash: 'b'.repeat(24),
+      });
+      expect(queryMocks.ingestAnalyticsBatch).toHaveBeenLastCalledWith(
+        FAKE_DB,
+        expect.objectContaining({ sessionId: 'sess-client-spoof' }),
+        expect.objectContaining({
+          app: 'admin',
+          isBot: false,
+          guestSessionId: 'guest_sess_123',
+          referrer: 'https://www.linkedin.com/feed/update/123',
+          referrerHost: 'linkedin.com',
+          referrerCategory: 'social',
+          landingPath: '/about',
+          refParam: 'recruiter',
+          utmCampaign: 'c'.repeat(120),
+          deviceType: 'desktop',
+          osName: 'macOS',
+          browserName: 'Chrome',
+        }),
+      );
     } finally {
       fetchSpy.mockRestore();
     }

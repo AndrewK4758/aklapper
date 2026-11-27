@@ -1,18 +1,24 @@
-import { AnalyticsBatchSchema } from '@aklapper/core';
-import { buildDailyAnalyticsSalt, hashVisitorIp } from '@aklapper/node-runtime/auth';
-import { extractRightmostForwardedIp } from '@aklapper/node-runtime/http';
+import { type AnalyticsApp, AnalyticsBatchSchema } from '@aklapper/core';
+import type { SsrStructuredLogger } from '@aklapper/node-runtime/ssr/stream';
 
+import { enrichAnalyticsRequestMetadata } from './analytics-ingest.ts';
 import { type AppDatabase, getSharedDb } from './client.ts';
 import { ingestAnalyticsBatch } from './queries.ts';
 
 export interface AnalyticsBffOptions {
   db?: AppDatabase;
   env?: Record<string, string | undefined>;
+  app?: AnalyticsApp;
+  guestSessionId?: string | null;
+  geoIpDir?: string;
+  logger?: SsrStructuredLogger;
+  now?: Date;
 }
 
 /**
  * Shared same-origin BFF handler for POST /api/analytics/ingest across Portal and Admin. Persists
- * directly to PostgreSQL 19 via @aklapper/db.
+ * directly to PostgreSQL 19 via @aklapper/db with server-authoritative app tagging and GeoLite2
+ * enrichment.
  */
 export async function handleAnalyticsIngestRequest(
   request: Request,
@@ -34,23 +40,23 @@ export async function handleAnalyticsIngestRequest(
     return Response.json({ error: 'INVALID_ANALYTICS_BATCH' }, { status: 400 });
   }
 
-  const env = options.env ?? process.env;
-  const country = request.headers.get('x-cloud-country')?.trim() || undefined;
-  const region = request.headers.get('x-cloud-region')?.trim() || undefined;
-  const clientIp = extractRightmostForwardedIp(
-    request.headers.get('x-forwarded-for'),
-    request.headers.get('x-real-ip'),
-    '127.0.0.1',
-  );
-
   const db = options.db ?? getSharedDb();
-  const salt = buildDailyAnalyticsSalt(env['ANALYTICS_DAILY_SALT']?.trim() || 'dev-only');
-  const ipHash = hashVisitorIp(clientIp, salt);
-  const persisted = await ingestAnalyticsBatch(db, parsed.data, {
-    ipHash,
-    country: country ?? null,
-    region: region ?? null,
+  const meta = await enrichAnalyticsRequestMetadata(request, {
+    app: options.app ?? 'portal',
+    guestSessionId: options.guestSessionId,
+    rawReferrer: parsed.data.referrer ?? request.headers.get('referer'),
+    landingPath: parsed.data.landingPath ?? parsed.data.events[0]?.path ?? null,
+    refParam: parsed.data.refParam ?? null,
+    utmSource: parsed.data.utmSource ?? null,
+    utmMedium: parsed.data.utmMedium ?? null,
+    utmCampaign: parsed.data.utmCampaign ?? null,
+    utmContent: parsed.data.utmContent ?? null,
+    ...(options.env ? { env: options.env } : {}),
+    ...(options.geoIpDir ? { geoIpDir: options.geoIpDir } : {}),
+    ...(options.logger ? { logger: options.logger } : {}),
+    ...(options.now ? { now: options.now } : {}),
   });
 
+  const persisted = await ingestAnalyticsBatch(db, parsed.data, meta);
   return Response.json(persisted, { status: 202 });
 }

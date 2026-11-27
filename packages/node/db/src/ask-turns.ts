@@ -5,12 +5,26 @@ import {
   type PublicAppError,
   createPublicAppError,
 } from '@aklapper/core';
-import { and, eq, lt } from 'drizzle-orm';
+import { and, eq, gt, inArray, lt } from 'drizzle-orm';
 
 import type { AppDatabase } from './client.ts';
 import * as schema from './schema.ts';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const DEFAULT_ASK_TURN_RETENTION_DAYS = 90;
+const TERMINAL_ASK_TURN_STATUSES = ['completed', 'abstained', 'failed', 'expired'] as const;
+
+export function resolveAskTurnRetentionDays(
+  env: Record<string, string | undefined> = process.env,
+): number {
+  const raw = env['ASK_TURN_RETENTION_DAYS']?.trim();
+  if (!raw) return DEFAULT_ASK_TURN_RETENTION_DAYS;
+  const parsed = Number.parseInt(raw, 10);
+  if (!Number.isFinite(parsed) || parsed < 1) {
+    return DEFAULT_ASK_TURN_RETENTION_DAYS;
+  }
+  return parsed;
+}
 
 function mapErrorCodeToPublicError(
   errorCode: string | null,
@@ -57,6 +71,7 @@ export async function getAskTurnByAttemptId(
   db: AppDatabase,
   attemptId: string,
   sessionId: string,
+  now = new Date(),
 ): Promise<AskTurnState | null> {
   const normalizedAttemptId = attemptId.trim();
   const normalizedSessionId = sessionId.trim();
@@ -71,6 +86,7 @@ export async function getAskTurnByAttemptId(
       and(
         eq(schema.askTurns.attemptId, normalizedAttemptId),
         eq(schema.askTurns.sessionId, normalizedSessionId),
+        gt(schema.askTurns.expiresAt, now),
       ),
     )
     .limit(1);
@@ -97,10 +113,21 @@ export async function getAskTurnByAttemptId(
   });
 }
 
-export async function pruneExpiredAskTurns(db: AppDatabase, cutoff = new Date()): Promise<number> {
+export async function pruneExpiredAskTurns(
+  db: AppDatabase,
+  now = new Date(),
+  retentionDays = resolveAskTurnRetentionDays(),
+): Promise<number> {
+  const safeDays = Math.max(1, Math.floor(retentionDays));
+  const cutoff = new Date(now.getTime() - safeDays * 86_400_000);
   const deleted = await db
     .delete(schema.askTurns)
-    .where(lt(schema.askTurns.expiresAt, cutoff))
+    .where(
+      and(
+        inArray(schema.askTurns.status, [...TERMINAL_ASK_TURN_STATUSES]),
+        lt(schema.askTurns.createdAt, cutoff),
+      ),
+    )
     .returning({ attemptId: schema.askTurns.attemptId });
   return deleted.length;
 }
