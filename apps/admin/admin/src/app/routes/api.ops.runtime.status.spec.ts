@@ -78,6 +78,8 @@ describe('admin /api/ops/runtime/status resource route', () => {
     requireAdminSessionMock.mockReset();
     vi.restoreAllMocks();
     delete process.env['PUBLIC_PORTAL_URL'];
+    delete process.env['ADMIN_API_URL'];
+    delete process.env['PORTAL_API_URL'];
     delete process.env['AI_ASK_URL'];
     delete process.env['CADENCE_DEMO_URL'];
   });
@@ -124,6 +126,8 @@ describe('admin /api/ops/runtime/status resource route', () => {
     });
 
     const portalSrv = await startPortalHttpHealthServer();
+    const adminApiSrv = await startGrpcHealthServer();
+    const portalApiSrv = await startGrpcHealthServer();
     const askSrv = await startGrpcHealthServer();
     // Bind and immediately close a server to get a guaranteed-offline loopback port for cadence-demo.
     const offlineSrv = await startGrpcHealthServer();
@@ -132,6 +136,8 @@ describe('admin /api/ops/runtime/status resource route', () => {
 
     try {
       process.env['PUBLIC_PORTAL_URL'] = portalSrv.baseUrl;
+      process.env['ADMIN_API_URL'] = adminApiSrv.baseUrl;
+      process.env['PORTAL_API_URL'] = portalApiSrv.baseUrl;
       process.env['AI_ASK_URL'] = askSrv.baseUrl;
       process.env['CADENCE_DEMO_URL'] = offlineUrl;
 
@@ -146,9 +152,13 @@ describe('admin /api/ops/runtime/status resource route', () => {
       const snap1 = RuntimeServiceHealthSnapshotSchema.parse(await res1.json());
       expect(snap1.cached).toBe(false);
       expect(snap1.services.find(s => s.service === 'portal')?.status).toBe('healthy');
+      expect(snap1.services.find(s => s.service === 'admin-api')?.status).toBe('healthy');
+      expect(snap1.services.find(s => s.service === 'portal-api')?.status).toBe('healthy');
       expect(snap1.services.find(s => s.service === 'ai-ask')?.status).toBe('healthy');
       expect(snap1.services.find(s => s.service === 'cadence-demo')?.status).toBe('offline');
       expect(portalSrv.getCalls()).toEqual(['/health']);
+      expect(adminApiSrv.getCalls()).toEqual(['/grpc.health.v1.Health/Check']);
+      expect(portalApiSrv.getCalls()).toEqual(['/grpc.health.v1.Health/Check']);
       expect(askSrv.getCalls()).toEqual(['/grpc.health.v1.Health/Check']);
 
       const res2 = await loader({
@@ -162,9 +172,16 @@ describe('admin /api/ops/runtime/status resource route', () => {
       const snap2 = RuntimeServiceHealthSnapshotSchema.parse(await res2.json());
       expect(snap2.cached).toBe(false);
       expect(portalSrv.getCalls()).toHaveLength(2);
+      expect(adminApiSrv.getCalls()).toHaveLength(2);
+      expect(portalApiSrv.getCalls()).toHaveLength(2);
       expect(askSrv.getCalls()).toHaveLength(2);
     } finally {
-      await Promise.all([portalSrv.close(), askSrv.close()]);
+      await Promise.all([
+        portalSrv.close(),
+        adminApiSrv.close(),
+        portalApiSrv.close(),
+        askSrv.close(),
+      ]);
     }
   });
 });

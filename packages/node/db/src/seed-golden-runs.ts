@@ -1,4 +1,12 @@
-import type { CadenceGateAudit, CadenceSpecArtifact } from '@aklapper/core';
+import { createHash } from 'node:crypto';
+
+import {
+  buildCadencePresetRevisionInput,
+  buildCadencePromptHashInput,
+  type CadenceGateAudit,
+  type CadenceRunMode,
+  type CadenceSpecArtifact,
+} from '@aklapper/core';
 import {
   buildGoldenShowcaseArtifacts,
   CADENCE_PRESET_SEEDS,
@@ -8,7 +16,30 @@ import {
   PORTAL_CADENCE_SEED,
 } from '@aklapper/core/prerender';
 
-import { computeCadencePresetRevisionHash, computeCadencePromptHash } from './cadence-showcase.ts';
+function sha256Hex(value: string): string {
+  return createHash('sha256').update(value, 'utf8').digest('hex');
+}
+
+export function computeCadencePresetRevisionHash(
+  expectedKind?: string | null,
+  starterArtifactHtml?: string | null,
+): string {
+  const kind = expectedKind?.trim() ?? '';
+  const html = starterArtifactHtml ?? '';
+  if (!kind && !html) {
+    return '';
+  }
+  return sha256Hex(buildCadencePresetRevisionInput(kind, html));
+}
+
+export function computeCadencePromptHash(input: {
+  readonly presetSlug: string;
+  readonly presetRevisionHash: string;
+  readonly mode: CadenceRunMode;
+  readonly prompt: string;
+}): string {
+  return sha256Hex(buildCadencePromptHashInput(input));
+}
 
 export { CADENCE_PRESET_SEEDS, getPrerenderGoldenSandboxRuns, PORTAL_CADENCE_SEED };
 

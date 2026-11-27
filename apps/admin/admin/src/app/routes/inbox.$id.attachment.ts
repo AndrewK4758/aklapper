@@ -1,10 +1,11 @@
-import { classifyServerError } from '@aklapper/core/server-errors';
-import { getContactSubmissionAttachment, getSharedDb } from '@aklapper/db';
+import {
+  classifyGrpcError,
+  openAdminContactAttachmentStreamViaGrpc,
+} from '@aklapper/node-runtime/grpc';
 import {
   createFallbackLogger,
   getOrCreateCorrelationId,
   getRequestContext,
-  logDiagnosticError,
 } from '@aklapper/node-runtime/ssr/stream';
 
 import { requireAdminSession, sanitizeDownloadFilename } from '../admin-ops.server';
@@ -16,7 +17,7 @@ export async function loader({ request, params, context }: Route.LoaderArgs): Pr
   const logger = reqCtx?.logger ?? createFallbackLogger('admin-attachment');
   const baseHeaders = { 'X-Correlation-Id': correlationId };
 
-  await requireAdminSession(request, {
+  const { session } = await requireAdminSession(request, {
     context,
     source: 'admin.inbox.attachment',
     mode: 'resource',
@@ -30,41 +31,46 @@ export async function loader({ request, params, context }: Route.LoaderArgs): Pr
     );
   }
 
-  let attachment: Awaited<ReturnType<typeof getContactSubmissionAttachment>>;
+  let streamed: Awaited<ReturnType<typeof openAdminContactAttachmentStreamViaGrpc>>;
   try {
-    attachment = await getContactSubmissionAttachment(getSharedDb(), id);
+    streamed = await openAdminContactAttachmentStreamViaGrpc(session.sessionId, id, {
+      correlationId,
+      logger,
+      signal: reqCtx?.signal ?? request.signal,
+    });
   } catch (error) {
-    const { publicError, diagnostic } = classifyServerError(error, {
+    const { publicError } = classifyGrpcError(error, {
       correlationId,
       source: 'admin.inbox.attachment',
+      normalizeUnavailableStatus: 503,
+      logger,
     });
-    logDiagnosticError(logger, diagnostic);
+    if (publicError.status === 404) {
+      return Response.json(
+        { error: 'NOT_FOUND', message: 'Attachment not found.' },
+        { status: 404, headers: baseHeaders },
+      );
+    }
     return Response.json(publicError, {
       status: publicError.status,
       headers: baseHeaders,
     });
   }
 
-  if (!attachment) {
-    return Response.json(
-      { error: 'NOT_FOUND', message: 'Attachment not found.' },
-      { status: 404, headers: baseHeaders },
-    );
+  const safeName = sanitizeDownloadFilename(streamed.metadata.filename);
+  const headers: Record<string, string> = {
+    'content-type': streamed.metadata.mimeType || 'application/octet-stream',
+    'content-disposition': `attachment; filename="${safeName}"`,
+    'x-content-type-options': 'nosniff',
+    'cache-control': 'private, no-store',
+    'X-Correlation-Id': correlationId,
+  };
+  if (streamed.metadata.sizeBytes > 0) {
+    headers['content-length'] = String(streamed.metadata.sizeBytes);
   }
 
-  const decoded = Buffer.from(attachment.attachmentContentBase64, 'base64');
-  const bytes = new Uint8Array(decoded.buffer, decoded.byteOffset, decoded.byteLength);
-  const safeName = sanitizeDownloadFilename(attachment.attachmentName);
-
-  return new Response(bytes, {
+  return new Response(streamed.body, {
     status: 200,
-    headers: {
-      'content-type': attachment.attachmentMimeType || 'application/octet-stream',
-      'content-disposition': `attachment; filename="${safeName}"`,
-      'content-length': String(bytes.byteLength),
-      'x-content-type-options': 'nosniff',
-      'cache-control': 'private, no-store',
-      'X-Correlation-Id': correlationId,
-    },
+    headers,
   });
 }

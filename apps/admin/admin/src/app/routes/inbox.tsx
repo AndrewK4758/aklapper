@@ -1,23 +1,22 @@
 import type { AdminInboxLoaderData, StreamResult } from '@aklapper/core';
-import { classifyServerError } from '@aklapper/core/server-errors';
 import {
-  deleteContactSubmission,
-  deleteContactSubmissions,
-  getSharedDb,
-  listContactSubmissions,
-} from '@aklapper/db';
+  classifyGrpcError,
+  deleteAdminContactSubmissionsViaGrpc,
+  deleteAdminContactSubmissionViaGrpc,
+  listAdminContactSubmissionsViaGrpc,
+} from '@aklapper/node-runtime/grpc';
 import {
   createFallbackLogger,
   deferStreamResult,
   getOrCreateCorrelationId,
   getRequestContext,
-  logDiagnosticError,
 } from '@aklapper/node-runtime/ssr/stream';
 import { RouteErrorBoundaryView, SuspenseElement } from '@aklapper/ui';
 import { data, href } from 'react-router';
 
 import { type AdminInboxActionData, AdminInboxPage } from '#pages/inbox';
 
+import { runAdminStreamRpc } from '../admin-grpc.server';
 import { requireAdminSession } from '../admin-ops.server';
 import { reportAdminPublicError } from '../client-telemetry';
 import { buildAdminPageMeta } from '../seo';
@@ -33,7 +32,8 @@ export async function loader({
   context,
 }: Route.LoaderArgs): Promise<AdminInboxStreamData> {
   const correlationId = getOrCreateCorrelationId(request, context);
-  await requireAdminSession(request, { context, source: 'admin.inbox.loader' });
+  const reqCtx = getRequestContext(context);
+  const { session } = await requireAdminSession(request, { context, source: 'admin.inbox.loader' });
 
   const url = new URL(request.url);
   const query = url.searchParams.get('q') ?? '';
@@ -44,20 +44,35 @@ export async function loader({
   return {
     correlationId,
     payload: deferStreamResult(
-      (async () =>
-        listContactSubmissions(getSharedDb(), {
-          query,
-          page,
-          pageSize: 20,
-          ...(selectedId ? { selectedId } : {}),
-        }))(),
+      runAdminStreamRpc(
+        () =>
+          listAdminContactSubmissionsViaGrpc(
+            session.sessionId,
+            {
+              query,
+              page,
+              pageSize: 20,
+              ...(selectedId ? { selectedId } : {}),
+            },
+            {
+              correlationId,
+              ...(reqCtx?.logger ? { logger: reqCtx.logger } : {}),
+              signal: reqCtx?.signal ?? request.signal,
+            },
+          ),
+        {
+          correlationId,
+          source: 'admin.inbox.loader',
+          ...(reqCtx?.logger ? { logger: reqCtx.logger } : {}),
+        },
+      ),
       { request, context, source: 'admin.inbox.loader' },
     ),
   };
 }
 
 export async function action({ request, context }: Route.ActionArgs) {
-  await requireAdminSession(request, { context, source: 'admin.inbox.action' });
+  const { session } = await requireAdminSession(request, { context, source: 'admin.inbox.action' });
   const correlationId = getOrCreateCorrelationId(request, context);
   const reqCtx = getRequestContext(context);
   const logger = reqCtx?.logger ?? createFallbackLogger('admin-inbox');
@@ -97,7 +112,10 @@ export async function action({ request, context }: Route.ActionArgs) {
         );
       }
 
-      const deleted = await deleteContactSubmission(getSharedDb(), id);
+      const deleted = await deleteAdminContactSubmissionViaGrpc(session.sessionId, id, {
+        correlationId,
+        logger,
+      });
       return deleted
         ? data<AdminInboxActionData>(
             { ok: true, message: 'Contact submission deleted from PostgreSQL 19.' },
@@ -138,7 +156,11 @@ export async function action({ request, context }: Route.ActionArgs) {
         );
       }
 
-      const deletedCount = await deleteContactSubmissions(getSharedDb(), uniqueIds);
+      const deletedCount = await deleteAdminContactSubmissionsViaGrpc(
+        session.sessionId,
+        uniqueIds,
+        { correlationId, logger },
+      );
       return deletedCount > 0
         ? data<AdminInboxActionData>(
             {
@@ -170,11 +192,12 @@ export async function action({ request, context }: Route.ActionArgs) {
       { status: 400, headers },
     );
   } catch (error) {
-    const { publicError, diagnostic } = classifyServerError(error, {
+    const { publicError } = classifyGrpcError(error, {
       correlationId,
       source: 'admin.inbox.action',
+      normalizeUnavailableStatus: 503,
+      logger,
     });
-    logDiagnosticError(logger, diagnostic);
     return data<AdminInboxActionData>(
       {
         ok: false,

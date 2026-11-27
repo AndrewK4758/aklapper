@@ -6,13 +6,14 @@ import {
   type CareerDossierUpsertInput,
 } from '@aklapper/core';
 import {
-  deleteCareerDossier,
-  getSharedDb,
-  publishCareerDossier,
-  unpublishCareerDossier,
-  upsertCareerDossier,
-  upsertCareerDossierBatch,
-} from '@aklapper/db';
+  Code,
+  ConnectError,
+  deleteAdminCareerDossierViaGrpc,
+  importAdminCareerDossiersBatchViaGrpc,
+  publishAdminCareerDossierViaGrpc,
+  unpublishAdminCareerDossierViaGrpc,
+  upsertAdminCareerDossierViaGrpc,
+} from '@aklapper/node-runtime/grpc';
 import type { SsrStructuredLogger } from '@aklapper/node-runtime/ssr/stream';
 
 import { type AdminCmsActionData, parseCareerDossierMarkdown } from '#pages/cms';
@@ -21,6 +22,7 @@ export const MAX_DOSSIER_MD_FILE_BYTES = 256 * 1024;
 export const MAX_DOSSIER_MD_BATCH_FILES = 10;
 
 export interface DossierIntentContext {
+  readonly sessionId: string;
   readonly correlationId: string;
   readonly logger: SsrStructuredLogger;
   readonly adminActor: string;
@@ -66,6 +68,16 @@ function fail(
       ...(extra?.sanitizationFindings ? { sanitizationFindings: extra.sanitizationFindings } : {}),
     },
   };
+}
+
+function dossierNotFound(slug: string, correlationId: string): DossierActionOutcome {
+  return fail(
+    404,
+    `Career dossier "${slug}" not found.`,
+    'ERR_NOT_FOUND',
+    'Refresh the CMS view and verify the dossier slug.',
+    correlationId,
+  );
 }
 
 function parseSkillsCsv(raw: FormDataEntryValue | null): string[] {
@@ -150,6 +162,8 @@ export async function handleCareerDossierIntent(
   formData: FormData,
   ctx: DossierIntentContext,
 ): Promise<DossierActionOutcome> {
+  const rpcCtx = { correlationId: ctx.correlationId, logger: ctx.logger };
+
   if (intent === 'upsert-career-dossier') {
     const sections = parseSectionsJson(formData.get('sectionsJson'));
     if (sections === null) {
@@ -188,9 +202,7 @@ export async function handleCareerDossierIntent(
     }
 
     try {
-      const saved = await upsertCareerDossier(getSharedDb(), parsed.data, {
-        correlationId: ctx.correlationId,
-      });
+      const saved = await upsertAdminCareerDossierViaGrpc(ctx.sessionId, parsed.data, rpcCtx);
       emitDossierAuditLog(ctx, saved.slug, saved.publishStatus, 1 + saved.sections.length);
       return ok(
         `Saved draft career dossier "${saved.slug}" (${1 + saved.sections.length} chunks).`,
@@ -282,9 +294,11 @@ export async function handleCareerDossierIntent(
     }
 
     try {
-      const savedList = await upsertCareerDossierBatch(getSharedDb(), validatedPayloads, {
-        correlationId: ctx.correlationId,
-      });
+      const savedList = await importAdminCareerDossiersBatchViaGrpc(
+        ctx.sessionId,
+        validatedPayloads,
+        rpcCtx,
+      );
       for (const saved of savedList) {
         emitDossierAuditLog(ctx, saved.slug, saved.publishStatus, 1 + saved.sections.length);
       }
@@ -300,18 +314,7 @@ export async function handleCareerDossierIntent(
   if (intent === 'publish-career-dossier') {
     const slug = String(formData.get('slug') ?? '').trim();
     try {
-      const published = await publishCareerDossier(getSharedDb(), slug, {
-        correlationId: ctx.correlationId,
-      });
-      if (!published) {
-        return fail(
-          404,
-          `Career dossier "${slug}" not found.`,
-          'ERR_NOT_FOUND',
-          'Refresh the CMS view and verify the dossier slug.',
-          ctx.correlationId,
-        );
-      }
+      const published = await publishAdminCareerDossierViaGrpc(ctx.sessionId, slug, rpcCtx);
       emitDossierAuditLog(
         ctx,
         published.slug,
@@ -322,6 +325,9 @@ export async function handleCareerDossierIntent(
         `Published career dossier "${published.slug}". Run Re-Index Qdrant Corpus to sync vectors.`,
       );
     } catch (error) {
+      if (error instanceof ConnectError && error.code === Code.NotFound) {
+        return dossierNotFound(slug, ctx.correlationId);
+      }
       const mapped = mapPrivacyFailure(error, ctx.correlationId);
       if (mapped) return mapped;
       throw error;
@@ -330,32 +336,24 @@ export async function handleCareerDossierIntent(
 
   if (intent === 'unpublish-career-dossier') {
     const slug = String(formData.get('slug') ?? '').trim();
-    const updated = await unpublishCareerDossier(getSharedDb(), slug);
-    if (!updated) {
-      return fail(
-        404,
-        `Career dossier "${slug}" not found.`,
-        'ERR_NOT_FOUND',
-        'Refresh the CMS view and verify the dossier slug.',
-        ctx.correlationId,
+    try {
+      const updated = await unpublishAdminCareerDossierViaGrpc(ctx.sessionId, slug, rpcCtx);
+      emitDossierAuditLog(ctx, updated.slug, updated.publishStatus, 1 + updated.sections.length);
+      return ok(
+        `Unpublished career dossier "${updated.slug}" to draft. Run Re-Index Qdrant Corpus to prune vectors.`,
       );
+    } catch (error) {
+      if (error instanceof ConnectError && error.code === Code.NotFound) {
+        return dossierNotFound(slug, ctx.correlationId);
+      }
+      throw error;
     }
-    emitDossierAuditLog(ctx, updated.slug, updated.publishStatus, 1 + updated.sections.length);
-    return ok(
-      `Unpublished career dossier "${updated.slug}" to draft. Run Re-Index Qdrant Corpus to prune vectors.`,
-    );
   }
 
   const slug = String(formData.get('slug') ?? '').trim();
-  const deleted = await deleteCareerDossier(getSharedDb(), slug);
+  const deleted = await deleteAdminCareerDossierViaGrpc(ctx.sessionId, slug, rpcCtx);
   if (!deleted) {
-    return fail(
-      404,
-      `Career dossier "${slug}" not found.`,
-      'ERR_NOT_FOUND',
-      'Refresh the CMS view and verify the dossier slug.',
-      ctx.correlationId,
-    );
+    return dossierNotFound(slug, ctx.correlationId);
   }
   emitDossierAuditLog(ctx, slug, 'deleted', 0);
   return ok(`Deleted career dossier "${slug}".`);

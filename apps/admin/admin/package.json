@@ -8,7 +8,6 @@
   },
   "dependencies": {
     "@aklapper/core": "workspace:*",
-    "@aklapper/db": "workspace:*",
     "@aklapper/node-runtime": "workspace:*",
     "@aklapper/ui": "workspace:*",
     "@base-ui/react": "^1.9.0",
@@ -70,9 +69,6 @@
       },
       "serve": {
         "cache": false,
-        "dependsOn": [
-          "^db-migrate"
-        ],
         "executor": "nx:run-commands",
         "defaultConfiguration": "development",
         "options": {

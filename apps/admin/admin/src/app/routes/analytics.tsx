@@ -6,9 +6,9 @@ import {
   type StreamResult,
 } from '@aklapper/core';
 import {
-  loadAdminAnalyticsBreakdownsWithPrerender,
-  loadAdminAnalyticsSummaryWithPrerender,
-} from '@aklapper/db';
+  getAdminAnalyticsBreakdownsViaGrpc,
+  getAdminAnalyticsSummaryViaGrpc,
+} from '@aklapper/node-runtime/grpc';
 import {
   createFallbackLogger,
   deferStreamResult,
@@ -20,6 +20,7 @@ import { href } from 'react-router';
 
 import { AdminAnalyticsBreakdowns, AdminAnalyticsPage } from '#pages/analytics';
 
+import { runAdminStreamRpc } from '../admin-grpc.server';
 import { requireAdminSession } from '../admin-ops.server';
 import { reportAdminPublicError } from '../client-telemetry';
 import { buildAdminPageMeta } from '../seo';
@@ -37,7 +38,8 @@ export async function loader({
   context,
 }: Route.LoaderArgs): Promise<AdminAnalyticsStreamData> {
   const correlationId = getOrCreateCorrelationId(request, context);
-  await requireAdminSession(request, {
+  const reqCtx = getRequestContext(context);
+  const { session } = await requireAdminSession(request, {
     context,
     source: 'admin.analytics.loader',
   });
@@ -45,7 +47,7 @@ export async function loader({
   const url = new URL(request.url);
   const { filter, clampedFields } = parseAdminAnalyticsFilter(url.searchParams);
   if (clampedFields.length > 0) {
-    const logger = getRequestContext(context)?.logger ?? createFallbackLogger('admin-analytics');
+    const logger = reqCtx?.logger ?? createFallbackLogger('admin-analytics');
     logger.warn(
       {
         seam_type: 'UNSOUND_CONDITION',
@@ -57,11 +59,21 @@ export async function loader({
     );
   }
 
+  const rpcCtx = {
+    correlationId,
+    ...(reqCtx?.logger ? { logger: reqCtx.logger } : {}),
+    signal: reqCtx?.signal ?? request.signal,
+  };
+
   return {
     correlationId,
     filter,
     summaryPayload: deferStreamResult(
-      (async () => loadAdminAnalyticsSummaryWithPrerender(filter))(),
+      runAdminStreamRpc(() => getAdminAnalyticsSummaryViaGrpc(session.sessionId, filter, rpcCtx), {
+        correlationId,
+        source: 'admin.analytics.summary',
+        ...(reqCtx?.logger ? { logger: reqCtx.logger } : {}),
+      }),
       {
         request,
         context,
@@ -69,7 +81,14 @@ export async function loader({
       },
     ),
     breakdownsPayload: deferStreamResult(
-      (async () => loadAdminAnalyticsBreakdownsWithPrerender(filter))(),
+      runAdminStreamRpc(
+        () => getAdminAnalyticsBreakdownsViaGrpc(session.sessionId, filter, rpcCtx),
+        {
+          correlationId,
+          source: 'admin.analytics.breakdowns',
+          ...(reqCtx?.logger ? { logger: reqCtx.logger } : {}),
+        },
+      ),
       {
         request,
         context,

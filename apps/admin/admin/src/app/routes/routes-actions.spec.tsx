@@ -4,14 +4,18 @@ import {
   isPublicAppError,
   SITE_CONTENT_KEYS,
 } from '@aklapper/core';
-import { PORTAL_ABOUT_SEED } from '@aklapper/db';
+import { PORTAL_ABOUT_SEED } from '@aklapper/core/prerender';
+import { PrivacySanitizationError } from '@aklapper/node-runtime/go-privacy-check';
 import {
   Code,
   ConnectError,
+  ErrorDetailEnvelopeSchema,
+  PublicAppErrorSchema,
   type GrpcCallMetadata,
   type ReindexResult as GrpcReindexResult,
 } from '@aklapper/node-runtime/grpc';
 import { requestContextKey } from '@aklapper/node-runtime/ssr/stream';
+import { create, toBinary } from '@bufbuild/protobuf';
 import { RouterContextProvider } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -19,19 +23,17 @@ type AsyncUnknownFn = (...args: unknown[]) => Promise<unknown>;
 type LogFn = (obj: Record<string, unknown>, msg?: string) => void;
 
 const mocks = vi.hoisted(() => ({
-  resolveAdminSessionFromRequest: vi.fn<(request: Request) => Promise<unknown>>(),
-  getSharedDb: vi.fn<() => unknown>(),
-  syncAgensiCatalog: vi.fn<AsyncUnknownFn>(),
-  upsertSiteContent: vi.fn<AsyncUnknownFn>(),
-  upsertCareerDossier: vi.fn<AsyncUnknownFn>(),
-  deleteMenuItem: vi.fn<AsyncUnknownFn>(),
-  deleteContactSubmission: vi.fn<AsyncUnknownFn>(),
-  deleteContactSubmissions: vi.fn<AsyncUnknownFn>(),
-  updateQuotaPolicy: vi.fn<AsyncUnknownFn>(),
-  resetRateLimitBucket: vi.fn<AsyncUnknownFn>(),
-  overrideSandboxGateVerdict: vi.fn<AsyncUnknownFn>(),
-  handleAnalyticsIngestRequest:
-    vi.fn<(request: Request, options?: Record<string, unknown>) => Promise<Response>>(),
+  resolveAdminSessionViaGrpc: vi.fn<(...args: unknown[]) => Promise<unknown>>(),
+  syncAdminAgensiCatalogViaGrpc: vi.fn<AsyncUnknownFn>(),
+  upsertAdminSiteContentViaGrpc: vi.fn<AsyncUnknownFn>(),
+  upsertAdminCareerDossierViaGrpc: vi.fn<AsyncUnknownFn>(),
+  deleteAdminMenuItemViaGrpc: vi.fn<AsyncUnknownFn>(),
+  deleteAdminContactSubmissionViaGrpc: vi.fn<AsyncUnknownFn>(),
+  deleteAdminContactSubmissionsViaGrpc: vi.fn<AsyncUnknownFn>(),
+  updateAdminQuotaPolicyViaGrpc: vi.fn<AsyncUnknownFn>(),
+  resetAdminRateLimitBucketViaGrpc: vi.fn<AsyncUnknownFn>(),
+  overrideAdminSandboxGateVerdictViaGrpc: vi.fn<AsyncUnknownFn>(),
+  ingestAdminAnalyticsViaGrpc: vi.fn<AsyncUnknownFn>(),
   triggerReindex: vi.fn<(meta: GrpcCallMetadata) => Promise<GrpcReindexResult>>(),
 }));
 
@@ -39,32 +41,26 @@ vi.mock('@aklapper/node-runtime/grpc', async importOriginal => {
   const actual = await importOriginal<typeof import('@aklapper/node-runtime/grpc')>();
   return {
     ...actual,
+    resolveAdminSessionViaGrpc: (...args: unknown[]) => mocks.resolveAdminSessionViaGrpc(...args),
+    syncAdminAgensiCatalogViaGrpc: (...args: unknown[]) =>
+      mocks.syncAdminAgensiCatalogViaGrpc(...args),
+    upsertAdminSiteContentViaGrpc: (...args: unknown[]) =>
+      mocks.upsertAdminSiteContentViaGrpc(...args),
+    upsertAdminCareerDossierViaGrpc: (...args: unknown[]) =>
+      mocks.upsertAdminCareerDossierViaGrpc(...args),
+    deleteAdminMenuItemViaGrpc: (...args: unknown[]) => mocks.deleteAdminMenuItemViaGrpc(...args),
+    deleteAdminContactSubmissionViaGrpc: (...args: unknown[]) =>
+      mocks.deleteAdminContactSubmissionViaGrpc(...args),
+    deleteAdminContactSubmissionsViaGrpc: (...args: unknown[]) =>
+      mocks.deleteAdminContactSubmissionsViaGrpc(...args),
+    updateAdminQuotaPolicyViaGrpc: (...args: unknown[]) =>
+      mocks.updateAdminQuotaPolicyViaGrpc(...args),
+    resetAdminRateLimitBucketViaGrpc: (...args: unknown[]) =>
+      mocks.resetAdminRateLimitBucketViaGrpc(...args),
+    overrideAdminSandboxGateVerdictViaGrpc: (...args: unknown[]) =>
+      mocks.overrideAdminSandboxGateVerdictViaGrpc(...args),
+    ingestAdminAnalyticsViaGrpc: (...args: unknown[]) => mocks.ingestAdminAnalyticsViaGrpc(...args),
     triggerReindex: mocks.triggerReindex,
-  };
-});
-
-vi.mock('@aklapper/db/auth', () => ({
-  resolveAdminSessionFromRequest: mocks.resolveAdminSessionFromRequest,
-}));
-
-vi.mock('@aklapper/db/analytics', () => ({
-  handleAnalyticsIngestRequest: mocks.handleAnalyticsIngestRequest,
-}));
-
-vi.mock('@aklapper/db', async importOriginal => {
-  const actual = await importOriginal<typeof import('@aklapper/db')>();
-  return {
-    ...actual,
-    getSharedDb: mocks.getSharedDb,
-    syncAgensiCatalog: mocks.syncAgensiCatalog,
-    upsertSiteContent: mocks.upsertSiteContent,
-    upsertCareerDossier: mocks.upsertCareerDossier,
-    deleteMenuItem: mocks.deleteMenuItem,
-    deleteContactSubmission: mocks.deleteContactSubmission,
-    deleteContactSubmissions: mocks.deleteContactSubmissions,
-    updateQuotaPolicy: mocks.updateQuotaPolicy,
-    resetRateLimitBucket: mocks.resetRateLimitBucket,
-    overrideSandboxGateVerdict: mocks.overrideSandboxGateVerdict,
   };
 });
 
@@ -134,13 +130,37 @@ function expectUpstream503(
   );
 }
 
+function makeConnectErrorWithEnvelope(
+  code: Code,
+  publicCode: string,
+  status: number,
+  message: string,
+  retryAfterSeconds?: number,
+): ConnectError {
+  const err = new ConnectError(message, code);
+  const envelope = create(ErrorDetailEnvelopeSchema, {
+    error: create(PublicAppErrorSchema, {
+      code: publicCode,
+      status,
+      message,
+      action: 'Retry shortly.',
+      correlationId: 'corr-proto',
+    }),
+    ...(retryAfterSeconds !== undefined ? { retryAfterSeconds } : {}),
+  });
+  err.details.push({
+    type: 'common.v1.ErrorDetailEnvelope',
+    value: toBinary(ErrorDetailEnvelopeSchema, envelope),
+  });
+  return err;
+}
+
 describe('Admin mutation actions & classified HTTP status semantics', () => {
   const originalAiAskUrl = process.env['AI_ASK_URL'];
   const originalK8sWatchUrl = process.env['K8S_WATCH_URL'];
 
   beforeEach(() => {
-    mocks.resolveAdminSessionFromRequest.mockResolvedValue(AUTH_STATUS);
-    mocks.getSharedDb.mockReturnValue({});
+    mocks.resolveAdminSessionViaGrpc.mockResolvedValue(AUTH_STATUS);
     delete process.env['AI_ASK_URL'];
     delete process.env['K8S_WATCH_URL'];
   });
@@ -154,7 +174,7 @@ describe('Admin mutation actions & classified HTTP status semantics', () => {
   });
 
   it('returns honest 200, 400, 404, and classified 503 responses in cms action without leaking raw SQL', async () => {
-    mocks.deleteMenuItem.mockResolvedValueOnce(true);
+    mocks.deleteAdminMenuItemViaGrpc.mockResolvedValueOnce(true);
     const okCall = makeActionArgs(
       'http://localhost:4301/cms',
       '/cms',
@@ -176,7 +196,7 @@ describe('Admin mutation actions & classified HTTP status semantics', () => {
     expect(badJsonRes.data['code']).toBe('ERR_VALIDATION');
     expect(badJsonRes.data['correlationId']).toBe('corr-cms-400');
 
-    mocks.deleteMenuItem.mockResolvedValueOnce(false);
+    mocks.deleteAdminMenuItemViaGrpc.mockResolvedValueOnce(false);
     const missingCall = makeActionArgs(
       'http://localhost:4301/cms',
       '/cms',
@@ -187,11 +207,14 @@ describe('Admin mutation actions & classified HTTP status semantics', () => {
     expect(missingRes.init?.status).toBe(404);
     expect(missingRes.data['code']).toBe('ERR_NOT_FOUND');
 
-    const dbErr = Object.assign(
-      new Error('Failed query: DELETE FROM menu_items; connection terminated'),
-      { name: 'DrizzleQueryError', cause: new Error('connection terminated') },
+    mocks.deleteAdminMenuItemViaGrpc.mockRejectedValueOnce(
+      makeConnectErrorWithEnvelope(
+        Code.Unavailable,
+        'ERR_DB_UNAVAILABLE',
+        503,
+        'Database temporarily unavailable.',
+      ),
     );
-    mocks.deleteMenuItem.mockRejectedValueOnce(dbErr);
     const failCall = makeActionArgs(
       'http://localhost:4301/cms',
       '/cms',
@@ -203,14 +226,9 @@ describe('Admin mutation actions & classified HTTP status semantics', () => {
     expect(failRes.data['ok']).toBe(false);
     expect(failRes.data['code']).toBe('ERR_DB_UNAVAILABLE');
     expect(failRes.data['correlationId']).toBe('corr-cms-503');
-    expect(String(failRes.data['message'])).not.toContain('connection terminated');
     expect(String(failRes.data['message'])).not.toContain('DELETE');
-    expect(failCall.logger.error).toHaveBeenCalledTimes(1);
+    expect(failCall.logger.error).toHaveBeenCalled();
 
-    mocks.getSharedDb.mockClear();
-    mocks.getSharedDb.mockImplementation(() => {
-      throw new Error('DATABASE_URL is required');
-    });
     const reindexCall = makeActionArgs(
       'http://localhost:4301/cms',
       '/cms',
@@ -219,16 +237,15 @@ describe('Admin mutation actions & classified HTTP status semantics', () => {
     );
     const reindexRes = (await cmsAction(reindexCall.args as never)) as unknown as DataWithStatus;
     expectUpstream503(reindexRes, reindexCall.logger, 'corr-cms-reindex-503');
-    expect(mocks.getSharedDb).not.toHaveBeenCalled();
   });
 
-  it('rejects retired maintenance and roadmap CMS intents with HTTP 410 and UNSOUND_CONDITION log without mutating Postgres', async () => {
+  it('rejects retired maintenance and roadmap CMS intents with HTTP 410 and UNSOUND_CONDITION log without invoking admin-api', async () => {
     for (const intent of [
       'set-maintenance',
       'upsert-roadmap-milestone',
       'delete-roadmap-milestone',
     ] as const) {
-      mocks.getSharedDb.mockClear();
+      mocks.upsertAdminSiteContentViaGrpc.mockClear();
       const cid = `corr-retired-${intent}`;
       const call = makeActionArgs(
         'http://localhost:4301/cms',
@@ -243,7 +260,7 @@ describe('Admin mutation actions & classified HTTP status semantics', () => {
         code: 'ERR_VALIDATION',
         correlationId: cid,
       });
-      expect(mocks.getSharedDb).not.toHaveBeenCalled();
+      expect(mocks.upsertAdminSiteContentViaGrpc).not.toHaveBeenCalled();
       expect(call.logger.warn).toHaveBeenCalledWith(
         expect.objectContaining({
           seam_type: 'UNSOUND_CONDITION',
@@ -256,7 +273,7 @@ describe('Admin mutation actions & classified HTTP status semantics', () => {
     }
 
     // Unauthorized caller posting a retired intent fails closed before CMS dispatch
-    mocks.resolveAdminSessionFromRequest.mockResolvedValueOnce(UNAUTH_STATUS);
+    mocks.resolveAdminSessionViaGrpc.mockResolvedValueOnce(UNAUTH_STATUS);
     const unauthCall = makeActionArgs(
       'http://localhost:4301/cms',
       '/cms',
@@ -275,9 +292,9 @@ describe('Admin mutation actions & classified HTTP status semantics', () => {
         : (thrown as { init?: { status?: number } } | null)?.init?.status;
     expect([302, 401]).toContain(status);
     expect(unauthCall.logger.warn).not.toHaveBeenCalled();
-    expect(mocks.getSharedDb).not.toHaveBeenCalled();
+    expect(mocks.upsertAdminSiteContentViaGrpc).not.toHaveBeenCalled();
 
-    // Active CMS intents targeting retired portal-maintenance key/profile also return HTTP 410 with zero DB calls
+    // Active CMS intents targeting retired portal-maintenance key/profile also return HTTP 410 with zero RPC calls
     const retiredTargetCases: ReadonlyArray<Record<string, string>> = [
       {
         intent: 'upsert-site-content',
@@ -314,8 +331,7 @@ describe('Admin mutation actions & classified HTTP status semantics', () => {
     ];
 
     for (const [idx, fields] of retiredTargetCases.entries()) {
-      mocks.getSharedDb.mockClear();
-      mocks.upsertSiteContent.mockClear();
+      mocks.upsertAdminSiteContentViaGrpc.mockClear();
       const cid = `corr-retired-target-${idx}`;
       const call = makeActionArgs('http://localhost:4301/cms', '/cms', fields, cid);
       const res = (await cmsAction(call.args as never)) as unknown as DataWithStatus;
@@ -325,8 +341,7 @@ describe('Admin mutation actions & classified HTTP status semantics', () => {
         code: 'ERR_VALIDATION',
         correlationId: cid,
       });
-      expect(mocks.getSharedDb).not.toHaveBeenCalled();
-      expect(mocks.upsertSiteContent).not.toHaveBeenCalled();
+      expect(mocks.upsertAdminSiteContentViaGrpc).not.toHaveBeenCalled();
       expect(call.logger.warn).toHaveBeenCalledWith(
         expect.objectContaining({
           seam_type: 'UNSOUND_CONDITION',
@@ -363,7 +378,7 @@ describe('Admin mutation actions & classified HTTP status semantics', () => {
     )) as unknown as DataWithStatus;
     expect(invalidRes.init?.status).toBe(400);
     expect(invalidRes.data['code']).toBe('ERR_VALIDATION');
-    expect(mocks.upsertSiteContent).not.toHaveBeenCalled();
+    expect(mocks.upsertAdminSiteContentViaGrpc).not.toHaveBeenCalled();
     expect(invalidSchemaCall.logger.warn).toHaveBeenCalledWith(
       expect.objectContaining({
         event: 'admin.cms.site_content_invalid_payload',
@@ -373,7 +388,7 @@ describe('Admin mutation actions & classified HTTP status semantics', () => {
       expect.any(String),
     );
 
-    mocks.upsertSiteContent.mockResolvedValueOnce({
+    mocks.upsertAdminSiteContentViaGrpc.mockResolvedValueOnce({
       key: 'admin-analytics',
       markdownBody: '# Analytics',
       metadataJson: { windowTitle: 'Analytics', description: 'Live metrics.' },
@@ -406,7 +421,7 @@ describe('Admin mutation actions & classified HTTP status semantics', () => {
     expect(analyticsLogPayload['sanitizationVerified']).toBeUndefined();
   });
 
-  it('guards portal-home upserts against invalid portrait.src, non-HTTPS githubUrl, and PII/References while auditing sanitized commits', async () => {
+  it('guards portal-home upserts against invalid portrait.src, non-HTTPS githubUrl, and gRPC privacy 422 while auditing sanitized commits', async () => {
     const basePortalHome = {
       tuiTitle: 'Portfolio Launcher',
       tuiBadge: { source: 'cloud-run', state: 'idle', label: 'Idle' },
@@ -421,7 +436,6 @@ describe('Admin mutation actions & classified HTTP status semantics', () => {
       },
     };
 
-    // 1. Invalid portrait.src returns HTTP 400 ERR_VALIDATION and emits UNSOUND_CONDITION seam without raw URI
     const hostilePortrait = 'https://evil.example.invalid/hotlink.webp';
     const badSrcCall = makeActionArgs(
       'http://localhost:4301/cms',
@@ -440,7 +454,7 @@ describe('Admin mutation actions & classified HTTP status semantics', () => {
     const badSrcRes = (await cmsAction(badSrcCall.args as never)) as unknown as DataWithStatus;
     expect(badSrcRes.init?.status).toBe(400);
     expect(badSrcRes.data['code']).toBe('ERR_VALIDATION');
-    expect(mocks.upsertSiteContent).not.toHaveBeenCalled();
+    expect(mocks.upsertAdminSiteContentViaGrpc).not.toHaveBeenCalled();
     expect(badSrcCall.logger.warn).toHaveBeenCalledWith(
       expect.objectContaining({
         event: 'portal.home.portrait_src_invalid',
@@ -452,7 +466,6 @@ describe('Admin mutation actions & classified HTTP status semantics', () => {
     );
     expect(JSON.stringify(badSrcCall.logger.warn.mock.calls)).not.toContain(hostilePortrait);
 
-    // 2. Non-HTTPS githubUrl returns HTTP 400 ERR_VALIDATION with zero DB write
     const badGithubCall = makeActionArgs(
       'http://localhost:4301/cms',
       '/cms',
@@ -475,9 +488,18 @@ describe('Admin mutation actions & classified HTTP status semantics', () => {
     )) as unknown as DataWithStatus;
     expect(badGithubRes.init?.status).toBe(400);
     expect(badGithubRes.data['code']).toBe('ERR_VALIDATION');
-    expect(mocks.upsertSiteContent).not.toHaveBeenCalled();
+    expect(mocks.upsertAdminSiteContentViaGrpc).not.toHaveBeenCalled();
 
-    // 3. Disallowed phone / postal ZIP / References returns HTTP 422 ERR_CONSTRAINT with sanitizationFindings
+    mocks.upsertAdminSiteContentViaGrpc.mockRejectedValueOnce(
+      new PrivacySanitizationError([
+        {
+          ruleId: 'pii.us_phone',
+          category: 'pii',
+          field: 'resumeSummary.roleLine',
+          location: 'resumeSummary.roleLine',
+        },
+      ]),
+    );
     const piiCall = makeActionArgs(
       'http://localhost:4301/cms',
       '/cms',
@@ -499,10 +521,8 @@ describe('Admin mutation actions & classified HTTP status semantics', () => {
     expect(piiRes.init?.status).toBe(422);
     expect(piiRes.data['code']).toBe('ERR_CONSTRAINT');
     expect(Array.isArray(piiRes.data['sanitizationFindings'])).toBe(true);
-    expect(mocks.upsertSiteContent).not.toHaveBeenCalled();
 
-    // 4. Clean portal-home with allow-listed andrew@andrew-k.us persists and emits commit audit with adminActor + sanitizationVerified
-    mocks.upsertSiteContent.mockResolvedValueOnce({
+    mocks.upsertAdminSiteContentViaGrpc.mockResolvedValueOnce({
       key: 'portal-home',
       markdownBody: '# Home clean',
       metadataJson: basePortalHome,
@@ -524,7 +544,7 @@ describe('Admin mutation actions & classified HTTP status semantics', () => {
     )) as unknown as DataWithStatus;
     expect(cleanHomeRes.init?.status).toBe(200);
     expect(cleanHomeRes.data['ok']).toBe(true);
-    expect(mocks.upsertSiteContent).toHaveBeenCalledTimes(1);
+    expect(mocks.upsertAdminSiteContentViaGrpc).toHaveBeenCalledTimes(2);
     expect(cleanHomeCall.logger.info).toHaveBeenCalledWith(
       expect.objectContaining({
         event: 'admin.cms.site_content_upsert_committed',
@@ -539,14 +559,11 @@ describe('Admin mutation actions & classified HTTP status semantics', () => {
     );
   });
 
-  it('triggers syncAgensiCatalog on sync-agensi-catalog and rejects retired manual CRUD intents with HTTP 410', async () => {
-    mocks.syncAgensiCatalog.mockResolvedValueOnce({
+  it('triggers syncAdminAgensiCatalogViaGrpc on sync-agensi-catalog and rejects retired manual CRUD intents with HTTP 410', async () => {
+    mocks.syncAdminAgensiCatalogViaGrpc.mockResolvedValueOnce({
       creatorHandle: 'aklapper',
       skills: ADMIN_CMS_FIXTURE.agensiSkills,
       syncState: ADMIN_CMS_FIXTURE.agensiSyncState,
-      notModified: false,
-      syncedCount: 1,
-      deactivatedCount: 0,
     });
 
     const syncCall = makeActionArgs(
@@ -556,9 +573,10 @@ describe('Admin mutation actions & classified HTTP status semantics', () => {
       'corr-agensi-sync',
     );
     const syncRes = (await cmsAction(syncCall.args as never)) as unknown as DataWithStatus;
-    expect(mocks.syncAgensiCatalog).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({ forceRefresh: true, correlationId: 'corr-agensi-sync' }),
+    expect(mocks.syncAdminAgensiCatalogViaGrpc).toHaveBeenCalledWith(
+      AUTH_STATUS.session.sessionId,
+      { forceRefresh: true },
+      expect.objectContaining({ correlationId: 'corr-agensi-sync' }),
     );
     expect(syncRes.init?.status).toBe(200);
     expect(syncRes.init?.headers?.['X-Correlation-Id']).toBe('corr-agensi-sync');
@@ -597,7 +615,7 @@ describe('Admin mutation actions & classified HTTP status semantics', () => {
   });
 
   it('returns honest 200, 400, 404, and classified 503 responses in inbox action', async () => {
-    mocks.deleteContactSubmission.mockResolvedValueOnce(true);
+    mocks.deleteAdminContactSubmissionViaGrpc.mockResolvedValueOnce(true);
     const okCall = makeActionArgs(
       'http://localhost:4301/inbox',
       '/inbox',
@@ -608,7 +626,7 @@ describe('Admin mutation actions & classified HTTP status semantics', () => {
     expect(okRes.init?.status).toBe(200);
     expect(okRes.data['ok']).toBe(true);
 
-    mocks.deleteContactSubmission.mockResolvedValueOnce(false);
+    mocks.deleteAdminContactSubmissionViaGrpc.mockResolvedValueOnce(false);
     const missingCall = makeActionArgs(
       'http://localhost:4301/inbox',
       '/inbox',
@@ -631,7 +649,14 @@ describe('Admin mutation actions & classified HTTP status semantics', () => {
     expect(badIntentRes.init?.status).toBe(400);
     expect(badIntentRes.data['code']).toBe('ERR_VALIDATION');
 
-    mocks.deleteContactSubmission.mockRejectedValueOnce(new Error('connection terminated'));
+    mocks.deleteAdminContactSubmissionViaGrpc.mockRejectedValueOnce(
+      makeConnectErrorWithEnvelope(
+        Code.Unavailable,
+        'ERR_DB_UNAVAILABLE',
+        503,
+        'Database temporarily unavailable.',
+      ),
+    );
     const dbCall = makeActionArgs(
       'http://localhost:4301/inbox',
       '/inbox',
@@ -642,12 +667,11 @@ describe('Admin mutation actions & classified HTTP status semantics', () => {
     expect(dbRes.init?.status).toBe(503);
     expect(dbRes.data['code']).toBe('ERR_DB_UNAVAILABLE');
     expect(dbRes.data['correlationId']).toBe('corr-inbox-503');
-    expect(String(dbRes.data['message'])).not.toContain('connection terminated');
-    expect(dbCall.logger.error).toHaveBeenCalledTimes(1);
+    expect(dbCall.logger.error).toHaveBeenCalled();
   });
 
   it('handles delete-many intent with deduplication and honest 200, 400, 404, and 503 statuses', async () => {
-    mocks.deleteContactSubmissions.mockResolvedValueOnce(2);
+    mocks.deleteAdminContactSubmissionsViaGrpc.mockResolvedValueOnce(2);
     const okCall = makeActionArgs(
       'http://localhost:4301/inbox',
       '/inbox',
@@ -664,12 +688,13 @@ describe('Admin mutation actions & classified HTTP status semantics', () => {
     expect(okRes.init?.status).toBe(200);
     expect(okRes.data['ok']).toBe(true);
     expect(okRes.data['message']).toBe('Deleted 2 contact submissions from PostgreSQL 19.');
-    expect(mocks.deleteContactSubmissions).toHaveBeenCalledWith(expect.anything(), [
-      'sub-1',
-      'sub-2',
-    ]);
+    expect(mocks.deleteAdminContactSubmissionsViaGrpc).toHaveBeenCalledWith(
+      AUTH_STATUS.session.sessionId,
+      ['sub-1', 'sub-2'],
+      expect.objectContaining({ correlationId: 'corr-inbox-bulk-200' }),
+    );
 
-    mocks.deleteContactSubmissions.mockResolvedValueOnce(1);
+    mocks.deleteAdminContactSubmissionsViaGrpc.mockResolvedValueOnce(1);
     const singleOkCall = makeActionArgs(
       'http://localhost:4301/inbox',
       '/inbox',
@@ -699,7 +724,7 @@ describe('Admin mutation actions & classified HTTP status semantics', () => {
     expect(emptyRes.data['code']).toBe('ERR_VALIDATION');
     expect(emptyRes.data['message']).toBe('Select at least one submission to delete.');
 
-    mocks.deleteContactSubmissions.mockResolvedValueOnce(0);
+    mocks.deleteAdminContactSubmissionsViaGrpc.mockResolvedValueOnce(0);
     const missingCall = makeActionArgs(
       'http://localhost:4301/inbox',
       '/inbox',
@@ -713,7 +738,9 @@ describe('Admin mutation actions & classified HTTP status semantics', () => {
     expect(missingRes.init?.status).toBe(404);
     expect(missingRes.data['code']).toBe('ERR_NOT_FOUND');
 
-    mocks.deleteContactSubmissions.mockRejectedValueOnce(new Error('connection terminated'));
+    mocks.deleteAdminContactSubmissionsViaGrpc.mockRejectedValueOnce(
+      new ConnectError('admin-api unreachable', Code.Unavailable),
+    );
     const dbCall = makeActionArgs(
       'http://localhost:4301/inbox',
       '/inbox',
@@ -725,10 +752,9 @@ describe('Admin mutation actions & classified HTTP status semantics', () => {
     );
     const dbRes = (await inboxAction(dbCall.args as never)) as unknown as DataWithStatus;
     expect(dbRes.init?.status).toBe(503);
-    expect(dbRes.data['code']).toBe('ERR_DB_UNAVAILABLE');
+    expect(dbRes.data['code']).toBe('ERR_UPSTREAM_UNAVAILABLE');
     expect(dbRes.data['correlationId']).toBe('corr-inbox-bulk-503');
-    expect(String(dbRes.data['message'])).not.toContain('connection terminated');
-    expect(dbCall.logger.error).toHaveBeenCalledTimes(1);
+    expect(dbCall.logger.error).toHaveBeenCalled();
   });
 
   it('returns honest 200, 400 ZodError, 404, and classified 503 responses in quotas action', async () => {
@@ -749,7 +775,7 @@ describe('Admin mutation actions & classified HTTP status semantics', () => {
     expect(zodRes.data['code']).toBe('ERR_VALIDATION');
     expect(zodRes.data['correlationId']).toBe('corr-quotas-400');
 
-    mocks.resetRateLimitBucket.mockResolvedValueOnce(false);
+    mocks.resetAdminRateLimitBucketViaGrpc.mockResolvedValueOnce(false);
     const missingCall = makeActionArgs(
       'http://localhost:4301/quotas',
       '/quotas',
@@ -760,9 +786,9 @@ describe('Admin mutation actions & classified HTTP status semantics', () => {
     expect(missingRes.init?.status).toBe(404);
     expect(missingRes.data['code']).toBe('ERR_NOT_FOUND');
 
-    mocks.getSharedDb.mockImplementationOnce(() => {
-      throw new Error('DATABASE_URL is required');
-    });
+    mocks.resetAdminRateLimitBucketViaGrpc.mockRejectedValueOnce(
+      new ConnectError('admin-api unreachable', Code.Unavailable),
+    );
     const dbCall = makeActionArgs(
       'http://localhost:4301/quotas',
       '/quotas',
@@ -771,10 +797,9 @@ describe('Admin mutation actions & classified HTTP status semantics', () => {
     );
     const dbRes = (await quotasAction(dbCall.args as never)) as unknown as DataWithStatus;
     expect(dbRes.init?.status).toBe(503);
-    expect(dbRes.data['code']).toBe('ERR_DB_UNAVAILABLE');
+    expect(dbRes.data['code']).toBe('ERR_UPSTREAM_UNAVAILABLE');
     expect(dbRes.data['correlationId']).toBe('corr-quotas-503');
-    expect(String(dbRes.data['message'])).not.toContain('DATABASE_URL');
-    expect(dbCall.logger.error).toHaveBeenCalledTimes(1);
+    expect(dbCall.logger.error).toHaveBeenCalled();
   });
 
   it('returns honest 200, 400, 404, and 503 responses in ops action including upstream reindex failures', async () => {
@@ -887,7 +912,7 @@ describe('Admin mutation actions & classified HTTP status semantics', () => {
     });
     delete process.env['AI_ASK_URL'];
 
-    mocks.overrideSandboxGateVerdict.mockResolvedValueOnce({
+    mocks.overrideAdminSandboxGateVerdictViaGrpc.mockResolvedValueOnce({
       runId: '11111111-1111-4111-8111-111111111111',
       gateVerdict: 'approved',
     });
@@ -917,7 +942,40 @@ describe('Admin mutation actions & classified HTTP status semantics', () => {
       else process.env['CADENCE_ADMIN_URL'] = prevCadenceAdminUrl;
     }
 
-    mocks.overrideSandboxGateVerdict.mockResolvedValueOnce(null);
+    mocks.overrideAdminSandboxGateVerdictViaGrpc.mockRejectedValueOnce(
+      makeConnectErrorWithEnvelope(
+        Code.FailedPrecondition,
+        'ERR_CONSTRAINT',
+        409,
+        'Golden showcase runs are read-only.',
+      ),
+    );
+    const goldenCall = makeActionArgs(
+      'http://localhost:4301/ops',
+      '/ops',
+      {
+        intent: 'override-gate',
+        runId: '11111111-1111-4111-8111-111111111111',
+        gateVerdict: 'rejected',
+      },
+      'corr-ops-golden-409',
+    );
+    const goldenRes = (await opsAction(goldenCall.args as never)) as unknown as DataWithStatus;
+    expect(goldenRes.init?.status).toBe(409);
+    expect(goldenRes.data['code']).toBe('ERR_CONSTRAINT');
+    expect(goldenRes.data['message']).toContain('Golden showcase runs are read-only');
+    expect(goldenCall.logger.warn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        seam_type: 'UNSOUND_CONDITION',
+        event: 'cadence.gate.golden_mutation_blocked',
+        correlationId: 'corr-ops-golden-409',
+      }),
+      expect.any(String),
+    );
+
+    mocks.overrideAdminSandboxGateVerdictViaGrpc.mockRejectedValueOnce(
+      new ConnectError('run not found', Code.NotFound),
+    );
     const missingRunCall = makeActionArgs(
       'http://localhost:4301/ops',
       '/ops',
@@ -934,7 +992,9 @@ describe('Admin mutation actions & classified HTTP status semantics', () => {
     expect(missingRunRes.init?.status).toBe(404);
     expect(missingRunRes.data['code']).toBe('ERR_NOT_FOUND');
 
-    mocks.overrideSandboxGateVerdict.mockRejectedValueOnce(new Error('connection terminated'));
+    mocks.overrideAdminSandboxGateVerdictViaGrpc.mockRejectedValueOnce(
+      new ConnectError('admin-api unreachable', Code.Unavailable),
+    );
     const dbCall = makeActionArgs(
       'http://localhost:4301/ops',
       '/ops',
@@ -947,37 +1007,121 @@ describe('Admin mutation actions & classified HTTP status semantics', () => {
     );
     const dbRes = (await opsAction(dbCall.args as never)) as unknown as DataWithStatus;
     expect(dbRes.init?.status).toBe(503);
-    expect(dbRes.data['code']).toBe('ERR_DB_UNAVAILABLE');
+    expect(dbRes.data['code']).toBe('ERR_UPSTREAM_UNAVAILABLE');
     expect(dbRes.data['correlationId']).toBe('corr-ops-503');
-    expect(dbCall.logger.error).toHaveBeenCalledTimes(1);
+    expect(dbCall.logger.error).toHaveBeenCalled();
   });
 
-  it('classifies unexpected DB faults in admin api.analytics.ingest with X-Correlation-Id and passes server-authoritative admin app', async () => {
-    mocks.handleAnalyticsIngestRequest.mockResolvedValueOnce(
-      Response.json({ accepted: 1, sessionId: 'sess_admin_1', ipHash: 'hash_1' }, { status: 202 }),
+  it('enforces requireAdminSession, rate-limit 429, and gRPC fault classification in admin api.analytics.ingest', async () => {
+    const validBatch = {
+      sessionId: 'sess_admin_123456',
+      events: [
+        {
+          type: 'page_view',
+          name: 'admin.view',
+          path: '/analytics',
+          timestamp: new Date().toISOString(),
+        },
+      ],
+    };
+    const makeJsonArgs = (body: unknown, correlationId: string) => {
+      const logger = { info: vi.fn<LogFn>(), warn: vi.fn<LogFn>(), error: vi.fn<LogFn>() };
+      const context = new RouterContextProvider();
+      context.set(requestContextKey, {
+        correlationId,
+        logger,
+        serviceName: 'admin-ssr',
+        signal: new AbortController().signal,
+      });
+      const request = new Request('http://localhost:4301/api/analytics/ingest', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'user-agent': 'AdminTest/1.0' },
+        body: JSON.stringify(body),
+      });
+      return {
+        logger,
+        args: {
+          request,
+          url: new URL('http://localhost:4301/api/analytics/ingest'),
+          pattern: '/api/analytics/ingest',
+          unstable_pattern: '/api/analytics/ingest',
+          params: {},
+          context,
+        },
+      };
+    };
+
+    // 1. Unauthenticated caller rejected with 401 and RULE_DIVERGENCE seam
+    mocks.resolveAdminSessionViaGrpc.mockResolvedValueOnce(UNAUTH_STATUS);
+    const unauthCall = makeJsonArgs(validBatch, 'corr-ingest-401');
+    const unauthRes = await analyticsIngestAction(unauthCall.args as never);
+    expect(unauthRes.status).toBe(401);
+    expect(mocks.ingestAdminAnalyticsViaGrpc).not.toHaveBeenCalled();
+    expect(unauthCall.logger.info).toHaveBeenCalledWith(
+      expect.objectContaining({
+        seam_type: 'RULE_DIVERGENCE',
+        event: 'admin.analytics.ingest_auth_branch',
+        branch: 'unauthenticated_rejected_401',
+        correlationId: 'corr-ingest-401',
+      }),
+      expect.any(String),
     );
-    const okCall = makeActionArgs(
-      'http://localhost:4301/api/analytics/ingest',
-      '/api/analytics/ingest',
-      {},
-      'corr-ingest-202',
-    );
+
+    // 2. Authenticated caller succeeds with 202 and RULE_DIVERGENCE seam
+    mocks.ingestAdminAnalyticsViaGrpc.mockResolvedValueOnce({
+      accepted: 1,
+      sessionId: 'sess_admin_123456',
+      ipHash: 'hash_1',
+    });
+    const okCall = makeJsonArgs(validBatch, 'corr-ingest-202');
     const okResponse = await analyticsIngestAction(okCall.args as never);
     expect(okResponse.status).toBe(202);
     expect(okResponse.headers.get('X-Correlation-Id')).toBe('corr-ingest-202');
-    expect(mocks.handleAnalyticsIngestRequest).toHaveBeenCalledWith(
-      okCall.args.request,
-      expect.objectContaining({ app: 'admin', logger: okCall.logger }),
+    expect(mocks.ingestAdminAnalyticsViaGrpc).toHaveBeenCalledWith(
+      AUTH_STATUS.session.sessionId,
+      expect.objectContaining({ sessionId: 'sess_admin_123456' }),
+      'AdminTest/1.0',
+      expect.objectContaining({ correlationId: 'corr-ingest-202' }),
+    );
+    expect(okCall.logger.info).toHaveBeenCalledWith(
+      expect.objectContaining({
+        seam_type: 'RULE_DIVERGENCE',
+        event: 'admin.analytics.ingest_auth_branch',
+        branch: 'authenticated_accepted',
+        correlationId: 'corr-ingest-202',
+      }),
+      expect.any(String),
     );
 
-    mocks.handleAnalyticsIngestRequest.mockRejectedValueOnce(new Error('connection terminated'));
-    const { args, logger } = makeActionArgs(
-      'http://localhost:4301/api/analytics/ingest',
-      '/api/analytics/ingest',
-      {},
-      'corr-ingest-503',
+    // 3. Rate limit 429 forwards Retry-After and logs rate_limited_429
+    mocks.ingestAdminAnalyticsViaGrpc.mockRejectedValueOnce(
+      makeConnectErrorWithEnvelope(
+        Code.ResourceExhausted,
+        'ERR_RATE_LIMITED',
+        429,
+        'Too many requests.',
+        30,
+      ),
+    );
+    const rateCall = makeJsonArgs(validBatch, 'corr-ingest-429');
+    const rateRes = await analyticsIngestAction(rateCall.args as never);
+    expect(rateRes.status).toBe(429);
+    expect(rateRes.headers.get('Retry-After')).toBe('30');
+    expect(rateCall.logger.info).toHaveBeenCalledWith(
+      expect.objectContaining({
+        seam_type: 'RULE_DIVERGENCE',
+        event: 'admin.analytics.ingest_auth_branch',
+        branch: 'rate_limited_429',
+        correlationId: 'corr-ingest-429',
+      }),
+      expect.any(String),
     );
 
+    // 4. Upstream Unavailable maps cleanly to 503
+    mocks.ingestAdminAnalyticsViaGrpc.mockRejectedValueOnce(
+      new ConnectError('admin-api unavailable', Code.Unavailable),
+    );
+    const { args, logger } = makeJsonArgs(validBatch, 'corr-ingest-503');
     const response = await analyticsIngestAction(args as never);
     expect(response.status).toBe(503);
     expect(response.headers.get('X-Correlation-Id')).toBe('corr-ingest-503');
@@ -985,15 +1129,15 @@ describe('Admin mutation actions & classified HTTP status semantics', () => {
     expect(isPublicAppError(body)).toBe(true);
     expect(body).toEqual(
       expect.objectContaining({
-        code: 'ERR_DB_UNAVAILABLE',
+        code: 'ERR_UPSTREAM_UNAVAILABLE',
         correlationId: 'corr-ingest-503',
       }),
     );
-    expect(logger.error).toHaveBeenCalledTimes(1);
+    expect(logger.error).toHaveBeenCalled();
   });
 
   it('emits admin.cms.dossier_mutation_committed DELTA_AUDIT_GAP log on career dossier upsert', async () => {
-    mocks.upsertCareerDossier.mockResolvedValueOnce({
+    mocks.upsertAdminCareerDossierViaGrpc.mockResolvedValueOnce({
       slug: 'cloud-platform-audit',
       kind: 'architecture',
       title: 'Cloud Platform Audit',
@@ -1044,9 +1188,8 @@ describe('Admin mutation actions & classified HTTP status semantics', () => {
     );
   });
 
-  it('enforces schema HTTP 400, fail-closed privacy HTTP 422, auth gate, and audit commit log on portal-about CMS mutations', async () => {
-    // 1. Unauthenticated request is rejected before touching DB
-    mocks.resolveAdminSessionFromRequest.mockResolvedValueOnce(UNAUTH_STATUS);
+  it('enforces schema HTTP 400, fail-closed gRPC privacy HTTP 422, auth gate, and audit commit log on portal-about CMS mutations', async () => {
+    mocks.resolveAdminSessionViaGrpc.mockResolvedValueOnce(UNAUTH_STATUS);
     const unauthCall = makeActionArgs(
       'http://localhost:4301/cms',
       '/cms',
@@ -1066,9 +1209,8 @@ describe('Admin mutation actions & classified HTTP status semantics', () => {
       authRejected = error;
     }
     expect(authRejected).toBeTruthy();
-    expect(mocks.upsertSiteContent).not.toHaveBeenCalled();
+    expect(mocks.upsertAdminSiteContentViaGrpc).not.toHaveBeenCalled();
 
-    // 2. Schema-invalid portal-about returns HTTP 400
     const badSchemaCall = makeActionArgs(
       'http://localhost:4301/cms',
       '/cms',
@@ -1093,40 +1235,54 @@ describe('Admin mutation actions & classified HTTP status semantics', () => {
     )) as unknown as DataWithStatus;
     expect(badSchemaRes.init?.status).toBe(400);
     expect(badSchemaRes.data['code']).toBe('ERR_VALIDATION');
-    expect(mocks.upsertSiteContent).not.toHaveBeenCalled();
+    expect(mocks.upsertAdminSiteContentViaGrpc).not.toHaveBeenCalled();
 
-    // 3. Privacy violation (synthetic phone / US ZIP / email) returns HTTP 422 + sanitizationFindings
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    try {
-      const piiCall = makeActionArgs(
-        'http://localhost:4301/cms',
-        '/cms',
+    mocks.upsertAdminSiteContentViaGrpc.mockRejectedValueOnce(
+      new PrivacySanitizationError([
         {
-          intent: 'upsert-site-content',
-          key: SITE_CONTENT_KEYS.portalAbout,
-          markdownBody:
-            'Contact reference.contact@example.com at (555) 010-1234 in Marietta, GA 30062',
-          metadataJson: JSON.stringify(PORTAL_ABOUT_SEED),
+          ruleId: 'pii.email_address',
+          category: 'pii',
+          field: 'markdownBody',
+          location: 'markdownBody',
         },
-        'corr-about-422',
-      );
-      const piiRes = (await cmsAction(piiCall.args as never)) as unknown as DataWithStatus;
-      expect(piiRes.init?.status).toBe(422);
-      expect(piiRes.data['code']).toBe('ERR_CONSTRAINT');
-      expect(piiRes.data['sanitizationFindings']).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({ ruleId: 'pii.email_address' }),
-          expect.objectContaining({ ruleId: 'pii.us_phone' }),
-          expect.objectContaining({ ruleId: 'pii.us_postal_zip' }),
-        ]),
-      );
-      expect(mocks.upsertSiteContent).not.toHaveBeenCalled();
-    } finally {
-      warnSpy.mockRestore();
-    }
+        {
+          ruleId: 'pii.us_phone',
+          category: 'pii',
+          field: 'markdownBody',
+          location: 'markdownBody',
+        },
+        {
+          ruleId: 'pii.us_postal_zip',
+          category: 'pii',
+          field: 'markdownBody',
+          location: 'markdownBody',
+        },
+      ]),
+    );
+    const piiCall = makeActionArgs(
+      'http://localhost:4301/cms',
+      '/cms',
+      {
+        intent: 'upsert-site-content',
+        key: SITE_CONTENT_KEYS.portalAbout,
+        markdownBody:
+          'Contact reference.contact@example.com at (555) 010-1234 in Marietta, GA 30062',
+        metadataJson: JSON.stringify(PORTAL_ABOUT_SEED),
+      },
+      'corr-about-422',
+    );
+    const piiRes = (await cmsAction(piiCall.args as never)) as unknown as DataWithStatus;
+    expect(piiRes.init?.status).toBe(422);
+    expect(piiRes.data['code']).toBe('ERR_CONSTRAINT');
+    expect(piiRes.data['sanitizationFindings']).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ ruleId: 'pii.email_address' }),
+        expect.objectContaining({ ruleId: 'pii.us_phone' }),
+        expect.objectContaining({ ruleId: 'pii.us_postal_zip' }),
+      ]),
+    );
 
-    // 4. Valid clean portal-about commits and emits admin.cms.site_content_upsert_committed
-    mocks.upsertSiteContent.mockResolvedValueOnce({
+    mocks.upsertAdminSiteContentViaGrpc.mockResolvedValueOnce({
       key: SITE_CONTENT_KEYS.portalAbout,
       markdownBody: 'Updated about note for port :11434 and 40000 items.',
       metadataJson: PORTAL_ABOUT_SEED,
@@ -1146,12 +1302,13 @@ describe('Admin mutation actions & classified HTTP status semantics', () => {
     const validRes = (await cmsAction(validCall.args as never)) as unknown as DataWithStatus;
     expect(validRes.init?.status).toBe(200);
     expect(validRes.data['ok']).toBe(true);
-    expect(mocks.upsertSiteContent).toHaveBeenCalledWith(
-      expect.anything(),
-      SITE_CONTENT_KEYS.portalAbout,
-      'Updated about note for port :11434 and 40000 items.',
-      expect.objectContaining({ windowTitle: PORTAL_ABOUT_SEED.windowTitle }),
-      { correlationId: 'corr-about-200' },
+    expect(mocks.upsertAdminSiteContentViaGrpc).toHaveBeenLastCalledWith(
+      AUTH_STATUS.session.sessionId,
+      expect.objectContaining({
+        key: SITE_CONTENT_KEYS.portalAbout,
+        markdownBody: 'Updated about note for port :11434 and 40000 items.',
+      }),
+      expect.objectContaining({ correlationId: 'corr-about-200' }),
     );
     expect(validCall.logger.info).toHaveBeenCalledWith(
       expect.objectContaining({

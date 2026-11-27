@@ -1,19 +1,18 @@
 import type { AppErrorCode } from '@aklapper/core';
 import {
-  deleteCadencePreset,
-  deleteMenuItem,
-  deleteTerminalCommand,
-  deleteTerminalDirectoryEntry,
-  deleteTerminalInitialEntry,
-  getSharedDb,
-  syncAgensiCatalog,
-  upsertCadencePreset,
-  upsertMenuItem,
-  upsertTerminalCommand,
-  upsertTerminalDirectoryEntry,
-  upsertTerminalInitialEntry,
-  upsertTerminalProfile,
-} from '@aklapper/db';
+  deleteAdminCadencePresetViaGrpc,
+  deleteAdminMenuItemViaGrpc,
+  deleteAdminTerminalCommandViaGrpc,
+  deleteAdminTerminalDirectoryEntryViaGrpc,
+  deleteAdminTerminalInitialEntryViaGrpc,
+  syncAdminAgensiCatalogViaGrpc,
+  upsertAdminCadencePresetViaGrpc,
+  upsertAdminMenuItemViaGrpc,
+  upsertAdminTerminalCommandViaGrpc,
+  upsertAdminTerminalDirectoryEntryViaGrpc,
+  upsertAdminTerminalInitialEntryViaGrpc,
+  upsertAdminTerminalProfileViaGrpc,
+} from '@aklapper/node-runtime/grpc';
 import type { SsrStructuredLogger } from '@aklapper/node-runtime/ssr/stream';
 
 import type { AdminCmsActionData } from '#pages/cms';
@@ -94,10 +93,18 @@ export async function dispatchAdminCmsIntent(
   formData: FormData,
   correlationId: string,
   logger: SsrStructuredLogger,
+  sessionId: string,
   adminActor = 'admin',
 ): Promise<CmsActionOutcome> {
+  const rpcCtx = { correlationId, logger };
+
   if (isCareerDossierIntent(intent)) {
-    return handleCareerDossierIntent(intent, formData, { correlationId, logger, adminActor });
+    return handleCareerDossierIntent(intent, formData, {
+      sessionId,
+      correlationId,
+      logger,
+      adminActor,
+    });
   }
 
   if (intent === 'reindex-qdrant') {
@@ -117,25 +124,34 @@ export async function dispatchAdminCmsIntent(
     if (isRetiredMaintenanceTarget(key)) {
       return blockRetiredMaintenanceMutation(intent, correlationId, logger, key);
     }
-    return handleUpsertSiteContentIntent(formData, { correlationId, logger, adminActor });
+    return handleUpsertSiteContentIntent(formData, {
+      sessionId,
+      correlationId,
+      logger,
+      adminActor,
+    });
   }
 
   if (intent === 'upsert-menu-item') {
-    const saved = await upsertMenuItem(getSharedDb(), {
-      slug: String(formData.get('slug') ?? ''),
-      keyShortcut: String(formData.get('keyShortcut') ?? ''),
-      title: String(formData.get('title') ?? ''),
-      description: String(formData.get('description') ?? ''),
-      sortOrder: Number(formData.get('sortOrder') ?? 0),
-      enabled: formData.get('enabled') === 'true',
-      adminOnly: formData.get('adminOnly') === 'true',
-    });
+    const saved = await upsertAdminMenuItemViaGrpc(
+      sessionId,
+      {
+        slug: String(formData.get('slug') ?? ''),
+        keyShortcut: String(formData.get('keyShortcut') ?? ''),
+        title: String(formData.get('title') ?? ''),
+        description: String(formData.get('description') ?? ''),
+        sortOrder: Number(formData.get('sortOrder') ?? 0),
+        enabled: formData.get('enabled') === 'true',
+        adminOnly: formData.get('adminOnly') === 'true',
+      },
+      rpcCtx,
+    );
     return ok(`Saved menu item "${saved.slug}".`);
   }
 
   if (intent === 'delete-menu-item') {
     const slug = String(formData.get('slug') ?? '').trim();
-    const deleted = await deleteMenuItem(getSharedDb(), slug);
+    const deleted = await deleteAdminMenuItemViaGrpc(sessionId, slug, rpcCtx);
     return deleted
       ? ok(`Deleted menu item "${slug}".`)
       : notFound(`Menu item "${slug}" not found.`, correlationId);
@@ -146,18 +162,22 @@ export async function dispatchAdminCmsIntent(
     if (isRetiredMaintenanceTarget(slug)) {
       return blockRetiredMaintenanceMutation(intent, correlationId, logger, slug);
     }
-    const saved = await upsertTerminalProfile(getSharedDb(), {
-      slug,
-      bannerTitle: String(formData.get('bannerTitle') ?? ''),
-      bannerMeta: String(formData.get('bannerMeta') ?? ''),
-      osLabel: String(formData.get('osLabel') ?? 'linux'),
-      directory: String(formData.get('directory') ?? '~'),
-      vcsBranch: String(formData.get('vcsBranch') ?? 'main'),
-      vcsState: String(formData.get('vcsState') ?? 'clean') as 'clean' | 'modified' | 'untracked',
-      contextLabel: String(formData.get('contextLabel') ?? ''),
-      placeholder: String(formData.get('placeholder') ?? ''),
-      quickCommands: splitTags(formData.get('quickCommands')),
-    });
+    const saved = await upsertAdminTerminalProfileViaGrpc(
+      sessionId,
+      {
+        slug,
+        bannerTitle: String(formData.get('bannerTitle') ?? ''),
+        bannerMeta: String(formData.get('bannerMeta') ?? ''),
+        osLabel: String(formData.get('osLabel') ?? 'linux'),
+        directory: String(formData.get('directory') ?? '~'),
+        vcsBranch: String(formData.get('vcsBranch') ?? 'main'),
+        vcsState: String(formData.get('vcsState') ?? 'clean') as 'clean' | 'modified' | 'untracked',
+        contextLabel: String(formData.get('contextLabel') ?? ''),
+        placeholder: String(formData.get('placeholder') ?? ''),
+        quickCommands: splitTags(formData.get('quickCommands')),
+      },
+      rpcCtx,
+    );
     return ok(`Saved terminal profile "${saved.slug}".`);
   }
 
@@ -169,31 +189,35 @@ export async function dispatchAdminCmsIntent(
     const rawId = formData.get('id');
     const targetRoute = String(formData.get('targetRoute') ?? '').trim();
     const errorTemplate = String(formData.get('errorTemplate') ?? '').trim();
-    const saved = await upsertTerminalCommand(getSharedDb(), {
-      ...(rawId ? { id: Number(rawId) } : {}),
-      profileSlug,
-      name: String(formData.get('name') ?? ''),
-      description: String(formData.get('description') ?? ''),
-      kind: String(formData.get('kind') ?? 'static') as
-        | 'static'
-        | 'navigate'
-        | 'cd'
-        | 'tui'
-        | 'roadmap'
-        | 'uptime'
-        | 'clear',
-      output: String(formData.get('output') ?? ''),
-      targetRoute: targetRoute || null,
-      allowedRoutes: splitTags(formData.get('allowedRoutes')),
-      errorTemplate: errorTemplate || null,
-      sortOrder: Number(formData.get('sortOrder') ?? 0),
-    });
+    const saved = await upsertAdminTerminalCommandViaGrpc(
+      sessionId,
+      {
+        ...(rawId ? { id: Number(rawId) } : {}),
+        profileSlug,
+        name: String(formData.get('name') ?? ''),
+        description: String(formData.get('description') ?? ''),
+        kind: String(formData.get('kind') ?? 'static') as
+          | 'static'
+          | 'navigate'
+          | 'cd'
+          | 'tui'
+          | 'roadmap'
+          | 'uptime'
+          | 'clear',
+        output: String(formData.get('output') ?? ''),
+        targetRoute: targetRoute || null,
+        allowedRoutes: splitTags(formData.get('allowedRoutes')),
+        errorTemplate: errorTemplate || null,
+        sortOrder: Number(formData.get('sortOrder') ?? 0),
+      },
+      rpcCtx,
+    );
     return ok(`Saved terminal command "${saved.name}".`);
   }
 
   if (intent === 'delete-terminal-command') {
     const id = Number(formData.get('id') ?? 0);
-    const deleted = await deleteTerminalCommand(getSharedDb(), id);
+    const deleted = await deleteAdminTerminalCommandViaGrpc(sessionId, id, rpcCtx);
     return deleted
       ? ok(`Deleted terminal command #${id}.`)
       : notFound(`Terminal command #${id} not found.`, correlationId);
@@ -205,22 +229,26 @@ export async function dispatchAdminCmsIntent(
       return blockRetiredMaintenanceMutation(intent, correlationId, logger, profileSlug);
     }
     const rawId = formData.get('id');
-    const saved = await upsertTerminalInitialEntry(getSharedDb(), {
-      ...(rawId ? { id: Number(rawId) } : {}),
-      profileSlug,
-      command: String(formData.get('command') ?? ''),
-      output: String(formData.get('output') ?? ''),
-      status: String(formData.get('status') ?? 'ok') as 'ok' | 'error',
-      durationLabel: String(formData.get('durationLabel') ?? '12ms'),
-      timestampLabel: String(formData.get('timestampLabel') ?? '00:00:00'),
-      sortOrder: Number(formData.get('sortOrder') ?? 0),
-    });
+    const saved = await upsertAdminTerminalInitialEntryViaGrpc(
+      sessionId,
+      {
+        ...(rawId ? { id: Number(rawId) } : {}),
+        profileSlug,
+        command: String(formData.get('command') ?? ''),
+        output: String(formData.get('output') ?? ''),
+        status: String(formData.get('status') ?? 'ok') as 'ok' | 'error',
+        durationLabel: String(formData.get('durationLabel') ?? '12ms'),
+        timestampLabel: String(formData.get('timestampLabel') ?? '00:00:00'),
+        sortOrder: Number(formData.get('sortOrder') ?? 0),
+      },
+      rpcCtx,
+    );
     return ok(`Saved initial terminal entry "${saved.command}".`);
   }
 
   if (intent === 'delete-terminal-entry') {
     const id = Number(formData.get('id') ?? 0);
-    const deleted = await deleteTerminalInitialEntry(getSharedDb(), id);
+    const deleted = await deleteAdminTerminalInitialEntryViaGrpc(sessionId, id, rpcCtx);
     return deleted
       ? ok(`Deleted terminal entry #${id}.`)
       : notFound(`Terminal entry #${id} not found.`, correlationId);
@@ -232,32 +260,33 @@ export async function dispatchAdminCmsIntent(
       return blockRetiredMaintenanceMutation(intent, correlationId, logger, profileSlug);
     }
     const rawId = formData.get('id');
-    const saved = await upsertTerminalDirectoryEntry(getSharedDb(), {
-      ...(rawId ? { id: Number(rawId) } : {}),
-      profileSlug,
-      name: String(formData.get('name') ?? ''),
-      description: String(formData.get('description') ?? ''),
-      sortOrder: Number(formData.get('sortOrder') ?? 0),
-      enabled: formData.get('enabled') !== 'false',
-    });
+    const saved = await upsertAdminTerminalDirectoryEntryViaGrpc(
+      sessionId,
+      {
+        ...(rawId ? { id: Number(rawId) } : {}),
+        profileSlug,
+        name: String(formData.get('name') ?? ''),
+        description: String(formData.get('description') ?? ''),
+        sortOrder: Number(formData.get('sortOrder') ?? 0),
+        enabled: formData.get('enabled') !== 'false',
+      },
+      rpcCtx,
+    );
     return ok(`Saved terminal directory entry "${saved.name}".`);
   }
 
   if (intent === 'delete-terminal-directory-entry') {
     const id = Number(formData.get('id') ?? 0);
-    const deleted = await deleteTerminalDirectoryEntry(getSharedDb(), id);
+    const deleted = await deleteAdminTerminalDirectoryEntryViaGrpc(sessionId, id, rpcCtx);
     return deleted
       ? ok(`Deleted terminal directory entry #${id}.`)
       : notFound(`Terminal directory entry #${id} not found.`, correlationId);
   }
 
   if (intent === 'sync-agensi-catalog') {
-    const result = await syncAgensiCatalog(getSharedDb(), {
-      forceRefresh: true,
-      correlationId,
-    });
+    const result = await syncAdminAgensiCatalogViaGrpc(sessionId, { forceRefresh: true }, rpcCtx);
     return ok(
-      `Synced ${result.skills.length} Agensi skill(s) for ${result.creatorHandle} (status: ${result.syncState.lastStatus}).`,
+      `Synced ${result.skills.length} Agensi skill(s) for ${result.creatorHandle} (status: ${result.syncState?.lastStatus ?? 'ok'}).`,
     );
   }
 
@@ -281,20 +310,24 @@ export async function dispatchAdminCmsIntent(
   }
 
   if (intent === 'upsert-cadence-preset') {
-    const saved = await upsertCadencePreset(getSharedDb(), {
-      slug: String(formData.get('slug') ?? ''),
-      title: String(formData.get('title') ?? ''),
-      starterPrompt: String(formData.get('starterPrompt') ?? ''),
-      expectedKind: String(formData.get('expectedKind') ?? 'html'),
-      starterArtifactHtml: String(formData.get('starterArtifactHtml') ?? ''),
-      sortOrder: Number(formData.get('sortOrder') ?? 0),
-    });
+    const saved = await upsertAdminCadencePresetViaGrpc(
+      sessionId,
+      {
+        slug: String(formData.get('slug') ?? ''),
+        title: String(formData.get('title') ?? ''),
+        starterPrompt: String(formData.get('starterPrompt') ?? ''),
+        expectedKind: String(formData.get('expectedKind') ?? 'html'),
+        starterArtifactHtml: String(formData.get('starterArtifactHtml') ?? ''),
+        sortOrder: Number(formData.get('sortOrder') ?? 0),
+      },
+      rpcCtx,
+    );
     return ok(`Saved CADENCE preset "${saved.title}".`);
   }
 
   if (intent === 'delete-cadence-preset') {
     const slug = String(formData.get('slug') ?? '').trim();
-    const deleted = await deleteCadencePreset(getSharedDb(), slug);
+    const deleted = await deleteAdminCadencePresetViaGrpc(sessionId, slug, rpcCtx);
     return deleted
       ? ok(`Deleted CADENCE preset "${slug}".`)
       : notFound(`CADENCE preset "${slug}" not found.`, correlationId);

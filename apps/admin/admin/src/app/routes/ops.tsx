@@ -4,19 +4,16 @@ import {
   type QdrantHealthStatus,
   type StreamResult,
 } from '@aklapper/core';
-import { classifyServerError } from '@aklapper/core/server-errors';
 import {
-  getSharedDb,
-  GoldenRunImmutableError,
-  listAdminSandboxRuns,
-  overrideSandboxGateVerdict,
-} from '@aklapper/db';
+  classifyGrpcError,
+  listAdminSandboxRunsViaGrpc,
+  overrideAdminSandboxGateVerdictViaGrpc,
+} from '@aklapper/node-runtime/grpc';
 import {
   createFallbackLogger,
   deferStreamResult,
   getOrCreateCorrelationId,
   getRequestContext,
-  logDiagnosticError,
 } from '@aklapper/node-runtime/ssr/stream';
 import { RouteErrorBoundaryView, SuspenseElement } from '@aklapper/ui';
 import { data, href } from 'react-router';
@@ -28,6 +25,7 @@ import {
   QdrantRuntimeStatusBody,
 } from '#pages/ops';
 
+import { runAdminStreamRpc } from '../admin-grpc.server';
 import { fetchQdrantStatus, requireAdminSession } from '../admin-ops.server';
 import { reportAdminPublicError } from '../client-telemetry';
 import { handleReindexQdrantIntent } from '../cms-reindex-privacy.server';
@@ -43,30 +41,45 @@ export interface AdminOpsStreamData {
 export async function loader({ request, context }: Route.LoaderArgs): Promise<AdminOpsStreamData> {
   const correlationId = getOrCreateCorrelationId(request, context);
   const reqCtx = getRequestContext(context);
-  await requireAdminSession(request, { context, source: 'admin.ops.loader' });
+  const { session } = await requireAdminSession(request, { context, source: 'admin.ops.loader' });
 
   return {
     correlationId,
     payload: deferStreamResult(
-      (async (): Promise<AdminOpsPrimaryData> => {
-        const db = getSharedDb();
-        const sandboxRuns = await listAdminSandboxRuns(db, 25);
-        return {
-          sandboxRuns,
-        };
-      })(),
+      runAdminStreamRpc(
+        async (): Promise<AdminOpsPrimaryData> => {
+          const sandboxRuns = await listAdminSandboxRunsViaGrpc(session.sessionId, 25, {
+            correlationId,
+            ...(reqCtx?.logger ? { logger: reqCtx.logger } : {}),
+            signal: reqCtx?.signal ?? request.signal,
+          });
+          return { sandboxRuns };
+        },
+        {
+          correlationId,
+          source: 'admin.ops.loader',
+          ...(reqCtx?.logger ? { logger: reqCtx.logger } : {}),
+        },
+      ),
       { request, context, source: 'admin.ops.loader' },
     ),
-    qdrantStatusPayload: deferStreamResult(fetchQdrantStatus(correlationId, reqCtx?.logger), {
-      request,
-      context,
-      source: 'admin.ops.qdrant',
-    }),
+    qdrantStatusPayload: deferStreamResult(
+      runAdminStreamRpc(() => fetchQdrantStatus(session.sessionId, correlationId, reqCtx?.logger), {
+        correlationId,
+        source: 'admin.ops.qdrant',
+        ...(reqCtx?.logger ? { logger: reqCtx.logger } : {}),
+      }),
+      {
+        request,
+        context,
+        source: 'admin.ops.qdrant',
+      },
+    ),
   };
 }
 
 export async function action({ request, context }: Route.ActionArgs) {
-  await requireAdminSession(request, { context, source: 'admin.ops.action' });
+  const { session } = await requireAdminSession(request, { context, source: 'admin.ops.action' });
   const correlationId = getOrCreateCorrelationId(request, context);
   const reqCtx = getRequestContext(context);
   const logger = reqCtx?.logger ?? createFallbackLogger('admin-ops');
@@ -89,6 +102,7 @@ export async function action({ request, context }: Route.ActionArgs) {
   }
 
   const intent = String(formData.get('intent') ?? '');
+  let targetRunId = '';
 
   try {
     if (intent === 'override-gate') {
@@ -96,23 +110,13 @@ export async function action({ request, context }: Route.ActionArgs) {
         runId: formData.get('runId'),
         gateVerdict: formData.get('gateVerdict'),
       });
-      const updated = await overrideSandboxGateVerdict(
-        getSharedDb(),
+      targetRunId = parsed.runId;
+      const updated = await overrideAdminSandboxGateVerdictViaGrpc(
+        session.sessionId,
         parsed.runId,
         parsed.gateVerdict,
+        { correlationId, logger },
       );
-      if (!updated) {
-        return data<AdminOpsActionData>(
-          {
-            ok: false,
-            message: `Sandbox run ${parsed.runId} not found.`,
-            code: 'ERR_NOT_FOUND',
-            action: 'Refresh sandbox runs and retry.',
-            correlationId,
-          },
-          { status: 404, headers },
-        );
-      }
       return data<AdminOpsActionData>(
         {
           ok: true,
@@ -142,12 +146,22 @@ export async function action({ request, context }: Route.ActionArgs) {
       { status: 400, headers },
     );
   } catch (error) {
-    if (error instanceof GoldenRunImmutableError) {
+    const failure = classifyGrpcError(error, {
+      correlationId,
+      source: 'admin.ops.action',
+      normalizeUnavailableStatus: 503,
+      logger,
+    });
+    if (
+      intent === 'override-gate' &&
+      failure.publicError.status === 409 &&
+      failure.publicError.code === 'ERR_CONSTRAINT'
+    ) {
       logger.warn(
         {
           seam_type: 'UNSOUND_CONDITION',
           event: 'cadence.gate.golden_mutation_blocked',
-          runId: error.runId,
+          runId: targetRunId,
           correlationId,
         },
         'Blocked admin gate override against read-only Golden showcase run',
@@ -170,20 +184,27 @@ export async function action({ request, context }: Route.ActionArgs) {
         { status: 409, headers },
       );
     }
-    const { publicError, diagnostic } = classifyServerError(error, {
-      correlationId,
-      source: 'admin.ops.action',
-    });
-    logDiagnosticError(logger, diagnostic);
+    if (intent === 'override-gate' && failure.publicError.status === 404) {
+      return data<AdminOpsActionData>(
+        {
+          ok: false,
+          message: `Sandbox run ${targetRunId} not found.`,
+          code: 'ERR_NOT_FOUND',
+          action: 'Refresh sandbox runs and retry.',
+          correlationId,
+        },
+        { status: 404, headers },
+      );
+    }
     return data<AdminOpsActionData>(
       {
         ok: false,
-        message: publicError.message,
-        code: publicError.code,
-        action: publicError.action,
-        correlationId: publicError.correlationId,
+        message: failure.publicError.message,
+        code: failure.publicError.code,
+        action: failure.publicError.action,
+        correlationId: failure.publicError.correlationId,
       },
-      { status: publicError.status, headers },
+      { status: failure.publicError.status, headers },
     );
   }
 }
