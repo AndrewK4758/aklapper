@@ -178,7 +178,9 @@ func newHandlerWithDeps(deps askStreamDeps, syncWait time.Duration) http.Handler
 	}
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /healthz", httpkit.NewHealthHandler("ai-ask"))
+	healthHandler := httpkit.NewHealthHandler("ai-ask")
+	mux.HandleFunc("GET /health", healthHandler)
+	mux.HandleFunc("GET /healthz", healthHandler)
 	mux.HandleFunc("GET /v1/ask/status", handleAskStatus(deps.provider, deps.vectorStore, deps.store))
 	mux.HandleFunc("POST /v1/ask/reindex", handleReindex(deps.provider, deps.vectorStore, deps.store))
 	mux.HandleFunc("POST /v1/ask", handleAskPost(deps.provider, deps.vectorStore, deps.store, deps.privacyCfg, syncWait))

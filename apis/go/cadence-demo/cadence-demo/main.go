@@ -45,7 +45,9 @@ func newHandlerWithDeps(deps cadenceServiceDeps) http.Handler {
 	}
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /healthz", httpkit.NewHealthHandler("cadence-demo"))
+	healthHandler := httpkit.NewHealthHandler("cadence-demo")
+	mux.HandleFunc("GET /health", healthHandler)
+	mux.HandleFunc("GET /healthz", healthHandler)
 
 	mux.HandleFunc("GET /v1/cadence/runs", func(w http.ResponseWriter, r *http.Request) {
 		claims, ok := httpkit.RequireInternalAuth(w, r)

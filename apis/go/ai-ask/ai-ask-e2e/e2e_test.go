@@ -258,7 +258,11 @@ func TestAiAskEndToEnd(t *testing.T) {
 		}
 	})
 
-	t.Run("GET /healthz and /v1/ask/status enforce signed internal auth and return healthy and redacted 503", func(t *testing.T) {
+	t.Run("GET /health, /healthz, and /v1/ask/status enforce signed internal auth and return healthy and redacted 503", func(t *testing.T) {
+		resH, healthH := e2etest.DoJSON[httpkit.HealthResponse](t, http.MethodGet, baseURL+"/health", nil, nil)
+		if resH.StatusCode != http.StatusOK || !healthH.OK || healthH.Service != "ai-ask" {
+			t.Fatalf("unexpected health (%d): %+v", resH.StatusCode, healthH)
+		}
 		res, health := e2etest.DoJSON[httpkit.HealthResponse](t, http.MethodGet, baseURL+"/healthz", nil, nil)
 		if res.StatusCode != http.StatusOK || !health.OK || health.Service != "ai-ask" {
 			t.Fatalf("unexpected healthz (%d): %+v", res.StatusCode, health)
