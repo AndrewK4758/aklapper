@@ -18,6 +18,7 @@ export {
   clearSandboxRunsForSession,
   pauseSandboxRunForSpecApproval,
 } from './sandbox-lifecycle.ts';
+export * from './schema-analytics.ts';
 export * from './schema-dossiers.ts';
 export * from './schema-sandbox.ts';
 export * from './schema.ts';

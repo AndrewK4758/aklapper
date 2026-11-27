@@ -1,5 +1,15 @@
 import { createHash } from 'node:crypto';
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import {
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
+import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
 
 import {
@@ -81,7 +91,7 @@ import {
   upsertUserTotpSecret,
   users,
 } from '../src/index.ts';
-import { runMigrationCli } from '../src/migrate.ts';
+import { runMigrationCli, runMigrations } from '../src/migrate.ts';
 
 describe('@aklapper/db PostgreSQL 19 integration (ephemeral container)', () => {
   let pool: Pool;
@@ -1155,8 +1165,13 @@ describe('@aklapper/db PostgreSQL 19 integration (ephemeral container)', () => {
     expect(
       journal.entries.some(e => e.idx === 9 && e.tag === '0009_retire_changes_in_progress_links'),
     ).toBe(true);
-    expect(journal.entries.some(e => e.tag.startsWith('0010_'))).toBe(false);
-    expect(readdirSync(drizzleDir).some(name => name.startsWith('0010_'))).toBe(false);
+    expect(
+      journal.entries.some(e => e.idx === 10 && e.tag === '0010_visitor_analytics_enrichment'),
+    ).toBe(true);
+    expect(readdirSync(drizzleDir)).toContain('0010_visitor_analytics_enrichment.sql');
+    expect(
+      readFileSync(resolve(drizzleDir, '0010_visitor_analytics_enrichment.sql'), 'utf8'),
+    ).not.toMatch(/\broadmap_milestones\b/i);
 
     const upPath = resolve(drizzleDir, '0009_retire_changes_in_progress_links.sql');
     const downPath = resolve(drizzleDir, '0009_retire_changes_in_progress_links.down.sql');
@@ -2104,6 +2119,350 @@ describe('@aklapper/db PostgreSQL 19 integration (ephemeral container)', () => {
           DOSSIER_PRIVACY_DENYLIST: prodDenylist,
         },
       });
+    }
+  });
+
+  it('applies 0010 visitor analytics enrichment from 0009 baseline, backfills legacy rows, supports rolling-deploy inserts, rolls back cleanly, and reapplies idempotently', async () => {
+    const baseUrl = process.env['DATABASE_URL'];
+    if (!baseUrl) {
+      throw new Error('DATABASE_URL is required for 0010 migration verification');
+    }
+
+    const drizzleDir = resolve(import.meta.dirname, '../drizzle');
+    const journalPath = resolve(drizzleDir, 'meta/_journal.json');
+    const fullJournal = JSON.parse(readFileSync(journalPath, 'utf8')) as {
+      version: string;
+      dialect: string;
+      entries: Array<{
+        idx: number;
+        version: string;
+        when: number;
+        tag: string;
+        breakpoints: boolean;
+      }>;
+    };
+    const up0010 = readFileSync(
+      resolve(drizzleDir, '0010_visitor_analytics_enrichment.sql'),
+      'utf8',
+    );
+    const down0010 = readFileSync(
+      resolve(drizzleDir, '0010_visitor_analytics_enrichment.down.sql'),
+      'utf8',
+    );
+
+    const expectedSessionColumns = [
+      'app',
+      'is_bot',
+      'visitor_hash',
+      'guest_session_id',
+      'city',
+      'timezone',
+      'asn',
+      'asn_org',
+      'referrer_host',
+      'referrer_category',
+      'landing_path',
+      'ref_param',
+      'utm_source',
+      'utm_medium',
+      'utm_campaign',
+      'utm_content',
+      'device_type',
+      'os_name',
+      'browser_name',
+      'last_seen_at',
+    ] as const;
+    const expectedContactColumns = ['analytics_session_id', 'guest_session_id'] as const;
+    const expectedIndexes = [
+      'analytics_sessions_app_bot_started_idx',
+      'analytics_sessions_visitor_hash_started_idx',
+      'analytics_sessions_guest_session_idx',
+      'analytics_sessions_referrer_host_started_idx',
+      'analytics_sessions_geo_started_idx',
+      'analytics_events_session_created_idx',
+      'analytics_events_type_created_path_idx',
+      'contact_submissions_analytics_session_idx',
+      'contact_submissions_guest_session_idx',
+      'ask_turns_session_created_idx',
+      'ask_turns_created_at_idx',
+    ] as const;
+
+    const tempPre0010Dir = mkdtempSync(resolve(tmpdir(), 'aklapper-pre0010-'));
+    const tempMetaDir = resolve(tempPre0010Dir, 'meta');
+    mkdirSync(tempMetaDir, { recursive: true });
+    const pre0010Entries = fullJournal.entries.filter(entry => entry.idx <= 9);
+    for (const entry of pre0010Entries) {
+      copyFileSync(
+        resolve(drizzleDir, `${entry.tag}.sql`),
+        resolve(tempPre0010Dir, `${entry.tag}.sql`),
+      );
+    }
+    writeFileSync(
+      resolve(tempMetaDir, '_journal.json'),
+      JSON.stringify({ ...fullJournal, entries: pre0010Entries }, null, 2),
+      'utf8',
+    );
+
+    const isolatedDbName = `migration_0010_verify_${Date.now()}`;
+    const isolatedUrl = new URL(baseUrl);
+    isolatedUrl.pathname = `/${isolatedDbName}`;
+    let isoPool: Pool | null = null;
+
+    await pool.query(`CREATE DATABASE "${isolatedDbName}"`);
+
+    try {
+      isoPool = createDbPool(isolatedUrl.toString());
+      const isoDb = createDb(isoPool);
+
+      const getTableColumns = async (tableName: string): Promise<string[]> => {
+        const res = await isoPool!.query<{ column_name: string }>(
+          `SELECT column_name FROM information_schema.columns
+           WHERE table_schema = 'public' AND table_name = $1`,
+          [tableName],
+        );
+        return res.rows.map(row => row.column_name);
+      };
+
+      const getExistingIndexes = async (): Promise<string[]> => {
+        const res = await isoPool!.query<{ indexname: string }>(
+          `SELECT indexname FROM pg_indexes
+           WHERE schemaname = 'public' AND indexname = ANY($1::text[])`,
+          [expectedIndexes],
+        );
+        return res.rows.map(row => row.indexname);
+      };
+
+      // 1. Migrate isolated database through 0000..0009 (pre-0010 baseline).
+      await runMigrations(isoDb, tempPre0010Dir);
+      expect(await getTableColumns('analytics_sessions')).toHaveLength(6);
+      expect(await getTableColumns('contact_submissions')).not.toContain('analytics_session_id');
+
+      // 2. Insert realistic pre-0010 legacy rows (portal session, admin session, contact submission, ask turn, roadmap milestone).
+      await isoPool.query(
+        `INSERT INTO analytics_sessions (session_id, ip_hash, referrer, country, region, started_at)
+         VALUES
+           ('legacy-portal-sess', 'portal-ip-hash', 'https://example.com', 'US', 'GA', '2026-11-20T12:00:00Z'),
+           ('legacy-admin-sess', 'admin-ip-hash', NULL, 'US', 'GA', '2026-11-20T12:05:00Z')`,
+      );
+      await isoPool.query(
+        `INSERT INTO analytics_events (session_id, type, name, path, metadata_json)
+         VALUES
+           ('legacy-portal-sess', 'page_view', 'page_view', '/', '{"app":"portal"}'::jsonb),
+           ('legacy-admin-sess', 'page_view', 'page_view', '/analytics', '{"app":"admin"}'::jsonb)`,
+      );
+      const legacyContactInsert = await isoPool.query<{ id: string }>(
+        `INSERT INTO contact_submissions (
+           name, phone, email, message,
+           attachment_name, attachment_mime_type, attachment_size_bytes,
+           attachment_sha256, attachment_content_base64
+         ) VALUES (
+           'Legacy Contact', NULL, 'legacy@example.com',
+           'Submitted prior to migration 0010 schema expansion.',
+           NULL, NULL, NULL, NULL, NULL
+         ) RETURNING id`,
+      );
+      const legacyContactId = legacyContactInsert.rows[0]?.id ?? '';
+      expect(legacyContactId).toMatch(/^[0-9a-f-]{36}$/i);
+
+      await isoPool.query(
+        `INSERT INTO ask_turns (
+           attempt_id, session_id, role, mode, prompt_hash, status,
+           tokens_reserved, tokens_used, correlation_id, lease_expires_at, expires_at
+         ) VALUES (
+           'legacy-attempt-1', 'guest-legacy-1', 'guest', 'qa', 'hash-1', 'completed',
+           100, 80, 'corr-legacy-1', NOW() + INTERVAL '5 minutes', NOW() + INTERVAL '15 minutes'
+         )`,
+      );
+      await isoPool.query(
+        `INSERT INTO roadmap_milestones (slug, status, label, sort_order, enabled)
+         VALUES ('retention-check', 'active', 'Keep table intact', 1, true)`,
+      );
+
+      // 3. Apply 0010 via Drizzle migrator + verify idempotent SQL re-execution.
+      await runMigrations(isoDb);
+      await isoPool.query(up0010);
+
+      const sessionColsAfterUp = await getTableColumns('analytics_sessions');
+      for (const column of expectedSessionColumns) {
+        expect(sessionColsAfterUp).toContain(column);
+      }
+      const contactColsAfterUp = await getTableColumns('contact_submissions');
+      for (const column of expectedContactColumns) {
+        expect(contactColsAfterUp).toContain(column);
+      }
+
+      const fkAfterUp = await isoPool.query<{ conname: string; confdeltype: string }>(
+        `SELECT conname, confdeltype
+         FROM pg_constraint
+         WHERE conname = 'contact_submissions_analytics_session_id_fk'
+           AND conrelid = '"contact_submissions"'::regclass`,
+      );
+      expect(fkAfterUp.rows).toEqual([
+        { conname: 'contact_submissions_analytics_session_id_fk', confdeltype: 'n' },
+      ]);
+
+      const indexesAfterUp = await getExistingIndexes();
+      expect(indexesAfterUp.toSorted()).toEqual([...expectedIndexes].toSorted());
+
+      // Verify pre-0010 admin backfill & last_seen_at = started_at backfill.
+      const backfilledSessions = await isoPool.query<{
+        session_id: string;
+        app: string;
+        is_bot: boolean;
+        started_at: Date;
+        last_seen_at: Date | null;
+      }>(
+        `SELECT session_id, app, is_bot, started_at, last_seen_at
+         FROM analytics_sessions
+         WHERE session_id IN ('legacy-portal-sess', 'legacy-admin-sess')
+         ORDER BY session_id`,
+      );
+      const adminRow = backfilledSessions.rows.find(r => r.session_id === 'legacy-admin-sess');
+      const portalRow = backfilledSessions.rows.find(r => r.session_id === 'legacy-portal-sess');
+      expect(adminRow?.app).toBe('admin');
+      expect(adminRow?.is_bot).toBe(false);
+      expect(adminRow?.last_seen_at?.toISOString()).toBe(adminRow?.started_at.toISOString());
+      expect(portalRow?.app).toBe('portal');
+      expect(portalRow?.is_bot).toBe(false);
+      expect(portalRow?.last_seen_at?.toISOString()).toBe(portalRow?.started_at.toISOString());
+
+      // Verify rolling-deploy compatibility: pre-0010 6-column analytics_sessions & 9-column contact_submissions inserts succeed.
+      await isoPool.query(
+        `INSERT INTO analytics_sessions (session_id, ip_hash, referrer, country, region, started_at)
+         VALUES ('rolling-old-rev-sess', 'old-rev-ip-hash', NULL, NULL, NULL, NOW())`,
+      );
+      const rollingSess = await isoPool.query<{
+        app: string;
+        is_bot: boolean;
+        last_seen_at: Date | null;
+      }>(
+        `SELECT app, is_bot, last_seen_at FROM analytics_sessions WHERE session_id = 'rolling-old-rev-sess'`,
+      );
+      expect(rollingSess.rows[0]).toEqual({ app: 'portal', is_bot: false, last_seen_at: null });
+
+      const rollingContact = await isoPool.query<{
+        analytics_session_id: string | null;
+        guest_session_id: string | null;
+      }>(
+        `INSERT INTO contact_submissions (
+           name, phone, email, message,
+           attachment_name, attachment_mime_type, attachment_size_bytes,
+           attachment_sha256, attachment_content_base64
+         ) VALUES (
+           'Rolling Contact', NULL, 'rolling@example.com',
+           'Submitted from pre-0010 code against expanded 0010 schema.',
+           NULL, NULL, NULL, NULL, NULL
+         ) RETURNING analytics_session_id, guest_session_id`,
+      );
+      expect(rollingContact.rows[0]).toEqual({
+        analytics_session_id: null,
+        guest_session_id: null,
+      });
+
+      // Verify ON DELETE SET NULL FK preserves contact_submissions when linked analytics_sessions row is deleted.
+      await isoPool.query(
+        `INSERT INTO analytics_sessions (session_id, ip_hash) VALUES ('fk-delete-sess', 'fk-ip-hash')`,
+      );
+      const linkedContact = await isoPool.query<{ id: string }>(
+        `INSERT INTO contact_submissions (name, email, message, analytics_session_id)
+         VALUES ('Linked Visitor', 'linked@example.com', 'Linked submission testing ON DELETE SET NULL.', 'fk-delete-sess')
+         RETURNING id`,
+      );
+      await isoPool.query(`DELETE FROM analytics_sessions WHERE session_id = 'fk-delete-sess'`);
+      const afterSessionDelete = await isoPool.query<{ analytics_session_id: string | null }>(
+        `SELECT analytics_session_id FROM contact_submissions WHERE id = $1::uuid`,
+        [linkedContact.rows[0]?.id],
+      );
+      expect(afterSessionDelete.rows).toEqual([{ analytics_session_id: null }]);
+
+      // Verify roadmap_milestones table and row remain completely untouched.
+      const roadmapAfterUp = await isoPool.query<{ slug: string }>(
+        `SELECT slug FROM roadmap_milestones WHERE slug = 'retention-check'`,
+      );
+      expect(roadmapAfterUp.rows).toEqual([{ slug: 'retention-check' }]);
+
+      // 4. Roll back 0010 twice (verifying complete reversal, idempotency, and legacy row preservation).
+      await isoPool.query(down0010);
+      await isoPool.query(down0010);
+
+      expect(await getExistingIndexes()).toHaveLength(0);
+      const fkAfterDown = await isoPool.query(
+        `SELECT conname FROM pg_constraint
+         WHERE conname = 'contact_submissions_analytics_session_id_fk'
+           AND conrelid = '"contact_submissions"'::regclass`,
+      );
+      expect(fkAfterDown.rows).toHaveLength(0);
+
+      const sessionColsAfterDown = await getTableColumns('analytics_sessions');
+      for (const column of expectedSessionColumns) {
+        expect(sessionColsAfterDown).not.toContain(column);
+      }
+      expect(sessionColsAfterDown).toHaveLength(6);
+
+      const contactColsAfterDown = await getTableColumns('contact_submissions');
+      for (const column of expectedContactColumns) {
+        expect(contactColsAfterDown).not.toContain(column);
+      }
+
+      // Legacy rows survive rollback intact.
+      const survivingSessions = await isoPool.query<{ cnt: number }>(
+        `SELECT COUNT(*)::int AS cnt FROM analytics_sessions
+         WHERE session_id IN ('legacy-portal-sess', 'legacy-admin-sess')`,
+      );
+      expect(survivingSessions.rows[0]?.cnt).toBe(2);
+      const survivingContact = await isoPool.query<{ id: string }>(
+        `SELECT id FROM contact_submissions WHERE id = $1::uuid`,
+        [legacyContactId],
+      );
+      expect(survivingContact.rows).toHaveLength(1);
+      const survivingAskTurn = await isoPool.query<{ attempt_id: string }>(
+        `SELECT attempt_id FROM ask_turns WHERE attempt_id = 'legacy-attempt-1'`,
+      );
+      expect(survivingAskTurn.rows).toHaveLength(1);
+
+      // 5. Reapply 0010 forward and verify full schema, indexes, FK, and backfills restore cleanly.
+      await isoPool.query(up0010);
+
+      const indexesAfterReapply = await getExistingIndexes();
+      expect(indexesAfterReapply.toSorted()).toEqual([...expectedIndexes].toSorted());
+      const fkAfterReapply = await isoPool.query<{ conname: string; confdeltype: string }>(
+        `SELECT conname, confdeltype
+         FROM pg_constraint
+         WHERE conname = 'contact_submissions_analytics_session_id_fk'
+           AND conrelid = '"contact_submissions"'::regclass`,
+      );
+      expect(fkAfterReapply.rows).toEqual([
+        { conname: 'contact_submissions_analytics_session_id_fk', confdeltype: 'n' },
+      ]);
+
+      const reappliedSessions = await isoPool.query<{
+        session_id: string;
+        app: string;
+        started_at: Date;
+        last_seen_at: Date | null;
+      }>(
+        `SELECT session_id, app, started_at, last_seen_at
+         FROM analytics_sessions
+         WHERE session_id IN ('legacy-portal-sess', 'legacy-admin-sess')`,
+      );
+      const reappliedAdmin = reappliedSessions.rows.find(r => r.session_id === 'legacy-admin-sess');
+      const reappliedPortal = reappliedSessions.rows.find(
+        r => r.session_id === 'legacy-portal-sess',
+      );
+      expect(reappliedAdmin?.app).toBe('admin');
+      expect(reappliedAdmin?.last_seen_at?.toISOString()).toBe(
+        reappliedAdmin?.started_at.toISOString(),
+      );
+      expect(reappliedPortal?.app).toBe('portal');
+      expect(reappliedPortal?.last_seen_at?.toISOString()).toBe(
+        reappliedPortal?.started_at.toISOString(),
+      );
+    } finally {
+      if (isoPool) {
+        await isoPool.end();
+      }
+      await pool.query(`DROP DATABASE IF EXISTS "${isolatedDbName}" WITH (FORCE)`);
+      rmSync(tempPre0010Dir, { recursive: true, force: true });
     }
   });
 });

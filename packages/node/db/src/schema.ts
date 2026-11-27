@@ -3,11 +3,11 @@ import { sql } from 'drizzle-orm';
 import {
   boolean,
   check,
+  foreignKey,
   index,
   integer,
   jsonb,
   pgTable,
-  real,
   serial,
   text,
   timestamp,
@@ -15,6 +15,9 @@ import {
   uuid,
 } from 'drizzle-orm/pg-core';
 
+import { analyticsEvents, analyticsSessions } from './schema-analytics.ts';
+
+export { analyticsEvents, analyticsSessions };
 export { careerDossiers } from './schema-dossiers.ts';
 export { sandboxRuns, sandboxTurns } from './schema-sandbox.ts';
 
@@ -261,33 +264,13 @@ export const askTurns = pgTable(
       table.conversationId,
       table.createdAt,
     ),
+    index('ask_turns_session_created_idx').on(table.sessionId, table.createdAt.desc()),
+    index('ask_turns_created_at_idx').on(table.createdAt.desc()),
     uniqueIndex('ask_turns_conv_turn_idx')
       .on(table.sessionId, table.conversationId, table.turnIndex)
       .where(sql`${table.conversationId} IS NOT NULL AND ${table.turnIndex} IS NOT NULL`),
   ],
 );
-
-export const analyticsSessions = pgTable('analytics_sessions', {
-  sessionId: text('session_id').primaryKey(),
-  ipHash: text('ip_hash').notNull(),
-  referrer: text('referrer'),
-  country: text('country'),
-  region: text('region'),
-  startedAt: timestamp('started_at', { withTimezone: true }).notNull().defaultNow(),
-});
-
-export const analyticsEvents = pgTable('analytics_events', {
-  id: serial('id').primaryKey(),
-  sessionId: text('session_id')
-    .notNull()
-    .references(() => analyticsSessions.sessionId, { onDelete: 'cascade' }),
-  type: text('type').notNull(),
-  name: text('name').notNull(),
-  path: text('path').notNull(),
-  value: real('value'),
-  metadataJson: jsonb('metadata_json').$type<Record<string, unknown>>().notNull().default({}),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-});
 
 export const contactSubmissions = pgTable(
   'contact_submissions',
@@ -302,9 +285,22 @@ export const contactSubmissions = pgTable(
     attachmentSizeBytes: integer('attachment_size_bytes'),
     attachmentSha256: text('attachment_sha256'),
     attachmentContentBase64: text('attachment_content_base64'),
+    analyticsSessionId: text('analytics_session_id'),
+    guestSessionId: text('guest_session_id'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   table => [
+    foreignKey({
+      name: 'contact_submissions_analytics_session_id_fk',
+      columns: [table.analyticsSessionId],
+      foreignColumns: [analyticsSessions.sessionId],
+    }).onDelete('set null'),
+    index('contact_submissions_analytics_session_idx')
+      .on(table.analyticsSessionId)
+      .where(sql`${table.analyticsSessionId} IS NOT NULL`),
+    index('contact_submissions_guest_session_idx')
+      .on(table.guestSessionId)
+      .where(sql`${table.guestSessionId} IS NOT NULL`),
     check(
       'contact_name_length_check',
       sql`char_length(btrim(${table.name})) >= 2 AND char_length(btrim(${table.name})) <= 120`,
