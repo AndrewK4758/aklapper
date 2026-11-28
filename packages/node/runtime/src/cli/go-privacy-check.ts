@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { existsSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 
@@ -136,7 +136,8 @@ function resolvePrivacyCheckBinary(
     );
   }
 
-  const tempBin = join(tmpdir(), `aklapper-privacy-check-${process.pid}`);
+  const tempDir = mkdtempSync(join(tmpdir(), 'aklapper-privacy-'));
+  const tempBin = join(tempDir, 'privacy-check');
   try {
     execFileSync('go', ['build', '-o', tempBin, './cmd/privacy-check'], {
       cwd: goKitDir,
@@ -146,13 +147,18 @@ function resolvePrivacyCheckBinary(
     cachedBuiltBinaryPath = tempBin;
     process.once('exit', () => {
       try {
-        rmSync(tempBin, { force: true });
+        rmSync(tempDir, { recursive: true, force: true });
       } catch {
         // ignore temp cleanup failure on exit
       }
     });
     return { command: tempBin, args: [] };
   } catch {
+    try {
+      rmSync(tempDir, { recursive: true, force: true });
+    } catch {
+      // ignore temp cleanup failure on build fallback
+    }
     return {
       command: 'go',
       args: ['run', './cmd/privacy-check'],

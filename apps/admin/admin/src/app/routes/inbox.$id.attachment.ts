@@ -8,7 +8,7 @@ import {
   getRequestContext,
 } from '@aklapper/node-runtime/ssr/stream';
 
-import { requireAdminSession, sanitizeDownloadFilename } from '../admin-ops.server';
+import { buildAttachmentContentDisposition, requireAdminSession } from '../admin-ops.server';
 import type { Route } from './+types/inbox.$id.attachment';
 
 export async function loader({ request, params, context }: Route.LoaderArgs): Promise<Response> {
@@ -57,20 +57,34 @@ export async function loader({ request, params, context }: Route.LoaderArgs): Pr
     });
   }
 
-  const safeName = sanitizeDownloadFilename(streamed.metadata.filename);
-  const headers: Record<string, string> = {
-    'content-type': streamed.metadata.mimeType || 'application/octet-stream',
-    'content-disposition': `attachment; filename="${safeName}"`,
-    'x-content-type-options': 'nosniff',
-    'cache-control': 'private, no-store',
-    'X-Correlation-Id': correlationId,
-  };
-  if (streamed.metadata.sizeBytes > 0) {
-    headers['content-length'] = String(streamed.metadata.sizeBytes);
-  }
+  try {
+    const contentDisposition = buildAttachmentContentDisposition(streamed.metadata.filename);
+    const headers: Record<string, string> = {
+      'content-type': streamed.metadata.mimeType || 'application/octet-stream',
+      'content-disposition': contentDisposition,
+      'x-content-type-options': 'nosniff',
+      'cache-control': 'private, no-store',
+      'X-Correlation-Id': correlationId,
+    };
+    if (streamed.metadata.sizeBytes > 0) {
+      headers['content-length'] = String(streamed.metadata.sizeBytes);
+    }
 
-  return new Response(streamed.body, {
-    status: 200,
-    headers,
-  });
+    return new Response(streamed.body, {
+      status: 200,
+      headers,
+    });
+  } catch (error) {
+    await streamed.body.cancel().catch(() => undefined);
+    const { publicError } = classifyGrpcError(error, {
+      correlationId,
+      source: 'admin.inbox.attachment',
+      normalizeUnavailableStatus: 503,
+      logger,
+    });
+    return Response.json(publicError, {
+      status: publicError.status,
+      headers: baseHeaders,
+    });
+  }
 }

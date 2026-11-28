@@ -194,6 +194,11 @@ describe('Admin gRPC client contracts & auth BFF', () => {
             yield create(StreamContactAttachmentResponseSchema, {
               chunk: { case: 'data', value: new Uint8Array([1, 2, 3, 4, 5]) },
             });
+            if (req.submissionId === 'with-empty-frame') {
+              yield create(StreamContactAttachmentResponseSchema, {
+                chunk: { case: 'data', value: new Uint8Array(0) },
+              });
+            }
             yield create(StreamContactAttachmentResponseSchema, {
               chunk: { case: 'data', value: new Uint8Array([6, 7, 8, 9, 10]) },
             });
@@ -383,6 +388,20 @@ describe('Admin gRPC client contracts & auth BFF', () => {
       bytes.push(...next.value);
     }
     expect(bytes).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+
+    const withEmpty = await openAdminContactAttachmentStreamViaGrpc(
+      validSessionId,
+      'with-empty-frame',
+      { baseUrl: serverUrl },
+    );
+    const emptyReader = withEmpty.body.getReader();
+    const emptyBytes: number[] = [];
+    for (;;) {
+      const next = await emptyReader.read();
+      if (next.done) break;
+      emptyBytes.push(...next.value);
+    }
+    expect(emptyBytes).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
 
     const warnSpy = vi.fn<(...args: unknown[]) => void>();
     await expect(

@@ -244,16 +244,21 @@ export async function openAdminContactAttachmentStreamViaGrpc(
         if (bufferedFirstChunk) {
           const pending = bufferedFirstChunk;
           bufferedFirstChunk = undefined;
-          controller.enqueue(pending);
-          return;
+          if (pending.byteLength > 0) {
+            controller.enqueue(pending);
+            return;
+          }
         }
-        const next = await iterator.next();
-        if (next.done) {
-          controller.close();
-          return;
-        }
-        if (next.value.chunk.case === 'data' && next.value.chunk.value.byteLength > 0) {
-          controller.enqueue(next.value.chunk.value);
+        for (;;) {
+          const next = await iterator.next();
+          if (next.done) {
+            controller.close();
+            return;
+          }
+          if (next.value.chunk.case === 'data' && next.value.chunk.value.byteLength > 0) {
+            controller.enqueue(next.value.chunk.value);
+            return;
+          }
         }
       } catch (error) {
         logger.warn(

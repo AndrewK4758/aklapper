@@ -735,6 +735,23 @@ jobs:
             --cpu=1
             --cpu-throttling
 
+      - name: Wave 1 — Resolve existing ai-ask URL before deploying admin-api
+        id: resolve-ai-ask-url
+        if: contains(fromJson(needs.resolve-plan.outputs.cloud_run_services_json), 'admin-api')
+        shell: bash
+        env:
+          GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+          GCP_REGION: ${{ vars.GCP_REGION || 'us-central1' }}
+          AI_ASK_DEPLOY_URL: ${{ steps.deploy-ai-ask.outputs.url }}
+          AI_ASK_VAR_URL: ${{ vars.AI_ASK_URL }}
+        run: |
+          set -euo pipefail
+          RESOLVED_AI_ASK_URL="${AI_ASK_DEPLOY_URL:-${AI_ASK_VAR_URL}}"
+          if [ -z "$RESOLVED_AI_ASK_URL" ]; then
+            RESOLVED_AI_ASK_URL="$(gcloud run services describe "ai-ask" --project="$GCP_PROJECT_ID" --region="$GCP_REGION" --format='value(status.url)' 2>/dev/null || true)"
+          fi
+          echo "url=${RESOLVED_AI_ASK_URL}" >> "$GITHUB_OUTPUT"
+
       - name: Wave 1 — Deploy admin-api Go service to Cloud Run (admin_app only)
         id: deploy-admin-api
         if: contains(fromJson(needs.resolve-plan.outputs.cloud_run_services_json), 'admin-api')
@@ -751,7 +768,7 @@ jobs:
             WEBAUTHN_RP_NAME=${{ vars.WEBAUTHN_RP_NAME || 'andrew-k.us Admin' }}
             WEBAUTHN_ORIGIN=${{ vars.WEBAUTHN_ORIGIN || vars.PUBLIC_ADMIN_URL || 'https://admin.andrew-k.us' }}
             QDRANT_URL=${{ vars.QDRANT_URL || '' }}
-            AI_ASK_URL=${{ steps.deploy-ai-ask.outputs.url || vars.AI_ASK_URL || '' }}
+            AI_ASK_URL=${{ steps.resolve-ai-ask-url.outputs.url || '' }}
             AGENSI_API_BASE_URL=${{ vars.AGENSI_API_BASE_URL || 'https://www.agensi.io' }}
             AGENSI_API_PATH=${{ vars.AGENSI_API_PATH || '/creators/aklapper' }}
             AGENSI_CREATOR_HANDLE=${{ vars.AGENSI_CREATOR_HANDLE || 'aklapper' }}

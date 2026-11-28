@@ -15,14 +15,71 @@ export {
   type RequireAdminSessionOptions,
 } from './admin-auth.server';
 
+const FORBIDDEN_FILENAME_CHARS = new Set(['"', '\\', '/', ';', '<', '>', '|', ':', '*', '?']);
+
+function cleanUtf8DownloadFilename(rawName: string | null | undefined): string {
+  const leaf = (rawName ?? '').split(/[\\/]/).pop() ?? '';
+  let out = '';
+  for (const ch of leaf) {
+    const code = ch.codePointAt(0) ?? 0;
+    if (
+      code < 0x20 ||
+      code === 0x7f ||
+      (code >= 0x80 && code <= 0x9f) ||
+      code === 0x2028 ||
+      code === 0x2029 ||
+      FORBIDDEN_FILENAME_CHARS.has(ch)
+    ) {
+      continue;
+    }
+    out += ch;
+  }
+  const trimmed = out.trim().slice(0, 128);
+  if (!trimmed || trimmed === '.' || trimmed === '..') {
+    return 'attachment.bin';
+  }
+  return trimmed;
+}
+
 export function sanitizeDownloadFilename(rawName: string | null | undefined): string {
-  const base = (rawName ?? '')
-    .split(/[\\/]/)
-    .pop()
-    ?.replace(/[\r\n\0"<>|:*?]+/g, '')
-    .trim();
-  if (!base) return 'attachment.bin';
-  return base.slice(0, 128);
+  const utf8 = cleanUtf8DownloadFilename(rawName);
+  let ascii = '';
+  let lastWasFallback = false;
+  for (const ch of utf8) {
+    const code = ch.codePointAt(0) ?? 0;
+    if (code >= 0x20 && code <= 0x7e && !FORBIDDEN_FILENAME_CHARS.has(ch)) {
+      ascii += ch;
+      lastWasFallback = false;
+    } else if (!lastWasFallback) {
+      ascii += '_';
+      lastWasFallback = true;
+    }
+  }
+  const trimmed = ascii.trim().slice(0, 128);
+  const withoutFallbackEdges = trimmed.replace(/^_+(?=\.|$)/, '').replace(/^_+$/, '');
+  if (!withoutFallbackEdges || withoutFallbackEdges === '.' || withoutFallbackEdges === '..') {
+    return 'attachment.bin';
+  }
+  if (withoutFallbackEdges.startsWith('.')) {
+    return `attachment${withoutFallbackEdges}`.slice(0, 128);
+  }
+  return withoutFallbackEdges;
+}
+
+function encodeRfc5987Value(value: string): string {
+  return encodeURIComponent(value).replace(
+    /['()*]/g,
+    ch => `%${ch.charCodeAt(0).toString(16).toUpperCase()}`,
+  );
+}
+
+export function buildAttachmentContentDisposition(rawName: string | null | undefined): string {
+  const utf8 = cleanUtf8DownloadFilename(rawName);
+  const ascii = sanitizeDownloadFilename(utf8);
+  if (utf8 === ascii) {
+    return `attachment; filename="${ascii}"`;
+  }
+  return `attachment; filename="${ascii}"; filename*=UTF-8''${encodeRfc5987Value(utf8)}`;
 }
 
 export const QDRANT_REINDEX_TIMEOUT_MS = 90_000;
