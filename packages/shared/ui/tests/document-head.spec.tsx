@@ -104,4 +104,30 @@ describe('DocumentHeadTags & DocumentBodyAnalytics', () => {
     expect(doc.head.querySelector('script#aklapper-gtm-init')).toBeNull();
     expect(doc.body.querySelector('noscript')).toBeNull();
   });
+
+  it('omits both aklapper-analytics-app and aklapper-analytics-endpoint when analyticsApp is undefined', () => {
+    const html = renderToStaticMarkup(
+      <html lang='en'>
+        <head>
+          <title>Admin Login</title>
+          <DocumentHeadTags
+            applicationName='admin.andrew-k.us // Solar Forge Ops'
+            canonicalUrl='https://admin.andrew-k.us/login'
+            robots='noindex, nofollow, noarchive'
+            runtimeSeo={{
+              siteUrl: 'https://admin.andrew-k.us',
+              analyticsEndpoint: 'https://admin.andrew-k.us/api/analytics/ingest',
+            }}
+          />
+        </head>
+        <body />
+      </html>,
+    );
+
+    const doc = parseHtml(html);
+
+    expect(doc.head.querySelector('meta[name="aklapper-analytics-app"]')).toBeNull();
+    expect(doc.head.querySelector('meta[name="aklapper-analytics-endpoint"]')).toBeNull();
+    expect(doc.head.querySelector('link[rel="preconnect"]')).toBeNull();
+  });
 });

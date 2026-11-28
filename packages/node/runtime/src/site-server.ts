@@ -271,7 +271,10 @@ export async function createSsrServer(options: SsrServerOptions): Promise<SsrSer
       }
       if (pathname === '/api/auth/password/login') {
         await passwordLoginLimiter.call(app, request, reply);
-      } else if (pathname === '/api/auth/totp/verify') {
+      } else if (
+        pathname === '/api/auth/totp/verify' ||
+        pathname === '/api/auth/passkey/login/verify'
+      ) {
         await totpVerifyLimiter.call(app, request, reply);
       }
     });

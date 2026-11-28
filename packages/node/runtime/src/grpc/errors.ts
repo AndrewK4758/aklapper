@@ -1,4 +1,9 @@
-import { createPublicAppError, type PublicAppError, type QuotaStatus } from '@aklapper/core';
+import {
+  createPublicAppError,
+  type PrivacySanitizationFinding,
+  type PublicAppError,
+  type QuotaStatus,
+} from '@aklapper/core';
 import {
   classifyServerError,
   enforcePublicErrorBoundary,
@@ -18,18 +23,26 @@ import {
   GRPC_CATALOG_BY_CODE,
   mapProtoFieldErrorsToDomain,
   mapProtoQuotaToDomain,
+  mapProtoSanitizationFindingsToDomain,
   resolveConnectCatalogEntry,
   scrubDiagnosticCause,
 } from './error-catalog.ts';
 import { ErrorDetailEnvelopeSchema, type ErrorDetailEnvelope } from './gen/common/v1/error_pb.ts';
 
-export { mapProtoFieldErrorsToDomain, mapProtoQuotaToDomain } from './error-catalog.ts';
+export {
+  mapProtoFieldErrorsToDomain,
+  mapProtoQuotaToDomain,
+  mapProtoSanitizationFindingsToDomain,
+} from './error-catalog.ts';
 
 export interface ClassifiedGrpcFailure {
   readonly publicError: PublicAppError;
   readonly diagnostic: DiagnosticAppError;
   readonly quota?: QuotaStatus;
   readonly retryAfterSeconds?: number;
+  readonly sanitizationFindings?: readonly PrivacySanitizationFinding[];
+  readonly upstreamCode?: string;
+  readonly upstreamMessage?: string;
   readonly isFallbackTransportError: boolean;
 }
 
@@ -211,6 +224,9 @@ export function classifyGrpcError(
     const envelope = extractErrorDetailEnvelope(error);
     const quota = mapProtoQuotaToDomain(envelope?.quota);
     const fieldErrors = mapProtoFieldErrorsToDomain(envelope?.error);
+    const sanitizationFindings = mapProtoSanitizationFindingsToDomain(envelope);
+    const upstreamCode = envelope?.error?.code?.trim() || undefined;
+    const upstreamMessage = envelope?.error?.message?.trim() || undefined;
     const retryAfterSeconds =
       typeof envelope?.retryAfterSeconds === 'number' &&
       Number.isInteger(envelope.retryAfterSeconds) &&
@@ -254,6 +270,9 @@ export function classifyGrpcError(
       diagnostic,
       ...(quota ? { quota } : {}),
       ...(retryAfterSeconds !== undefined ? { retryAfterSeconds } : {}),
+      ...(sanitizationFindings ? { sanitizationFindings } : {}),
+      ...(upstreamCode ? { upstreamCode } : {}),
+      ...(upstreamMessage ? { upstreamMessage } : {}),
       isFallbackTransportError: isTransportFallback,
     };
   }
@@ -293,4 +312,26 @@ export function classifyGrpcError(
     diagnostic: classified.diagnostic,
     isFallbackTransportError: false,
   };
+}
+
+export function classifyAdminGrpcError(
+  error: unknown,
+  ctx: ClassifyGrpcErrorContext,
+): ClassifiedGrpcFailure {
+  const failure = classifyGrpcError(error, ctx);
+  const effectiveLogger = ctx.logger ?? createFallbackLogger('admin-ssr');
+  effectiveLogger.error(
+    {
+      seam_type: 'BOUNDARY_FAULT',
+      event: 'bff.grpc.admin_error_classified',
+      errorCode: failure.publicError.code,
+      httpStatus: failure.publicError.status,
+      upstreamCode: failure.upstreamCode ?? failure.publicError.code,
+      sanitizationFindingCount: failure.sanitizationFindings?.length ?? 0,
+      source: ctx.source,
+      correlationId: failure.publicError.correlationId,
+    },
+    'Classified admin-api gRPC failure through fail-closed error boundary',
+  );
+  return failure;
 }

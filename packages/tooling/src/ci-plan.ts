@@ -5,7 +5,7 @@ export interface DockerServiceSpec {
   readonly service: string;
   readonly project: string;
   readonly dockerfile: string;
-  readonly runtime: 'cloud-run';
+  readonly runtime: 'cloud-run' | 'cloud-run-job';
 }
 
 export const DOCKER_SERVICES: readonly DockerServiceSpec[] = [
@@ -28,6 +28,12 @@ export const DOCKER_SERVICES: readonly DockerServiceSpec[] = [
     runtime: 'cloud-run',
   },
   {
+    service: 'admin-api',
+    project: 'go-admin-api',
+    dockerfile: 'apis/go/admin-api/admin-api/Dockerfile',
+    runtime: 'cloud-run',
+  },
+  {
     service: 'cadence-demo',
     project: 'go-cadence-demo',
     dockerfile: 'apis/go/cadence-demo/cadence-demo/Dockerfile',
@@ -39,6 +45,12 @@ export const DOCKER_SERVICES: readonly DockerServiceSpec[] = [
     dockerfile: 'apis/go/ai-ask/ai-ask/Dockerfile',
     runtime: 'cloud-run',
   },
+  {
+    service: 'db-migrate',
+    project: 'node-db',
+    dockerfile: 'packages/node/db/Dockerfile.migrate',
+    runtime: 'cloud-run-job',
+  },
 ] as const;
 
 const PLAYWRIGHT_APP_MAP: Readonly<Record<string, string>> = {
@@ -46,12 +58,14 @@ const PLAYWRIGHT_APP_MAP: Readonly<Record<string, string>> = {
   'admin-e2e': 'admin',
 };
 
-const DB_BACKED_TEST_PROJECTS = new Set(['node-db', 'go-kit', 'go-portal-api']);
+const DB_BACKED_TEST_PROJECTS = new Set(['node-db', 'go-kit', 'go-portal-api', 'go-admin-api']);
 const DB_BACKED_API_E2E_PROJECTS = new Set([
   'go-ai-ask-e2e',
   'go-portal-api-e2e',
+  'go-admin-api-e2e',
   'go-cadence-demo-e2e',
 ]);
+const GO_DEPENDENT_NON_GO_PROJECTS = new Set(['node-db', 'tooling', 'admin-e2e']);
 
 export interface CiPlanInput {
   readonly runAll: boolean;
@@ -78,7 +92,7 @@ export interface CiPlanOutput {
   readonly hasPlaywright: boolean;
   readonly hasDocker: boolean;
   readonly hasDbMigration: boolean;
-  readonly hasAdminOrDbMigration: boolean;
+  readonly hasDbMigrateImage: boolean;
   readonly needsGo: boolean;
   readonly needsTestDb: boolean;
   readonly needsApiE2eDb: boolean;
@@ -99,27 +113,33 @@ export function buildCiPlan(input: CiPlanInput): CiPlanOutput {
     .filter((project): project is string => Boolean(project));
   const apiE2eProjects = input.e2eProjects.filter(project => !(project in PLAYWRIGHT_APP_MAP));
 
-  const baseDockerServices = DOCKER_SERVICES.filter(spec => {
+  const hasDbMigration = Boolean(input.runAll || affectedSet.has('node-db'));
+  const shouldBuildDbMigrate = Boolean(
+    input.runAll ||
+    affectedSet.has('node-db') ||
+    affectedSet.has('go-kit') ||
+    (input.migrateDb && hasDbMigration),
+  );
+
+  const dockerServices = DOCKER_SERVICES.filter(spec => {
     if (input.runAll) {
       return true;
+    }
+    if (spec.service === 'db-migrate') {
+      return shouldBuildDbMigrate;
     }
     return affectedSet.has(spec.project);
   });
 
-  const cloudRunServices = baseDockerServices.map(spec => spec.service);
+  const cloudRunServices = dockerServices
+    .filter(spec => spec.runtime === 'cloud-run')
+    .map(spec => spec.service);
 
-  const hasDbMigration = Boolean(input.runAll || affectedSet.has('node-db'));
-  const shouldBuildAdminForMigration = Boolean(input.migrateDb && hasDbMigration);
-  const adminSpec = DOCKER_SERVICES.find(spec => spec.service === 'admin');
-  const dockerServices =
-    shouldBuildAdminForMigration &&
-    adminSpec &&
-    !baseDockerServices.some(spec => spec.service === 'admin')
-      ? [...baseDockerServices, adminSpec]
-      : baseDockerServices;
-  const hasAdminOrDbMigration = dockerServices.some(spec => spec.service === 'admin');
+  const hasDbMigrateImage = dockerServices.some(spec => spec.service === 'db-migrate');
 
-  const needsGo = input.affectedAll.some(project => project.startsWith('go-'));
+  const needsGo = input.affectedAll.some(
+    project => project.startsWith('go-') || GO_DEPENDENT_NON_GO_PROJECTS.has(project),
+  );
   const needsTestDb = input.testProjects.some(project => DB_BACKED_TEST_PROJECTS.has(project));
   const needsApiE2eDb = apiE2eProjects.some(project => DB_BACKED_API_E2E_PROJECTS.has(project));
 
@@ -135,7 +155,7 @@ export function buildCiPlan(input: CiPlanInput): CiPlanOutput {
     hasPlaywright: playwrightApps.length > 0,
     hasDocker: dockerServices.length > 0,
     hasDbMigration,
-    hasAdminOrDbMigration,
+    hasDbMigrateImage,
     needsGo,
     needsTestDb,
     needsApiE2eDb,
@@ -160,7 +180,7 @@ export function formatGithubOutputs(plan: CiPlanOutput): Record<string, string> 
     has_playwright: String(plan.hasPlaywright),
     has_docker: String(plan.hasDocker),
     has_db_migration: String(plan.hasDbMigration),
-    has_admin_or_db_migration: String(plan.hasAdminOrDbMigration),
+    has_db_migrate_image: String(plan.hasDbMigrateImage),
     needs_go: String(plan.needsGo),
     needs_test_db: String(plan.needsTestDb),
     needs_api_e2e_db: String(plan.needsApiE2eDb),

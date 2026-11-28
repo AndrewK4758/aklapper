@@ -274,6 +274,8 @@ func TestConnectGRPCAuthMiddlewareAndWireInterop(t *testing.T) {
 		rawClient := ai_askv1connect.NewAskServiceClient(h2cHTTP, baseURL, connect.WithGRPC())
 		validTok, _ := internalauth.Sign(internalauth.RoleGuest, "g-1", time.Minute, secret)
 		expiredTok, _ := internalauth.SignWithClock(internalauth.RoleGuest, "g-1", time.Now().Add(-5*time.Minute), time.Minute, secret)
+		pendingTotpTok, _ := internalauth.Sign(internalauth.RoleService, "totp-pending:user-secret-id-99", time.Minute, secret)
+		clientIPTok, _ := internalauth.Sign(internalauth.RoleService, "client-ip:203.0.113.77", time.Minute, secret)
 
 		cases := []struct {
 			name string
@@ -283,6 +285,8 @@ func TestConnectGRPCAuthMiddlewareAndWireInterop(t *testing.T) {
 			{"duplicate", []string{validTok, validTok}},
 			{"expired", []string{expiredTok}},
 			{"forged", []string{validTok + "tamper"}},
+			{"totp_pending_purpose", []string{pendingTotpTok}},
+			{"client_ip_purpose", []string{clientIPTok}},
 		}
 		for _, tc := range cases {
 			impl.called = false
@@ -319,6 +323,12 @@ func TestConnectGRPCAuthMiddlewareAndWireInterop(t *testing.T) {
 			if got := sCErr.Meta().Get(MetadataCorrelationID); got != "corr-sauth-"+tc.name {
 				t.Fatalf("case %s stream: expected echoed correlation ID in error meta, got %q", tc.name, got)
 			}
+		}
+		if !strings.Contains(logs.String(), `"reason":"disallowed_token_purpose"`) {
+			t.Fatalf("expected disallowed_token_purpose seam log, got %s", logs.String())
+		}
+		if strings.Contains(logs.String(), "user-secret-id-99") || strings.Contains(logs.String(), "203.0.113.77") {
+			t.Fatalf("disallowed token subject leaked into auth rejection logs: %s", logs.String())
 		}
 
 		// Handler-returned PermissionDenied also echoes x-correlation-id and decodes ErrorDetailEnvelope.

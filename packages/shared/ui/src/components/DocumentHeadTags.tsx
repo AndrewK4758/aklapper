@@ -8,7 +8,7 @@ export interface DocumentHeadTagsProps {
   author?: string;
   canonicalUrl: string;
   robots: string;
-  analyticsApp: 'portal' | 'admin';
+  analyticsApp?: 'portal' | 'admin';
   runtimeSeo?: DocumentSeoRuntimeConfig;
   jsonLd?: Record<string, unknown>;
 }
@@ -79,15 +79,15 @@ export function DocumentHeadTags({
       <meta name='author' content={author} />
       <meta name='googlebot' content={robots} />
       {gscVerification ? <meta name='google-site-verification' content={gscVerification} /> : null}
-      <meta name='aklapper-analytics-app' content={analyticsApp} />
-      {analyticsEndpoint ? (
+      {analyticsApp ? <meta name='aklapper-analytics-app' content={analyticsApp} /> : null}
+      {analyticsApp && analyticsEndpoint ? (
         <meta name='aklapper-analytics-endpoint' content={analyticsEndpoint} />
       ) : null}
       <link rel='canonical' href={canonicalUrl} />
       <link rel='icon' href='/favicon.svg' type='image/svg+xml' sizes='any' />
       <link rel='apple-touch-icon' href='/favicon.svg' />
       <link rel='manifest' href='/site.webmanifest' />
-      {analyticsOrigin ? (
+      {analyticsApp && analyticsOrigin ? (
         <link rel='preconnect' href={analyticsOrigin} crossOrigin='anonymous' />
       ) : null}
       {gaMeasurementId || gtmId ? (

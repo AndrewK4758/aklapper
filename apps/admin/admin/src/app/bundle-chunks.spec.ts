@@ -87,5 +87,36 @@ describe.runIf(existsSync(ASSETS_DIR))('Admin production client chunk isolation'
       file => file.startsWith('andrew-klapper-portrait-') && file.endsWith('.webp'),
     );
     expect(portraitWebpFiles).toHaveLength(1);
+
+    const allClientJsSource = allJsFiles
+      .map(file => readFileSync(join(ASSETS_DIR, file), 'utf8'))
+      .join('\n');
+    for (const forbiddenServerDep of [
+      '@connectrpc/',
+      '@bufbuild/',
+      '@grpc/',
+      'node:http2',
+      '@aklapper/db',
+      'drizzle-orm',
+      'pg-protocol',
+    ]) {
+      expect(allClientJsSource).not.toContain(forbiddenServerDep);
+    }
+  });
+});
+
+describe('SSR package isolation manifests', () => {
+  it('contains zero @aklapper/db dependencies in portal and admin SSR package.json manifests', () => {
+    const adminPkg = JSON.parse(
+      readFileSync(resolve(import.meta.dirname, '../../package.json'), 'utf8'),
+    ) as { dependencies?: Record<string, string>; devDependencies?: Record<string, string> };
+    const portalPkg = JSON.parse(
+      readFileSync(resolve(import.meta.dirname, '../../../../portal/portal/package.json'), 'utf8'),
+    ) as { dependencies?: Record<string, string>; devDependencies?: Record<string, string> };
+
+    expect(adminPkg.dependencies?.['@aklapper/db']).toBeUndefined();
+    expect(adminPkg.devDependencies?.['@aklapper/db']).toBeUndefined();
+    expect(portalPkg.dependencies?.['@aklapper/db']).toBeUndefined();
+    expect(portalPkg.devDependencies?.['@aklapper/db']).toBeUndefined();
   });
 });

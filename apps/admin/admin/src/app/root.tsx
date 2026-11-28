@@ -10,16 +10,18 @@ import {
   readSeoRuntimeConfig,
   type StreamResult,
 } from '@aklapper/core';
-import { classifyServerError } from '@aklapper/core/server-errors';
-import { loadAdminRootDataWithPrerender } from '@aklapper/db';
-import { resolveAdminSessionFromRequest } from '@aklapper/db/auth';
 import { sanitizeRedirectTarget } from '@aklapper/node-runtime/auth';
+import {
+  classifyGrpcError,
+  getAdminChromeViaGrpc,
+  getAdminWorkspaceBootstrapViaGrpc,
+  resolveAdminSessionViaGrpc,
+} from '@aklapper/node-runtime/grpc';
 import {
   createFallbackLogger,
   deferStreamResult,
   getOrCreateCorrelationId,
   getRequestContext,
-  logDiagnosticError,
 } from '@aklapper/node-runtime/ssr/stream';
 import {
   detectServerViewportMode,
@@ -50,6 +52,7 @@ import {
 } from 'react-router';
 
 import type { Route } from './+types/root';
+import { runAdminStreamRpc } from './admin-grpc.server';
 import { AdminRootShell } from './AdminRootShell';
 import { reportAdminPublicError } from './client-telemetry';
 import { ADMIN_ROBOTS_DIRECTIVE, ADMIN_SITE_NAME, DEFAULT_ADMIN_SITE_URL } from './seo';
@@ -87,13 +90,18 @@ export async function loader({ request, context }: Route.LoaderArgs): Promise<Ad
 
   let status: AuthSessionStatus;
   try {
-    status = await resolveAdminSessionFromRequest(request);
+    status = await resolveAdminSessionViaGrpc(request, {
+      correlationId,
+      logger,
+      signal: reqCtx?.signal ?? request.signal,
+    });
   } catch (error) {
-    const { publicError, diagnostic } = classifyServerError(error, {
+    const { publicError } = classifyGrpcError(error, {
       correlationId,
       source: 'admin.root.auth',
+      normalizeUnavailableStatus: 503,
+      logger,
     });
-    logDiagnosticError(logger, diagnostic);
     throw data(publicError, {
       status: publicError.status,
       headers: { 'X-Correlation-Id': correlationId },
@@ -121,25 +129,45 @@ export async function loader({ request, context }: Route.LoaderArgs): Promise<Ad
     siteUrlEnvKey: 'PUBLIC_ADMIN_URL',
   });
   const initialViewport = detectServerViewportMode(request.headers);
+  const activeSession = isAuthenticatedAdmin ? status.session : null;
 
   return {
     runtimeSeo,
     correlationId,
     initialViewport,
     isLoginRoute,
-    session: isAuthenticatedAdmin ? status.session : null,
+    session: activeSession,
     authMeta: {
       totpEnabled: status.totpEnabled,
       passkeyCount: status.passkeyCount,
     },
     rootPayload: deferStreamResult(
-      (async () => {
-        const rootData = await loadAdminRootDataWithPrerender();
-        return {
-          ...rootData,
-          terminal: isLoginRoute ? undefined : rootData.terminal,
-        };
-      })(),
+      runAdminStreamRpc(
+        async (): Promise<AdminRootLoaderData> => {
+          if (activeSession && !isLoginRoute) {
+            const bootstrap = await getAdminWorkspaceBootstrapViaGrpc(activeSession.sessionId, {
+              correlationId,
+              logger,
+              signal: reqCtx?.signal ?? request.signal,
+            });
+            return {
+              chrome: bootstrap.chrome,
+              terminal: bootstrap.terminal,
+            };
+          }
+          const chrome = await getAdminChromeViaGrpc({
+            ...(activeSession ? { sessionId: activeSession.sessionId } : {}),
+            correlationId,
+            logger,
+            signal: reqCtx?.signal ?? request.signal,
+          });
+          return {
+            chrome,
+            terminal: undefined,
+          };
+        },
+        { correlationId, source: 'admin.root.loader', logger },
+      ),
       {
         request,
         context,
@@ -204,7 +232,7 @@ export function Layout({ children }: { children: ReactNode }) {
             applicationName='admin.andrew-k.us // Solar Forge Ops'
             canonicalUrl={canonicalUrl}
             robots={ADMIN_ROBOTS_DIRECTIVE}
-            analyticsApp='admin'
+            analyticsApp={rootData?.session ? 'admin' : undefined}
             runtimeSeo={rootData?.runtimeSeo}
           />
           {rootData?.correlationId ? (

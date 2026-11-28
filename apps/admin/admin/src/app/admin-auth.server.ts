@@ -1,11 +1,9 @@
 import type { AuthSessionStatus } from '@aklapper/core';
-import { classifyServerError } from '@aklapper/core/server-errors';
-import { resolveAdminSessionFromRequest } from '@aklapper/db/auth';
+import { classifyGrpcError, resolveAdminSessionViaGrpc } from '@aklapper/node-runtime/grpc';
 import {
   createFallbackLogger,
   getOrCreateCorrelationId,
   getRequestContext,
-  logDiagnosticError,
 } from '@aklapper/node-runtime/ssr/stream';
 import { data, type RouterContextProvider } from 'react-router';
 
@@ -31,13 +29,18 @@ export async function requireAdminSession(
 
   let status: AuthSessionStatus;
   try {
-    status = await resolveAdminSessionFromRequest(request);
+    status = await resolveAdminSessionViaGrpc(request, {
+      correlationId,
+      logger,
+      signal: reqCtx?.signal ?? request.signal,
+    });
   } catch (error) {
-    const { publicError, diagnostic } = classifyServerError(error, {
+    const { publicError } = classifyGrpcError(error, {
       correlationId,
       source: options.source ?? 'admin.auth.session',
+      normalizeUnavailableStatus: 503,
+      logger,
     });
-    logDiagnosticError(logger, diagnostic);
     if (options.mode === 'resource') {
       throw Response.json(publicError, { status: publicError.status, headers });
     }

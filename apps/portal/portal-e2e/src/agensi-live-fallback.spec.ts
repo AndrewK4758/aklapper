@@ -1,7 +1,7 @@
 import { once } from 'node:events';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 
-import { createDb, createDbPool, deleteCreatorAgensiCache } from '@aklapper/db';
+import { createDbPool } from '@aklapper/db';
 import { gotoStreamedPage } from '@aklapper/tooling/playwright';
 import { expect, type Page, type TestInfo, test } from '@playwright/test';
 
@@ -28,7 +28,6 @@ async function withIsolatedAgensiSsr(
   }
   const mockBaseUrl = `http://127.0.0.1:${mockAddr.port}`;
   const pool = createDbPool();
-  const db = createDb(pool);
 
   const portalApi = await startPortalApiService({
     envOverrides: {
@@ -55,7 +54,14 @@ async function withIsolatedAgensiSsr(
     }
     await portalApi.close().catch(() => {});
     await new Promise<void>(resolveClose => mockAgensiServer.close(() => resolveClose()));
-    await deleteCreatorAgensiCache(db, creatorHandle).catch(() => {});
+    await pool
+      .query(`DELETE FROM agensi_skills WHERE lower(creator_handle) = lower($1)`, [creatorHandle])
+      .catch(() => {});
+    await pool
+      .query(`DELETE FROM agensi_sync_state WHERE lower(creator_handle) = lower($1)`, [
+        creatorHandle,
+      ])
+      .catch(() => {});
     await pool.end();
   }
 }

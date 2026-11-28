@@ -4,14 +4,12 @@ import {
   type QdrantHealthStatus,
   type StreamResult,
 } from '@aklapper/core';
-import { classifyServerError } from '@aklapper/core/server-errors';
-import { getSharedDb, loadAdminCmsData } from '@aklapper/db';
+import { classifyGrpcError, getAdminCmsDataViaGrpc } from '@aklapper/node-runtime/grpc';
 import {
   createFallbackLogger,
   deferStreamResult,
   getOrCreateCorrelationId,
   getRequestContext,
-  logDiagnosticError,
 } from '@aklapper/node-runtime/ssr/stream';
 import { OscStatusBadge, RouteErrorBoundaryView, SuspenseElement } from '@aklapper/ui';
 import { useState } from 'react';
@@ -19,6 +17,7 @@ import { data, href } from 'react-router';
 
 import { type AdminCmsActionData, AdminCmsPage } from '#pages/cms';
 
+import { runAdminStreamRpc } from '../admin-grpc.server';
 import { fetchQdrantStatus, requireAdminSession } from '../admin-ops.server';
 import { reportAdminPublicError } from '../client-telemetry';
 import { dispatchAdminCmsIntent } from '../cms-actions.server';
@@ -34,22 +33,38 @@ export interface AdminCmsStreamData {
 export async function loader({ request, context }: Route.LoaderArgs): Promise<AdminCmsStreamData> {
   const correlationId = getOrCreateCorrelationId(request, context);
   const reqCtx = getRequestContext(context);
-  await requireAdminSession(request, { context, source: 'admin.cms.loader' });
+  const { session } = await requireAdminSession(request, { context, source: 'admin.cms.loader' });
 
   return {
     correlationId,
     payload: deferStreamResult(
-      (async (): Promise<AdminCmsLoaderData> => {
-        const db = getSharedDb();
-        return loadAdminCmsData(db);
-      })(),
+      runAdminStreamRpc(
+        () =>
+          getAdminCmsDataViaGrpc(session.sessionId, undefined, {
+            correlationId,
+            ...(reqCtx?.logger ? { logger: reqCtx.logger } : {}),
+            signal: reqCtx?.signal ?? request.signal,
+          }),
+        {
+          correlationId,
+          source: 'admin.cms.loader',
+          ...(reqCtx?.logger ? { logger: reqCtx.logger } : {}),
+        },
+      ),
       { request, context, source: 'admin.cms.loader' },
     ),
-    qdrantPayload: deferStreamResult(fetchQdrantStatus(correlationId, reqCtx?.logger), {
-      request,
-      context,
-      source: 'admin.cms.qdrant',
-    }),
+    qdrantPayload: deferStreamResult(
+      runAdminStreamRpc(() => fetchQdrantStatus(session.sessionId, correlationId, reqCtx?.logger), {
+        correlationId,
+        source: 'admin.cms.qdrant',
+        ...(reqCtx?.logger ? { logger: reqCtx.logger } : {}),
+      }),
+      {
+        request,
+        context,
+        source: 'admin.cms.qdrant',
+      },
+    ),
   };
 }
 
@@ -84,26 +99,29 @@ export async function action({ request, context }: Route.ActionArgs) {
       formData,
       correlationId,
       logger,
+      session.sessionId,
       session.handle,
     );
     return data<AdminCmsActionData>(outcome.payload, { status: outcome.status, headers });
   } catch (error) {
-    const sanitizationFindings = extractPrivacySanitizationFindings(error);
-    const { publicError, diagnostic } = classifyServerError(error, {
+    const failure = classifyGrpcError(error, {
       correlationId,
       source: 'admin.cms.action',
+      normalizeUnavailableStatus: 503,
+      logger,
     });
-    logDiagnosticError(logger, diagnostic);
+    const sanitizationFindings =
+      failure.sanitizationFindings ?? extractPrivacySanitizationFindings(error);
     return data<AdminCmsActionData>(
       {
         ok: false,
-        message: publicError.message,
-        code: publicError.code,
-        action: publicError.action,
-        correlationId: publicError.correlationId,
+        message: failure.publicError.message,
+        code: failure.publicError.code,
+        action: failure.publicError.action,
+        correlationId: failure.publicError.correlationId,
         ...(sanitizationFindings ? { sanitizationFindings } : {}),
       },
-      { status: publicError.status, headers },
+      { status: failure.publicError.status, headers },
     );
   }
 }

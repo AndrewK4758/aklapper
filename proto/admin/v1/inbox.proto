@@ -1,0 +1,102 @@
+syntax = "proto3";
+
+package admin.v1;
+
+option go_package = "github.com/AndrewK4758/aklapper/packages/go/kit/gen/admin/v1;adminv1";
+
+service AdminInboxService {
+  rpc ListContactSubmissions(ListContactSubmissionsRequest) returns (ListContactSubmissionsResponse);
+  rpc DeleteContactSubmission(DeleteContactSubmissionRequest) returns (DeleteContactSubmissionResponse);
+  rpc DeleteContactSubmissions(DeleteContactSubmissionsRequest) returns (DeleteContactSubmissionsResponse);
+  rpc StreamContactAttachment(StreamContactAttachmentRequest) returns (stream StreamContactAttachmentResponse);
+}
+
+message InboxVisitorContext {
+  optional string analytics_session_id = 1;
+  optional string guest_session_id = 2;
+  optional string country = 3;
+  optional string region = 4;
+  optional string city = 5;
+  optional string asn_org = 6;
+  optional string referrer_host = 7;
+  optional string referrer_category = 8;
+  optional string landing_path = 9;
+  optional string ref_param = 10;
+  optional string utm_source = 11;
+  optional string utm_campaign = 12;
+  optional string device_type = 13;
+  optional string os_name = 14;
+  optional string browser_name = 15;
+  repeated string viewed_paths = 16;
+  int32 pane_open_count = 17;
+  int32 ask_turn_count = 18;
+  optional string latest_ask_prompt_excerpt = 19;
+  optional string started_at = 20;
+  optional string last_seen_at = 21;
+}
+
+message AdminInboxItem {
+  string id = 1;
+  string name = 2;
+  string email = 3;
+  optional string phone = 4;
+  string message = 5;
+  optional string attachment_name = 6;
+  optional string attachment_mime_type = 7;
+  optional int32 attachment_size_bytes = 8;
+  optional string attachment_sha256 = 9;
+  InboxVisitorContext visitor_context = 10;
+  string created_at = 11;
+}
+
+message ListContactSubmissionsRequest {
+  string query = 1;
+  int32 page = 2;
+  int32 page_size = 3;
+  optional string selected_id = 4;
+}
+
+message ListContactSubmissionsResponse {
+  repeated AdminInboxItem items = 1;
+  int32 total_count = 2;
+  int32 page = 3;
+  int32 page_size = 4;
+  string query = 5;
+  optional string selected_id = 6;
+  AdminInboxItem selected_item = 7;
+}
+
+message DeleteContactSubmissionRequest {
+  string id = 1;
+}
+
+message DeleteContactSubmissionResponse {
+  bool deleted = 1;
+}
+
+message DeleteContactSubmissionsRequest {
+  repeated string ids = 1;
+}
+
+message DeleteContactSubmissionsResponse {
+  int32 deleted_count = 1;
+}
+
+message StreamContactAttachmentRequest {
+  string submission_id = 1;
+}
+
+message ContactAttachmentMetadata {
+  string id = 1;
+  string filename = 2;
+  string mime_type = 3;
+  int64 size_bytes = 4;
+  string sha256 = 5;
+}
+
+message StreamContactAttachmentResponse {
+  oneof chunk {
+    ContactAttachmentMetadata metadata = 1;
+    bytes data = 2;
+  }
+}

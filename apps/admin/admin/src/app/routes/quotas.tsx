@@ -5,26 +5,25 @@ import {
   QuotaPolicyUpdateSchema,
   type StreamResult,
 } from '@aklapper/core';
-import { classifyServerError } from '@aklapper/core/server-errors';
 import {
-  getSharedDb,
-  listQuotaPoliciesAndBuckets,
-  purgeStaleRateLimitBuckets,
-  resetRateLimitBucket,
-  updateQuotaPolicy,
-} from '@aklapper/db';
+  classifyGrpcError,
+  listAdminQuotasAndBucketsViaGrpc,
+  purgeAdminStaleRateLimitBucketsViaGrpc,
+  resetAdminRateLimitBucketViaGrpc,
+  updateAdminQuotaPolicyViaGrpc,
+} from '@aklapper/node-runtime/grpc';
 import {
   createFallbackLogger,
   deferStreamResult,
   getOrCreateCorrelationId,
   getRequestContext,
-  logDiagnosticError,
 } from '@aklapper/node-runtime/ssr/stream';
 import { RouteErrorBoundaryView, SuspenseElement } from '@aklapper/ui';
 import { data, href } from 'react-router';
 
 import { type AdminQuotasActionData, AdminQuotasPage } from '#pages/quotas';
 
+import { runAdminStreamRpc } from '../admin-grpc.server';
 import { requireAdminSession } from '../admin-ops.server';
 import { reportAdminPublicError } from '../client-telemetry';
 import { buildAdminPageMeta } from '../seo';
@@ -40,24 +39,47 @@ export async function loader({
   context,
 }: Route.LoaderArgs): Promise<AdminQuotasStreamData> {
   const correlationId = getOrCreateCorrelationId(request, context);
-  await requireAdminSession(request, { context, source: 'admin.quotas.loader' });
+  const reqCtx = getRequestContext(context);
+  const { session } = await requireAdminSession(request, {
+    context,
+    source: 'admin.quotas.loader',
+  });
 
   return {
     correlationId,
-    payload: deferStreamResult((async () => listQuotaPoliciesAndBuckets(getSharedDb()))(), {
-      request,
-      context,
-      source: 'admin.quotas.loader',
-    }),
+    payload: deferStreamResult(
+      runAdminStreamRpc(
+        () =>
+          listAdminQuotasAndBucketsViaGrpc(session.sessionId, {
+            correlationId,
+            ...(reqCtx?.logger ? { logger: reqCtx.logger } : {}),
+            signal: reqCtx?.signal ?? request.signal,
+          }),
+        {
+          correlationId,
+          source: 'admin.quotas.loader',
+          ...(reqCtx?.logger ? { logger: reqCtx.logger } : {}),
+        },
+      ),
+      {
+        request,
+        context,
+        source: 'admin.quotas.loader',
+      },
+    ),
   };
 }
 
 export async function action({ request, context }: Route.ActionArgs) {
-  await requireAdminSession(request, { context, source: 'admin.quotas.action' });
+  const { session } = await requireAdminSession(request, {
+    context,
+    source: 'admin.quotas.action',
+  });
   const correlationId = getOrCreateCorrelationId(request, context);
   const reqCtx = getRequestContext(context);
   const logger = reqCtx?.logger ?? createFallbackLogger('admin-quotas');
   const headers = { 'X-Correlation-Id': correlationId };
+  const rpcCtx = { correlationId, logger };
 
   let formData: FormData;
   try {
@@ -85,7 +107,7 @@ export async function action({ request, context }: Route.ActionArgs) {
         maxTokensPerRun: formData.get('maxTokensPerRun'),
         maxDailyGlobalTokens: formData.get('maxDailyGlobalTokens'),
       });
-      const updated = await updateQuotaPolicy(getSharedDb(), parsed);
+      const updated = await updateAdminQuotaPolicyViaGrpc(session.sessionId, parsed, rpcCtx);
       return data<AdminQuotasActionData>(
         {
           ok: true,
@@ -99,7 +121,7 @@ export async function action({ request, context }: Route.ActionArgs) {
       const { scopeKey } = BucketResetSchema.parse({
         scopeKey: formData.get('scopeKey'),
       });
-      const deleted = await resetRateLimitBucket(getSharedDb(), scopeKey);
+      const deleted = await resetAdminRateLimitBucketViaGrpc(session.sessionId, scopeKey, rpcCtx);
       return deleted
         ? data<AdminQuotasActionData>(
             { ok: true, message: `Reset rate-limit bucket ${scopeKey}.` },
@@ -121,7 +143,11 @@ export async function action({ request, context }: Route.ActionArgs) {
       const { olderThanHours } = BucketPurgeSchema.parse({
         olderThanHours: formData.get('olderThanHours'),
       });
-      const count = await purgeStaleRateLimitBuckets(getSharedDb(), olderThanHours);
+      const count = await purgeAdminStaleRateLimitBucketsViaGrpc(
+        session.sessionId,
+        olderThanHours,
+        rpcCtx,
+      );
       return data<AdminQuotasActionData>(
         {
           ok: true,
@@ -142,11 +168,12 @@ export async function action({ request, context }: Route.ActionArgs) {
       { status: 400, headers },
     );
   } catch (error) {
-    const { publicError, diagnostic } = classifyServerError(error, {
+    const { publicError } = classifyGrpcError(error, {
       correlationId,
       source: 'admin.quotas.action',
+      normalizeUnavailableStatus: 503,
+      logger,
     });
-    logDiagnosticError(logger, diagnostic);
     return data<AdminQuotasActionData>(
       {
         ok: false,

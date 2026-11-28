@@ -17,15 +17,14 @@ import { createClient } from '@connectrpc/connect';
 import { GrpcPayloadContractError, mapProtoQuotaToDomain } from './errors.ts';
 import { AgensiService } from './gen/portal/v1/agensi_pb.ts';
 import {
-  AnalyticsMetadataValueSchema,
   AnalyticsService,
   ClientRequestContextSchema,
-  type AnalyticsMetadataValue,
   type ClientRequestContext,
 } from './gen/portal/v1/analytics_pb.ts';
 import { ContactAttachmentUploadSchema, ContactService } from './gen/portal/v1/contact_pb.ts';
 import { PortalContentService } from './gen/portal/v1/content_pb.ts';
 import {
+  encodeAnalyticsMetadataMap,
   logPortalPayloadViolation,
   mapProtoAgensiCatalogMetaToDomain,
   mapProtoAgensiSkillToDomain,
@@ -101,23 +100,6 @@ function buildClientContextProto(input?: PortalClientRequestContextInput): Clien
     cloudRegion: input?.cloudRegion ?? '',
     guestSessionId: input?.guestSessionId ?? '',
   });
-}
-
-function encodeMetadataMap(
-  meta?: Readonly<Record<string, string | number | boolean>>,
-): Record<string, AnalyticsMetadataValue> {
-  if (!meta) return {};
-  const out: Record<string, AnalyticsMetadataValue> = {};
-  for (const [k, v] of Object.entries(meta)) {
-    if (typeof v === 'string') {
-      out[k] = create(AnalyticsMetadataValueSchema, { kind: { case: 'stringValue', value: v } });
-    } else if (typeof v === 'number') {
-      out[k] = create(AnalyticsMetadataValueSchema, { kind: { case: 'numberValue', value: v } });
-    } else if (typeof v === 'boolean') {
-      out[k] = create(AnalyticsMetadataValueSchema, { kind: { case: 'boolValue', value: v } });
-    }
-  }
-  return out;
 }
 
 function contentClient(meta: GrpcCallMetadata) {
@@ -278,7 +260,7 @@ export async function ingestPortalAnalytics(
           name: ev.name,
           path: ev.path,
           ...(ev.value !== undefined ? { value: ev.value } : {}),
-          metadata: encodeMetadataMap(ev.metadata),
+          metadata: encodeAnalyticsMetadataMap(ev.metadata),
           timestamp: ev.timestamp,
         })),
         clientContext: buildClientContextProto(clientContext),

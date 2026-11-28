@@ -35,6 +35,7 @@ export async function loader({ request, context }: Route.LoaderArgs): Promise<Re
   const snapshot = await probeRuntimeServices({
     services: [
       { service: 'admin', localStatus: 'healthy', detail: 'SSR ready' },
+      { service: 'admin-api', url: process.env['ADMIN_API_URL'], transport: 'grpc' },
       {
         service: 'portal',
         url: process.env['PUBLIC_PORTAL_URL'],

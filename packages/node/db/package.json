@@ -23,18 +23,6 @@
       "import": "./dist/client.js",
       "default": "./dist/client.js"
     },
-    "./queries": {
-      "@aklapper/source": "./src/queries.ts",
-      "types": "./dist/queries.d.ts",
-      "import": "./dist/queries.js",
-      "default": "./dist/queries.js"
-    },
-    "./prerender": {
-      "@aklapper/source": "./src/prerender.ts",
-      "types": "./dist/prerender.d.ts",
-      "import": "./dist/prerender.js",
-      "default": "./dist/prerender.js"
-    },
     "./seed": {
       "@aklapper/source": "./src/seed.ts",
       "types": "./dist/seed.d.ts",
@@ -47,6 +35,12 @@
       "import": "./dist/migrate.js",
       "default": "./dist/migrate.js"
     },
+    "./provision-admin-role": {
+      "@aklapper/source": "./src/provision-admin-role.ts",
+      "types": "./dist/provision-admin-role.d.ts",
+      "import": "./dist/provision-admin-role.js",
+      "default": "./dist/provision-admin-role.js"
+    },
     "./provision-portal-role": {
       "@aklapper/source": "./src/provision-portal-role.ts",
       "types": "./dist/provision-portal-role.d.ts",
@@ -58,32 +52,20 @@
       "types": "./dist/seed-admin.d.ts",
       "import": "./dist/seed-admin.js",
       "default": "./dist/seed-admin.js"
-    },
-    "./auth": {
-      "@aklapper/source": "./src/auth-service.ts",
-      "types": "./dist/auth-service.d.ts",
-      "import": "./dist/auth-service.js",
-      "default": "./dist/auth-service.js"
-    },
-    "./analytics": {
-      "@aklapper/source": "./src/analytics-bff.ts",
-      "types": "./dist/analytics-bff.d.ts",
-      "import": "./dist/analytics-bff.js",
-      "default": "./dist/analytics-bff.js"
     }
   },
   "scripts": {
     "db:generate": "drizzle-kit generate",
     "db:provision-portal-role": "node --conditions=@aklapper/source ./src/provision-portal-role.ts",
+    "db:provision-admin-role": "node --conditions=@aklapper/source ./src/provision-admin-role.ts",
     "db:migrate": "node --conditions=@aklapper/source ./src/migrate.ts",
     "db:seed": "node --conditions=@aklapper/source ./src/seed.ts",
     "db:seed-admin": "node --conditions=@aklapper/source ./src/seed-admin.ts",
-    "db:setup": "pnpm run db:provision-portal-role && pnpm run db:migrate && pnpm run db:seed"
+    "db:setup": "pnpm run db:provision-portal-role && pnpm run db:provision-admin-role && pnpm run db:migrate && pnpm run db:seed"
   },
   "dependencies": {
     "@aklapper/core": "workspace:*",
     "@aklapper/node-runtime": "workspace:*",
-    "@simplewebauthn/server": "^14.1.0",
     "drizzle-orm": "^0.45.4",
     "pg": "^8.23.1",
     "zod": "^4.6.7"
@@ -112,6 +94,23 @@
         "options": {
           "cwd": "packages/node/db",
           "command": "node --conditions=@aklapper/source ./src/provision-portal-role.ts"
+        },
+        "configurations": {
+          "development": {},
+          "test": {},
+          "e2e": {},
+          "ci": {},
+          "staging": {},
+          "production": {}
+        }
+      },
+      "db-provision-admin-role": {
+        "cache": false,
+        "defaultConfiguration": "development",
+        "executor": "nx:run-commands",
+        "options": {
+          "cwd": "packages/node/db",
+          "command": "node --conditions=@aklapper/source ./src/provision-admin-role.ts"
         },
         "configurations": {
           "development": {},
@@ -162,7 +161,7 @@
         "executor": "nx:run-commands",
         "options": {
           "cwd": "packages/node/db",
-          "command": "node --conditions=@aklapper/source ./src/provision-portal-role.ts && node --conditions=@aklapper/source ./src/migrate.ts && node --conditions=@aklapper/source ./src/seed.ts"
+          "command": "node --conditions=@aklapper/source ./src/provision-portal-role.ts && node --conditions=@aklapper/source ./src/provision-admin-role.ts && node --conditions=@aklapper/source ./src/migrate.ts && node --conditions=@aklapper/source ./src/seed.ts"
         },
         "configurations": {
           "development": {},

@@ -1,0 +1,148 @@
+syntax = "proto3";
+
+package admin.v1;
+
+option go_package = "github.com/AndrewK4758/aklapper/packages/go/kit/gen/admin/v1;adminv1";
+
+service AdminAuthService {
+  rpc GetAdminSession(GetAdminSessionRequest) returns (GetAdminSessionResponse);
+  rpc PasswordLogin(PasswordLoginRequest) returns (PasswordLoginResponse);
+  rpc BeginPasskeyRegister(BeginPasskeyRegisterRequest) returns (BeginPasskeyRegisterResponse);
+  rpc FinishPasskeyRegister(FinishPasskeyRegisterRequest) returns (FinishPasskeyRegisterResponse);
+  rpc BeginPasskeyLogin(BeginPasskeyLoginRequest) returns (BeginPasskeyLoginResponse);
+  rpc FinishPasskeyLogin(FinishPasskeyLoginRequest) returns (FinishPasskeyLoginResponse);
+  rpc EnrollTotp(EnrollTotpRequest) returns (EnrollTotpResponse);
+  rpc VerifyTotpStepUp(VerifyTotpStepUpRequest) returns (VerifyTotpStepUpResponse);
+  rpc ConfirmTotpEnrollment(ConfirmTotpEnrollmentRequest) returns (ConfirmTotpEnrollmentResponse);
+  rpc DisableTotp(DisableTotpRequest) returns (DisableTotpResponse);
+  rpc LogoutAdminSession(LogoutAdminSessionRequest) returns (LogoutAdminSessionResponse);
+}
+
+message AdminSession {
+  string session_id = 1;
+  string role = 2;
+  string handle = 3;
+  string expires_at = 4;
+}
+
+message GetAdminSessionRequest {
+  string session_id = 1;
+}
+
+message GetAdminSessionResponse {
+  bool authenticated = 1;
+  AdminSession session = 2;
+  bool totp_enabled = 3;
+  int32 passkey_count = 4;
+}
+
+message PasswordLoginRequest {
+  string handle = 1;
+  string password = 2;
+  string client_ip = 3;
+}
+
+message PasswordLoginResponse {
+  bool verified = 1;
+  bool requires_totp = 2;
+  string pending_token = 3;
+  AdminSession session = 4;
+  int32 passkey_count = 5;
+}
+
+message BeginPasskeyRegisterRequest {
+  string session_id = 1;
+  string origin = 2;
+}
+
+message BeginPasskeyRegisterResponse {
+  string challenge_id = 1;
+  string options_json = 2;
+}
+
+message FinishPasskeyRegisterRequest {
+  string session_id = 1;
+  string challenge_id = 2;
+  string origin = 3;
+  string credential_json = 4;
+}
+
+message FinishPasskeyRegisterResponse {
+  bool verified = 1;
+  string credential_id = 2;
+  AdminSession session = 3;
+}
+
+message BeginPasskeyLoginRequest {
+  optional string handle = 1;
+  string origin = 2;
+}
+
+message BeginPasskeyLoginResponse {
+  string challenge_id = 1;
+  string options_json = 2;
+}
+
+message FinishPasskeyLoginRequest {
+  string challenge_id = 1;
+  string origin = 2;
+  string client_ip = 3;
+  string assertion_json = 4;
+  optional string totp_code = 5;
+}
+
+message FinishPasskeyLoginResponse {
+  bool verified = 1;
+  bool requires_totp = 2;
+  string pending_token = 3;
+  AdminSession session = 4;
+}
+
+message EnrollTotpRequest {
+  string session_id = 1;
+}
+
+message EnrollTotpResponse {
+  string secret = 1;
+  string otpauth_url = 2;
+  repeated string backup_codes = 3;
+}
+
+message VerifyTotpStepUpRequest {
+  string pending_token = 1;
+  string code = 2;
+  string client_ip = 3;
+}
+
+message VerifyTotpStepUpResponse {
+  bool verified = 1;
+  int32 passkey_count = 2;
+  AdminSession session = 3;
+}
+
+message ConfirmTotpEnrollmentRequest {
+  string session_id = 1;
+  string code = 2;
+  string client_ip = 3;
+}
+
+message ConfirmTotpEnrollmentResponse {
+  bool verified = 1;
+  bool enabled = 2;
+}
+
+message DisableTotpRequest {
+  string session_id = 1;
+}
+
+message DisableTotpResponse {
+  bool disabled = 1;
+}
+
+message LogoutAdminSessionRequest {
+  string session_id = 1;
+}
+
+message LogoutAdminSessionResponse {
+  bool logged_out = 1;
+}

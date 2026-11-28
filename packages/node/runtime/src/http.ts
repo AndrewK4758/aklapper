@@ -49,6 +49,9 @@ export const INTERNAL_AUTH_VERSION = 'v1';
 export const DEV_FALLBACK_INTERNAL_AUTH_SECRET =
   'aklapper-dev-internal-auth-secret-do-not-use-in-prod';
 
+export const DEV_FALLBACK_ADMIN_INTERNAL_AUTH_SECRET =
+  'aklapper-dev-admin-internal-auth-secret-do-not-use-in-prod';
+
 export type InternalAuthRole = 'admin' | 'guest' | 'service';
 export type OidcAuthMode = 'auto' | boolean | { readonly audience?: string };
 
@@ -136,6 +139,25 @@ export function resolveInternalAuthSecret(explicitSecret?: string): string {
 
   throw new Error(
     'INTERNAL_AUTH_SECRET is required in production (NODE_ENV or APP_ENV=production)',
+  );
+}
+
+export function resolveAdminInternalAuthSecret(
+  explicitSecret?: string,
+  env: Record<string, string | undefined> = process.env,
+): string {
+  const direct = explicitSecret?.trim();
+  if (direct) return direct;
+
+  const fromEnv = env['ADMIN_INTERNAL_AUTH_SECRET']?.trim();
+  if (fromEnv) return fromEnv;
+
+  if (!isProductionEnv(env) && !isProductionEnv(process.env)) {
+    return DEV_FALLBACK_ADMIN_INTERNAL_AUTH_SECRET;
+  }
+
+  throw new Error(
+    'ADMIN_INTERNAL_AUTH_SECRET is required in production (NODE_ENV or APP_ENV=production)',
   );
 }
 

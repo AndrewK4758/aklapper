@@ -167,6 +167,7 @@ describe('Admin CMS Career Dossier Studio, VisitorLensListEditor & 409/400 actio
       reindexForm,
       'corr-409',
       logger,
+      '11111111-1111-4111-8111-111111111111',
       'aklapper',
     );
     expect(conflictOutcome.status).toBe(409);
@@ -182,6 +183,7 @@ describe('Admin CMS Career Dossier Studio, VisitorLensListEditor & 409/400 actio
       'import-career-dossier-files',
       binaryForm,
       {
+        sessionId: '11111111-1111-4111-8111-111111111111',
         correlationId: 'corr-bin-400',
         logger,
         adminActor: 'aklapper',
@@ -200,6 +202,7 @@ describe('Admin CMS Career Dossier Studio, VisitorLensListEditor & 409/400 actio
       'import-career-dossier-files',
       oversizedForm,
       {
+        sessionId: '11111111-1111-4111-8111-111111111111',
         correlationId: 'corr-big-400',
         logger,
         adminActor: 'aklapper',

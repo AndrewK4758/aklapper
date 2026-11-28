@@ -225,18 +225,87 @@ func (x *QuotaStatus) GetMaxTokens() int32 {
 	return 0
 }
 
+type PrivacySanitizationFinding struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	RuleId        string                 `protobuf:"bytes,1,opt,name=rule_id,json=ruleId,proto3" json:"rule_id,omitempty"`
+	Category      string                 `protobuf:"bytes,2,opt,name=category,proto3" json:"category,omitempty"`
+	Field         string                 `protobuf:"bytes,3,opt,name=field,proto3" json:"field,omitempty"`
+	Location      string                 `protobuf:"bytes,4,opt,name=location,proto3" json:"location,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PrivacySanitizationFinding) Reset() {
+	*x = PrivacySanitizationFinding{}
+	mi := &file_common_v1_error_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PrivacySanitizationFinding) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PrivacySanitizationFinding) ProtoMessage() {}
+
+func (x *PrivacySanitizationFinding) ProtoReflect() protoreflect.Message {
+	mi := &file_common_v1_error_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PrivacySanitizationFinding.ProtoReflect.Descriptor instead.
+func (*PrivacySanitizationFinding) Descriptor() ([]byte, []int) {
+	return file_common_v1_error_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *PrivacySanitizationFinding) GetRuleId() string {
+	if x != nil {
+		return x.RuleId
+	}
+	return ""
+}
+
+func (x *PrivacySanitizationFinding) GetCategory() string {
+	if x != nil {
+		return x.Category
+	}
+	return ""
+}
+
+func (x *PrivacySanitizationFinding) GetField() string {
+	if x != nil {
+		return x.Field
+	}
+	return ""
+}
+
+func (x *PrivacySanitizationFinding) GetLocation() string {
+	if x != nil {
+		return x.Location
+	}
+	return ""
+}
+
 type ErrorDetailEnvelope struct {
-	state             protoimpl.MessageState `protogen:"open.v1"`
-	Error             *PublicAppError        `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
-	Quota             *QuotaStatus           `protobuf:"bytes,2,opt,name=quota,proto3" json:"quota,omitempty"`
-	RetryAfterSeconds *int32                 `protobuf:"varint,3,opt,name=retry_after_seconds,json=retryAfterSeconds,proto3,oneof" json:"retry_after_seconds,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	state                protoimpl.MessageState        `protogen:"open.v1"`
+	Error                *PublicAppError               `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+	Quota                *QuotaStatus                  `protobuf:"bytes,2,opt,name=quota,proto3" json:"quota,omitempty"`
+	RetryAfterSeconds    *int32                        `protobuf:"varint,3,opt,name=retry_after_seconds,json=retryAfterSeconds,proto3,oneof" json:"retry_after_seconds,omitempty"`
+	SanitizationFindings []*PrivacySanitizationFinding `protobuf:"bytes,4,rep,name=sanitization_findings,json=sanitizationFindings,proto3" json:"sanitization_findings,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
 func (x *ErrorDetailEnvelope) Reset() {
 	*x = ErrorDetailEnvelope{}
-	mi := &file_common_v1_error_proto_msgTypes[3]
+	mi := &file_common_v1_error_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -248,7 +317,7 @@ func (x *ErrorDetailEnvelope) String() string {
 func (*ErrorDetailEnvelope) ProtoMessage() {}
 
 func (x *ErrorDetailEnvelope) ProtoReflect() protoreflect.Message {
-	mi := &file_common_v1_error_proto_msgTypes[3]
+	mi := &file_common_v1_error_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -261,7 +330,7 @@ func (x *ErrorDetailEnvelope) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ErrorDetailEnvelope.ProtoReflect.Descriptor instead.
 func (*ErrorDetailEnvelope) Descriptor() ([]byte, []int) {
-	return file_common_v1_error_proto_rawDescGZIP(), []int{3}
+	return file_common_v1_error_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *ErrorDetailEnvelope) GetError() *PublicAppError {
@@ -283,6 +352,13 @@ func (x *ErrorDetailEnvelope) GetRetryAfterSeconds() int32 {
 		return *x.RetryAfterSeconds
 	}
 	return 0
+}
+
+func (x *ErrorDetailEnvelope) GetSanitizationFindings() []*PrivacySanitizationFinding {
+	if x != nil {
+		return x.SanitizationFindings
+	}
+	return nil
 }
 
 var File_common_v1_error_proto protoreflect.FileDescriptor
@@ -310,11 +386,17 @@ const file_common_v1_error_proto_rawDesc = "" +
 	"\vtokens_used\x18\x04 \x01(\x05R\n" +
 	"tokensUsed\x12\x1d\n" +
 	"\n" +
-	"max_tokens\x18\x05 \x01(\x05R\tmaxTokens\"\xc1\x01\n" +
+	"max_tokens\x18\x05 \x01(\x05R\tmaxTokens\"\x83\x01\n" +
+	"\x1aPrivacySanitizationFinding\x12\x17\n" +
+	"\arule_id\x18\x01 \x01(\tR\x06ruleId\x12\x1a\n" +
+	"\bcategory\x18\x02 \x01(\tR\bcategory\x12\x14\n" +
+	"\x05field\x18\x03 \x01(\tR\x05field\x12\x1a\n" +
+	"\blocation\x18\x04 \x01(\tR\blocation\"\x9d\x02\n" +
 	"\x13ErrorDetailEnvelope\x12/\n" +
 	"\x05error\x18\x01 \x01(\v2\x19.common.v1.PublicAppErrorR\x05error\x12,\n" +
 	"\x05quota\x18\x02 \x01(\v2\x16.common.v1.QuotaStatusR\x05quota\x123\n" +
-	"\x13retry_after_seconds\x18\x03 \x01(\x05H\x00R\x11retryAfterSeconds\x88\x01\x01B\x16\n" +
+	"\x13retry_after_seconds\x18\x03 \x01(\x05H\x00R\x11retryAfterSeconds\x88\x01\x01\x12Z\n" +
+	"\x15sanitization_findings\x18\x04 \x03(\v2%.common.v1.PrivacySanitizationFindingR\x14sanitizationFindingsB\x16\n" +
 	"\x14_retry_after_secondsB\xa8\x01\n" +
 	"\rcom.common.v1B\n" +
 	"ErrorProtoP\x01ZFgithub.com/AndrewK4758/aklapper/packages/go/kit/gen/common/v1;commonv1\xa2\x02\x03CXX\xaa\x02\tCommon.V1\xca\x02\tCommon\\V1\xe2\x02\x15Common\\V1\\GPBMetadata\xea\x02\n" +
@@ -332,24 +414,26 @@ func file_common_v1_error_proto_rawDescGZIP() []byte {
 	return file_common_v1_error_proto_rawDescData
 }
 
-var file_common_v1_error_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_common_v1_error_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_common_v1_error_proto_goTypes = []any{
-	(*FieldErrorList)(nil),      // 0: common.v1.FieldErrorList
-	(*PublicAppError)(nil),      // 1: common.v1.PublicAppError
-	(*QuotaStatus)(nil),         // 2: common.v1.QuotaStatus
-	(*ErrorDetailEnvelope)(nil), // 3: common.v1.ErrorDetailEnvelope
-	nil,                         // 4: common.v1.PublicAppError.FieldErrorsEntry
+	(*FieldErrorList)(nil),             // 0: common.v1.FieldErrorList
+	(*PublicAppError)(nil),             // 1: common.v1.PublicAppError
+	(*QuotaStatus)(nil),                // 2: common.v1.QuotaStatus
+	(*PrivacySanitizationFinding)(nil), // 3: common.v1.PrivacySanitizationFinding
+	(*ErrorDetailEnvelope)(nil),        // 4: common.v1.ErrorDetailEnvelope
+	nil,                                // 5: common.v1.PublicAppError.FieldErrorsEntry
 }
 var file_common_v1_error_proto_depIdxs = []int32{
-	4, // 0: common.v1.PublicAppError.field_errors:type_name -> common.v1.PublicAppError.FieldErrorsEntry
+	5, // 0: common.v1.PublicAppError.field_errors:type_name -> common.v1.PublicAppError.FieldErrorsEntry
 	1, // 1: common.v1.ErrorDetailEnvelope.error:type_name -> common.v1.PublicAppError
 	2, // 2: common.v1.ErrorDetailEnvelope.quota:type_name -> common.v1.QuotaStatus
-	0, // 3: common.v1.PublicAppError.FieldErrorsEntry.value:type_name -> common.v1.FieldErrorList
-	4, // [4:4] is the sub-list for method output_type
-	4, // [4:4] is the sub-list for method input_type
-	4, // [4:4] is the sub-list for extension type_name
-	4, // [4:4] is the sub-list for extension extendee
-	0, // [0:4] is the sub-list for field type_name
+	3, // 3: common.v1.ErrorDetailEnvelope.sanitization_findings:type_name -> common.v1.PrivacySanitizationFinding
+	0, // 4: common.v1.PublicAppError.FieldErrorsEntry.value:type_name -> common.v1.FieldErrorList
+	5, // [5:5] is the sub-list for method output_type
+	5, // [5:5] is the sub-list for method input_type
+	5, // [5:5] is the sub-list for extension type_name
+	5, // [5:5] is the sub-list for extension extendee
+	0, // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_common_v1_error_proto_init() }
@@ -357,14 +441,14 @@ func file_common_v1_error_proto_init() {
 	if File_common_v1_error_proto != nil {
 		return
 	}
-	file_common_v1_error_proto_msgTypes[3].OneofWrappers = []any{}
+	file_common_v1_error_proto_msgTypes[4].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_common_v1_error_proto_rawDesc), len(file_common_v1_error_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   5,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

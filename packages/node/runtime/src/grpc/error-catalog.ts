@@ -1,7 +1,9 @@
 import {
+  PrivacySanitizationFindingSchema,
   QuotaStatusSchema,
   type AppErrorCode,
   type FormFieldErrorMap,
+  type PrivacySanitizationFinding,
   type QuotaStatus,
 } from '@aklapper/core';
 import type { DiagnosticSeverity } from '@aklapper/core/server-errors';
@@ -75,6 +77,26 @@ export function mapProtoFieldErrorsToDomain(
   return count > 0 ? out : undefined;
 }
 
+export function mapProtoSanitizationFindingsToDomain(
+  envelope?: ErrorDetailEnvelope,
+): readonly PrivacySanitizationFinding[] | undefined {
+  const raw = envelope?.sanitizationFindings;
+  if (!raw || raw.length === 0) return undefined;
+  const out: PrivacySanitizationFinding[] = [];
+  for (const item of raw) {
+    const parsed = PrivacySanitizationFindingSchema.safeParse({
+      ruleId: item.ruleId,
+      category: item.category,
+      field: item.field,
+      location: item.location,
+    });
+    if (parsed.success) {
+      out.push(parsed.data);
+    }
+  }
+  return out.length > 0 ? out : undefined;
+}
+
 export function scrubDiagnosticCause(raw: string): string {
   return raw
     .replace(/x-internal-auth\s*[:=]\s*\S+/gi, 'x-internal-auth=[redacted]')
@@ -135,6 +157,18 @@ export function resolveConnectCatalogEntry(
       };
     }
     case Code.FailedPrecondition: {
+      if (detailErr?.status === 410) {
+        return {
+          entry: {
+            code: 'ERR_VALIDATION',
+            status: 410,
+            message: detailErr.message || 'This CMS key has been retired.',
+            action: detailErr.action || 'Configure via environment variable instead.',
+            severity: 'WARN',
+          },
+          isTransportFallback: false,
+        };
+      }
       if (detailErr?.status === 422) {
         const hasFieldErrors = mapProtoFieldErrorsToDomain(detailErr) !== undefined;
         const [message, action] = hasFieldErrors

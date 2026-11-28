@@ -31,6 +31,7 @@ import {
   type StatusBadgeSpec,
   type TerminalProfileData,
 } from '@aklapper/core';
+import { create } from '@bufbuild/protobuf';
 import type { z } from 'zod';
 
 import type { SsrStructuredLogger } from '../request-context.ts';
@@ -41,12 +42,33 @@ import type {
   AgensiSyncState as ProtoAgensiSyncState,
   StatusBadgeSpec as ProtoStatusBadgeSpec,
 } from './gen/portal/v1/agensi_pb.ts';
+import {
+  AnalyticsMetadataValueSchema,
+  type AnalyticsMetadataValue,
+} from './gen/portal/v1/analytics_pb.ts';
 import type { ContactSubmissionSummary as ProtoContactSubmissionSummary } from './gen/portal/v1/contact_pb.ts';
 import type {
   CadencePreset as ProtoCadencePreset,
   CareerDossier as ProtoCareerDossier,
   TerminalProfileData as ProtoTerminalProfileData,
 } from './gen/portal/v1/content_pb.ts';
+
+export function encodeAnalyticsMetadataMap(
+  meta?: Readonly<Record<string, string | number | boolean>>,
+): Record<string, AnalyticsMetadataValue> {
+  if (!meta) return {};
+  const out: Record<string, AnalyticsMetadataValue> = {};
+  for (const [k, v] of Object.entries(meta)) {
+    if (typeof v === 'string') {
+      out[k] = create(AnalyticsMetadataValueSchema, { kind: { case: 'stringValue', value: v } });
+    } else if (typeof v === 'number') {
+      out[k] = create(AnalyticsMetadataValueSchema, { kind: { case: 'numberValue', value: v } });
+    } else if (typeof v === 'boolean') {
+      out[k] = create(AnalyticsMetadataValueSchema, { kind: { case: 'boolValue', value: v } });
+    }
+  }
+  return out;
+}
 
 export function logPortalPayloadViolation(
   logger: SsrStructuredLogger | undefined,

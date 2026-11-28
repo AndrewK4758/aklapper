@@ -25,6 +25,7 @@ const DEFAULT_GRPC_SERVICE_BY_NAME: Readonly<Partial<Record<RuntimeServiceName, 
   'ai-ask': 'ai_ask.v1.AskService',
   'cadence-demo': 'cadence.v1.CadenceService',
   'portal-api': 'portal.v1.PortalContentService',
+  'admin-api': 'admin.v1.AdminAuthService',
 };
 
 function safeHost(rawUrl: string): string {

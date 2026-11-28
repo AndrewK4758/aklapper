@@ -69,5 +69,22 @@ describe('@aklapper/tooling dossier-check CLI', () => {
 
     expect(() => parseDossierCheckArgs([])).toThrow(/at least one markdown file/i);
     expect(() => parseDossierCheckArgs(['--unknown', cleanFile])).toThrow(/Unknown option/);
+
+    // Compact E.164 phone and 70-char local-part email fail closed via Go privacy-check CLI without leaking literals.
+    const edgeFile = join(dir, 'edge.md');
+    const longEmail = `${'a'.repeat(70)}@example.com`;
+    writeFileSync(
+      edgeFile,
+      `# Edge Notes\n\nReach +15550101234 or ${longEmail} with ARGON-2 and USB-4.\n`,
+      'utf8',
+    );
+    const edgeResult = checkDossierFiles([edgeFile], denylist, dir);
+    expect(edgeResult.passed).toBe(false);
+    expect(edgeResult.reports[0]?.findings.map(f => f.ruleId)).toEqual(
+      expect.arrayContaining(['pii.us_phone', 'pii.email_address']),
+    );
+    const edgeRendered = formatDossierCheckOutput(edgeResult, false);
+    expect(edgeRendered).not.toContain('5550101234');
+    expect(edgeRendered).not.toContain('@example.com');
   });
 });

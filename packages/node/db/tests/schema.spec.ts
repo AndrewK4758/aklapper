@@ -1,6 +1,8 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
+import { SITE_CONTENT_KEYS } from '@aklapper/core';
+import { getPrerenderPortalAboutData, TERMINAL_PROFILE_SLUGS } from '@aklapper/core/prerender';
 import { vi } from 'vitest';
 
 import {
@@ -14,44 +16,26 @@ import {
   cadencePresets,
   CAREER_DOSSIER_SEEDS,
   careerDossiers,
-  ContactDbConstraintError,
   contactSubmissions,
   DEFAULT_MENU_ITEMS,
-  extractPgConstraintViolation,
-  getPrerenderPortalAboutData,
-  insertContactSubmission,
   menuItems,
   PORTAL_ABOUT_SEED,
   PORTAL_ASK_SEED,
-  QDRANT_COLLECTIONS,
   roadmapMilestones,
   sandboxRuns,
   seedDatabase,
-  SITE_CONTENT_KEYS,
   siteContent,
   TERMINAL_DIRECTORY_ENTRY_SEEDS,
-  TERMINAL_PROFILE_SLUGS,
   terminalCommands,
   terminalDirectoryEntries,
   terminalInitialEntries,
   terminalProfiles,
   webauthnChallenges,
+  webauthnCredentials,
 } from '../src/index.ts';
 
-function createMockInsertDb(returningFn: () => Promise<unknown[]>) {
-  const values = vi.fn<(row: Record<string, unknown>) => { returning: () => Promise<unknown[]> }>(
-    () => ({ returning: returningFn }),
-  );
-  const insert = vi.fn<() => { values: typeof values }>(() => ({ values }));
-  return {
-    db: { insert } as unknown as AppDatabase,
-    insert,
-    values,
-  };
-}
-
 describe('@aklapper/db', () => {
-  it('defines Drizzle tables for portal/admin data and Qdrant vector collections', () => {
+  it('defines Drizzle tables for portal/admin data and reversible migrations', () => {
     expect(menuItems.slug.name).toBe('slug');
     expect('targetK8sDeploy' in menuItems).toBe(false);
     expect('namespace' in menuItems).toBe(false);
@@ -94,11 +78,63 @@ describe('@aklapper/db', () => {
     expect(
       journal.entries.some(e => e.idx === 11 && e.tag === '0011_portal_app_grants_and_rls'),
     ).toBe(true);
+    expect(
+      journal.entries.some(
+        e => e.idx === 12 && e.tag === '0012_admin_app_grants_and_webauthn_flags',
+      ),
+    ).toBe(true);
     const drizzleFiles = readdirSync(resolve(import.meta.dirname, '../drizzle'));
     expect(drizzleFiles).toContain('0010_visitor_analytics_enrichment.sql');
     expect(drizzleFiles).toContain('0010_visitor_analytics_enrichment.down.sql');
     expect(drizzleFiles).toContain('0011_portal_app_grants_and_rls.sql');
     expect(drizzleFiles).toContain('0011_portal_app_grants_and_rls.down.sql');
+    expect(drizzleFiles).toContain('0012_admin_app_grants_and_webauthn_flags.sql');
+    expect(drizzleFiles).toContain('0012_admin_app_grants_and_webauthn_flags.down.sql');
+    const up0012Sql = readFileSync(
+      resolve(import.meta.dirname, '../drizzle/0012_admin_app_grants_and_webauthn_flags.sql'),
+      'utf8',
+    );
+    const down0012Sql = readFileSync(
+      resolve(import.meta.dirname, '../drizzle/0012_admin_app_grants_and_webauthn_flags.down.sql'),
+      'utf8',
+    );
+    expect(up0012Sql).not.toMatch(/\bPASSWORD\b/i);
+    expect(up0012Sql).not.toMatch(/\bFORCE\s+ROW\s+LEVEL\s+SECURITY\b/i);
+    expect(up0012Sql).not.toMatch(/\bDROP\s+(?:TABLE|COLUMN|ROLE)\b/i);
+    expect(up0012Sql).not.toMatch(/\broadmap_milestones\b/i);
+    expect(up0012Sql).toContain(
+      'ALTER TABLE "public"."webauthn_credentials" ADD COLUMN IF NOT EXISTS "backup_eligible" boolean',
+    );
+    expect(up0012Sql).toContain(
+      'ALTER TABLE "public"."webauthn_credentials" ADD COLUMN IF NOT EXISTS "backup_state" boolean',
+    );
+    expect(up0012Sql).toContain(
+      'NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOREPLICATION NOBYPASSRLS',
+    );
+    expect(up0012Sql).toContain("WHERE schema_name = 'drizzle'");
+    expect(up0012Sql).toContain('"public"."terminal_commands_id_seq"');
+    expect(up0012Sql).toContain('"public"."terminal_initial_entries_id_seq"');
+    expect(up0012Sql).toContain('"public"."terminal_directory_entries_id_seq"');
+    expect(up0012Sql).toContain('"public"."analytics_events_id_seq"');
+    expect(up0012Sql).toContain(
+      'GRANT EXECUTE ON FUNCTION "public"."career_dossiers_refresh_search_tsv"() TO "admin_app"',
+    );
+    expect(up0012Sql).toContain(
+      'DROP POLICY IF EXISTS "rate_limit_buckets_admin_all" ON "public"."rate_limit_buckets"',
+    );
+    expect(up0012Sql).toContain('CREATE POLICY "rate_limit_buckets_admin_all"');
+    expect(down0012Sql).toContain(
+      'DROP POLICY IF EXISTS "rate_limit_buckets_admin_all" ON "public"."rate_limit_buckets"',
+    );
+    expect(down0012Sql).toContain(
+      'ALTER TABLE IF EXISTS "public"."webauthn_credentials" DROP COLUMN IF EXISTS "backup_eligible"',
+    );
+    expect(down0012Sql).toContain(
+      'ALTER TABLE IF EXISTS "public"."webauthn_credentials" DROP COLUMN IF EXISTS "backup_state"',
+    );
+    expect(down0012Sql).not.toMatch(/\bDISABLE\s+ROW\s+LEVEL\s+SECURITY\b/i);
+    expect(down0012Sql).not.toMatch(/\bDROP\s+ROLE\b/i);
+    expect(down0012Sql).not.toContain('portal_app');
     const up0011Sql = readFileSync(
       resolve(import.meta.dirname, '../drizzle/0011_portal_app_grants_and_rls.sql'),
       'utf8',
@@ -227,6 +263,8 @@ describe('@aklapper/db', () => {
     expect(webauthnChallenges.challenge.name).toBe('challenge');
     expect(webauthnChallenges.consumedAt.name).toBe('consumed_at');
     expect(webauthnChallenges.kind.name).toBe('kind');
+    expect(webauthnCredentials.backupEligible.name).toBe('backup_eligible');
+    expect(webauthnCredentials.backupState.name).toBe('backup_state');
     expect(askTurns.attemptId.name).toBe('attempt_id');
     expect(askTurns.leaseExpiresAt.name).toBe('lease_expires_at');
     expect(askTurns.expiresAt.name).toBe('expires_at');
@@ -238,13 +276,6 @@ describe('@aklapper/db', () => {
     expect(careerDossiers.sanitizationVerifiedAt.name).toBe('sanitization_verified_at');
     expect(careerDossiers.denylistHash.name).toBe('denylist_hash');
     expect(careerDossiers.searchTsv.name).toBe('search_tsv');
-    expect(QDRANT_COLLECTIONS.map(c => [c.name, c.vectorSize])).toEqual([
-      ['cadence_patterns', 768],
-      ['portfolio_docs', 768],
-    ]);
-    expect(
-      QDRANT_COLLECTIONS.every(c => c.vectorSize === 768 && c.distance === 'Cosine' && c.onDisk),
-    ).toBe(true);
     expect(CADENCE_PRESET_SEEDS.map(p => p.slug)).toEqual([
       'chord-decomposition-workbench',
       'change-tier-gate-matrix',
@@ -272,137 +303,6 @@ describe('@aklapper/db', () => {
     expect(agensiSyncState.lastError.name).toBe('last_error');
     expect(agensiSyncState.itemCount.name).toBe('item_count');
     expect(agensiSyncState.etag.name).toBe('etag');
-  });
-
-  it('maps Postgres 19 CHECK and NOT NULL errors to ContactDbConstraintError', () => {
-    const checkErr = extractPgConstraintViolation({
-      code: '23514',
-      constraint: 'contact_email_format_check',
-    });
-    expect(checkErr).toBeInstanceOf(ContactDbConstraintError);
-    expect(checkErr?.constraintName).toBe('contact_email_format_check');
-    expect(checkErr?.fieldErrors['email']).toHaveLength(1);
-
-    const wrappedErr = extractPgConstraintViolation({
-      cause: {
-        code: '23514',
-        constraint: 'contact_attachment_consistency_check',
-      },
-    });
-    expect(wrappedErr).toBeInstanceOf(ContactDbConstraintError);
-    expect(wrappedErr?.fieldErrors['file']).toHaveLength(1);
-
-    const notNullErr = extractPgConstraintViolation({
-      code: '23502',
-      column: 'message',
-    });
-    expect(notNullErr).toBeInstanceOf(ContactDbConstraintError);
-    expect(notNullErr?.fieldErrors['message']).toHaveLength(1);
-
-    const attachmentNotNullErr = extractPgConstraintViolation({
-      code: '23502',
-      column: 'attachment_sha256',
-    });
-    expect(attachmentNotNullErr).toBeInstanceOf(ContactDbConstraintError);
-    expect(attachmentNotNullErr?.fieldErrors['file']).toHaveLength(1);
-
-    const unknownCheckErr = extractPgConstraintViolation({
-      code: '23514',
-      constraint: 'custom_unknown_check',
-    });
-    expect(unknownCheckErr).toBeInstanceOf(ContactDbConstraintError);
-    expect(unknownCheckErr?.fieldErrors).toEqual({});
-
-    expect(extractPgConstraintViolation(new Error('unrelated'))).toBeNull();
-  });
-
-  it('persists normalized contact submissions and translates DB constraint failures', async () => {
-    const createdAt = new Date('2026-11-24T12:00:00.000Z');
-    const sha256 = 'a'.repeat(64);
-    const { db, values } = createMockInsertDb(async () => [
-      {
-        id: '11111111-1111-4111-8111-111111111111',
-        name: 'Grace Hopper',
-        email: 'grace@example.com',
-        phone: '+1 (555) 867-5309',
-        attachmentName: 'notes.txt',
-        attachmentSizeBytes: 12,
-        attachmentSha256: sha256,
-        createdAt,
-      },
-    ]);
-
-    const summary = await insertContactSubmission(db, {
-      name: '  Grace Hopper  ',
-      phone: '+1 (555) 867-5309',
-      email: '  GRACE@EXAMPLE.COM ',
-      message: 'Validating normalized persistence and ISO timestamp formatting.',
-      attachment: {
-        filename: 'notes.txt',
-        mimeType: 'text/plain',
-        sizeBytes: 12,
-        sha256,
-        contentBase64: Buffer.from('hello world!').toString('base64'),
-      },
-    });
-
-    expect(values).toHaveBeenCalledWith(
-      expect.objectContaining({
-        name: 'Grace Hopper',
-        email: 'grace@example.com',
-        attachmentName: 'notes.txt',
-        attachmentSha256: sha256,
-      }),
-    );
-    expect(summary).toEqual({
-      id: '11111111-1111-4111-8111-111111111111',
-      name: 'Grace Hopper',
-      email: 'grace@example.com',
-      phone: '+1 (555) 867-5309',
-      attachmentName: 'notes.txt',
-      attachmentSizeBytes: 12,
-      attachmentSha256: sha256,
-      createdAt: '2026-11-24T12:00:00.000Z',
-    });
-
-    // Rejects invalid input via Zod before touching db.insert
-    const { db: untouchedDb, insert: untouchedInsert } = createMockInsertDb(async () => []);
-    await expect(
-      insertContactSubmission(untouchedDb, {
-        name: 'A',
-        phone: null,
-        email: 'bad',
-        message: 'short',
-        attachment: null,
-      }),
-    ).rejects.toThrow(/at least 2/i);
-    expect(untouchedInsert).not.toHaveBeenCalled();
-
-    // Translates Postgres 23514 error to ContactDbConstraintError
-    const { db: constraintDb } = createMockInsertDb(async () => {
-      throw { code: '23514', constraint: 'contact_email_format_check' };
-    });
-    await expect(
-      insertContactSubmission(constraintDb, {
-        name: 'Grace Hopper',
-        phone: null,
-        email: 'grace@example.com',
-        message: 'Testing database CHECK constraint error translation.',
-        attachment: null,
-      }),
-    ).rejects.toBeInstanceOf(ContactDbConstraintError);
-
-    // Throws when INSERT RETURNING yields no row
-    const { db: emptyReturnDb } = createMockInsertDb(async () => []);
-    await expect(
-      insertContactSubmission(emptyReturnDb, {
-        name: 'Grace Hopper',
-        phone: null,
-        email: 'grace@example.com',
-        message: 'Testing empty returning row guard.',
-        attachment: null,
-      }),
-    ).rejects.toThrow(/Failed to persist contact submission/i);
   });
 
   it('prunes retired maintenance and changes-in-progress rows in upsert mode while keeping bootstrap non-destructive', async () => {

@@ -23,6 +23,7 @@ export interface GrpcCallMetadata {
   readonly baseUrl: string;
   readonly internalAuth?: GrpcInternalAuth;
   readonly signedClientIp?: string;
+  readonly extraHeaders?: Readonly<Record<string, string>>;
   readonly correlationId: string;
   readonly signal?: AbortSignal;
   readonly timeoutMs?: number;
@@ -52,6 +53,18 @@ export const IDEMPOTENT_OIDC_RETRY_PROCEDURES: ReadonlySet<string> = new Set([
   '/portal.v1.PortalContentService/GetCadenceContent',
   '/portal.v1.PortalContentService/GetContactContent',
   '/portal.v1.AgensiService/GetCatalog',
+  '/admin.v1.AdminAuthService/GetAdminSession',
+  '/admin.v1.AdminCmsService/GetAdminChrome',
+  '/admin.v1.AdminCmsService/GetAdminWorkspaceBootstrap',
+  '/admin.v1.AdminCmsService/GetCmsData',
+  '/admin.v1.AdminCmsService/ListCareerDossiers',
+  '/admin.v1.AdminInboxService/ListContactSubmissions',
+  '/admin.v1.AdminAnalyticsService/GetOverviewData',
+  '/admin.v1.AdminAnalyticsService/GetAnalyticsSummary',
+  '/admin.v1.AdminAnalyticsService/GetAnalyticsBreakdowns',
+  '/admin.v1.AdminQuotasService/ListQuotasAndBuckets',
+  '/admin.v1.AdminOpsService/ListSandboxRuns',
+  '/admin.v1.AdminOpsService/GetQdrantStatus',
   '/grpc.health.v1.Health/Check',
 ]);
 
@@ -160,6 +173,13 @@ async function prepareGrpcCallHeaders(
   }
   if (meta.signedClientIp?.trim()) {
     headers.set(INTERNAL_CLIENT_IP_HEADER, meta.signedClientIp.trim());
+  }
+  if (meta.extraHeaders) {
+    for (const [k, v] of Object.entries(meta.extraHeaders)) {
+      if (v.trim()) {
+        headers.set(k, v.trim());
+      }
+    }
   }
 
   const audience = resolveTargetOidcAudience(

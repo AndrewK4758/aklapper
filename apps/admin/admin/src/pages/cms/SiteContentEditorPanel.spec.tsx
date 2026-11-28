@@ -4,7 +4,7 @@ import {
   SITE_CONTENT_KEYS,
   type SiteContentRow,
 } from '@aklapper/core';
-import { PORTAL_ABOUT_SEED } from '@aklapper/db';
+import { PORTAL_ABOUT_SEED } from '@aklapper/core/prerender';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { createRoutesStub } from 'react-router';
 import { vi } from 'vitest';

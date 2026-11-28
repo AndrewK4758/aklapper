@@ -1,6 +1,8 @@
 go 1.27.4
 
 use (
+	./apis/go/admin-api/admin-api
+	./apis/go/admin-api/admin-api-e2e
 	./apis/go/ai-ask/ai-ask
 	./apis/go/ai-ask/ai-ask-e2e
 	./apis/go/cadence-demo/cadence-demo

@@ -4,26 +4,28 @@ import {
   isPublicAppError,
   type StreamResult,
 } from '@aklapper/core';
+import { Code, ConnectError } from '@aklapper/node-runtime/grpc';
 import { requestContextKey } from '@aklapper/node-runtime/ssr/stream';
 import { MOBILE_PORTRAIT_MEDIA_QUERY } from '@aklapper/ui';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { createRoutesStub, RouterContextProvider } from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-const authMocks = vi.hoisted(() => ({
-  resolveAdminSessionFromRequest: vi.fn<(request: Request) => Promise<unknown>>(),
+const grpcMocks = vi.hoisted(() => ({
+  resolveAdminSessionViaGrpc: vi.fn<(...args: unknown[]) => Promise<unknown>>(),
+  getAdminChromeViaGrpc: vi.fn<(...args: unknown[]) => Promise<AdminRootLoaderData['chrome']>>(),
+  getAdminWorkspaceBootstrapViaGrpc: vi.fn<(...args: unknown[]) => Promise<AdminRootLoaderData>>(),
 }));
 
-const dbMocks = vi.hoisted(() => ({
-  loadAdminRootDataWithPrerender: vi.fn<() => Promise<AdminRootLoaderData>>(),
-}));
-
-vi.mock('@aklapper/db/auth', () => authMocks);
-vi.mock('@aklapper/db', async importOriginal => {
-  const actual = await importOriginal<typeof import('@aklapper/db')>();
+vi.mock('@aklapper/node-runtime/grpc', async importOriginal => {
+  const actual = await importOriginal<typeof import('@aklapper/node-runtime/grpc')>();
   return {
     ...actual,
-    loadAdminRootDataWithPrerender: dbMocks.loadAdminRootDataWithPrerender,
+    resolveAdminSessionViaGrpc: (...args: unknown[]) =>
+      grpcMocks.resolveAdminSessionViaGrpc(...args),
+    getAdminChromeViaGrpc: (...args: unknown[]) => grpcMocks.getAdminChromeViaGrpc(...args),
+    getAdminWorkspaceBootstrapViaGrpc: (...args: unknown[]) =>
+      grpcMocks.getAdminWorkspaceBootstrapViaGrpc(...args),
   };
 });
 
@@ -156,8 +158,8 @@ describe('AdminRoot', () => {
     }
   });
 
-  it('redirects unauthenticated requests with HTTP 302 before calling loadAdminRootDataWithPrerender', async () => {
-    authMocks.resolveAdminSessionFromRequest.mockResolvedValueOnce({
+  it('redirects unauthenticated requests with HTTP 302 before calling gRPC bootstrap/chrome', async () => {
+    grpcMocks.resolveAdminSessionViaGrpc.mockResolvedValueOnce({
       authenticated: false,
       session: null,
       totpEnabled: false,
@@ -172,11 +174,12 @@ describe('AdminRoot', () => {
     const response = thrown as Response;
     expect(response.status).toBe(302);
     expect(response.headers.get('location')).toBe('/login?next=%2Fanalytics%3Ftab%3Dvitals');
-    expect(dbMocks.loadAdminRootDataWithPrerender).not.toHaveBeenCalled();
+    expect(grpcMocks.getAdminChromeViaGrpc).not.toHaveBeenCalled();
+    expect(grpcMocks.getAdminWorkspaceBootstrapViaGrpc).not.toHaveBeenCalled();
   });
 
   it('redirects authenticated admins away from /login to sanitized next target', async () => {
-    authMocks.resolveAdminSessionFromRequest.mockResolvedValueOnce({
+    grpcMocks.resolveAdminSessionViaGrpc.mockResolvedValueOnce({
       authenticated: true,
       session: ACTIVE_ADMIN_SESSION,
       totpEnabled: false,
@@ -191,29 +194,28 @@ describe('AdminRoot', () => {
     const response = thrown as Response;
     expect(response.status).toBe(302);
     expect(response.headers.get('location')).toBe('/ops');
-    expect(dbMocks.loadAdminRootDataWithPrerender).not.toHaveBeenCalled();
+    expect(grpcMocks.getAdminChromeViaGrpc).not.toHaveBeenCalled();
+    expect(grpcMocks.getAdminWorkspaceBootstrapViaGrpc).not.toHaveBeenCalled();
   });
 
-  it('streams deferred rootPayload after auth succeeds and omits terminal on /login', async () => {
-    authMocks.resolveAdminSessionFromRequest.mockResolvedValueOnce({
+  it('streams deferred chrome-only rootPayload via GetAdminChrome on /login and bootstrap on authenticated routes', async () => {
+    grpcMocks.resolveAdminSessionViaGrpc.mockResolvedValueOnce({
       authenticated: false,
       session: null,
       totpEnabled: false,
       passkeyCount: 0,
     });
-    const pending = Promise.withResolvers<AdminRootLoaderData>();
-    dbMocks.loadAdminRootDataWithPrerender.mockReturnValueOnce(pending.promise);
+    const pendingChrome = Promise.withResolvers<AdminRootLoaderData['chrome']>();
+    grpcMocks.getAdminChromeViaGrpc.mockReturnValueOnce(pendingChrome.promise);
 
     const result = await loader(makeAdminLoaderArgs('http://localhost:4301/login'));
 
     expect(result.session).toBeNull();
     expect(result.isLoginRoute).toBe(true);
     expect(result.rootPayload).toBeInstanceOf(Promise);
+    expect(grpcMocks.getAdminWorkspaceBootstrapViaGrpc).not.toHaveBeenCalled();
 
-    pending.resolve({
-      ...ADMIN_ROOT_FIXTURE,
-      terminal: { slug: 'admin-ops' } as AdminRootLoaderData['terminal'],
-    });
+    pendingChrome.resolve(ADMIN_ROOT_FIXTURE.chrome);
     const settled = await result.rootPayload;
     expect(settled).toEqual({
       ok: true,
@@ -238,9 +240,30 @@ describe('AdminRoot', () => {
       params: {},
     });
     expect(tags).toContainEqual({ name: 'robots', content: 'noindex, nofollow, noarchive' });
+
+    grpcMocks.resolveAdminSessionViaGrpc.mockResolvedValueOnce({
+      authenticated: true,
+      session: ACTIVE_ADMIN_SESSION,
+      totpEnabled: true,
+      passkeyCount: 1,
+    });
+    const fakeTerminal = { slug: 'admin-ops' } as AdminRootLoaderData['terminal'];
+    grpcMocks.getAdminWorkspaceBootstrapViaGrpc.mockResolvedValueOnce({
+      chrome: ADMIN_ROOT_FIXTURE.chrome,
+      terminal: fakeTerminal,
+    });
+    const authResult = await loader(makeAdminLoaderArgs('http://localhost:4301/'));
+    expect(await authResult.rootPayload).toEqual({
+      ok: true,
+      data: { chrome: ADMIN_ROOT_FIXTURE.chrome, terminal: fakeTerminal },
+    });
+    expect(grpcMocks.getAdminWorkspaceBootstrapViaGrpc).toHaveBeenCalledWith(
+      ACTIVE_ADMIN_SESSION.sessionId,
+      expect.any(Object),
+    );
   });
 
-  it('classifies DB outages during session verification to HTTP 503 data error and renders via ErrorBoundary', async () => {
+  it('classifies upstream admin-api outages during session verification to HTTP 503 data error and renders via ErrorBoundary', async () => {
     type LogFn = (obj: Record<string, unknown>, msg?: string) => void;
     const logger = { info: vi.fn<LogFn>(), warn: vi.fn<LogFn>(), error: vi.fn<LogFn>() };
     const context = new RouterContextProvider();
@@ -250,13 +273,13 @@ describe('AdminRoot', () => {
       serviceName: 'admin-ssr',
       signal: new AbortController().signal,
     });
-    authMocks.resolveAdminSessionFromRequest.mockRejectedValueOnce(
-      new Error('connection terminated unexpectedly'),
+    grpcMocks.resolveAdminSessionViaGrpc.mockRejectedValueOnce(
+      new ConnectError('dial tcp 127.0.0.1:8085: connection refused', Code.Unavailable),
     );
 
     const thrown = await loader(
       makeAdminLoaderArgs('http://localhost:4301/analytics', {
-        headers: { cookie: 'ak_admin_session=active-token' },
+        headers: { cookie: `ak_admin_session=${ACTIVE_ADMIN_SESSION.sessionId}` },
         context,
       }),
     ).catch((err: unknown) => err);
@@ -272,11 +295,11 @@ describe('AdminRoot', () => {
     expect(isPublicAppError(dataError.data)).toBe(true);
     expect(dataError.data).toEqual(
       expect.objectContaining({
-        code: 'ERR_DB_UNAVAILABLE',
+        code: 'ERR_UPSTREAM_UNAVAILABLE',
         correlationId: 'corr-root-auth-503',
       }),
     );
-    expect(logger.error).toHaveBeenCalledTimes(1);
+    expect(logger.error).toHaveBeenCalled();
 
     const Stub = createRoutesStub([
       {
@@ -292,9 +315,9 @@ describe('AdminRoot', () => {
 
     render(<Stub initialEntries={['/']} />);
     const alert = await screen.findByRole('alert');
-    expect(alert.textContent).toContain('ERR_DB_UNAVAILABLE');
+    expect(alert.textContent).toContain('ERR_UPSTREAM_UNAVAILABLE');
     expect(alert.textContent).toContain('corr-root-auth-503');
-    expect(alert.textContent).not.toContain('connection terminated');
+    expect(alert.textContent).not.toContain('connection refused');
   });
 
   it('renders correlated ErrorElement inside intact shell on root stream timeout without portal leakage', async () => {

@@ -1,10 +1,17 @@
+import type { Role } from '@aklapper/core';
 import { count, eq, sql } from 'drizzle-orm';
 
 import type { AppDatabase } from './client.ts';
-import type { AuthUserRecord } from './queries.ts';
 import * as schema from './schema.ts';
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export interface AuthUserRecord {
+  id: string;
+  handle: string;
+  role: Role;
+  createdAt: Date;
+}
 
 export interface AdminPasswordUserRecord extends AuthUserRecord {
   passwordHashArgon2: string | null;
