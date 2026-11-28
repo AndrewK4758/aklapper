@@ -12,6 +12,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/AndrewK4758/aklapper/packages/go/kit/contracts"
 )
 
 // PortfolioNamespace is a stable RFC 4122 UUIDv5 namespace shared across corpus indexers.
@@ -29,9 +31,9 @@ func DeterministicPointID(namespace [16]byte, canonicalKey string) string {
 	buf = append(buf, namespace[:]...)
 	buf = append(buf, canonicalKey...)
 	sum := sha1.Sum(buf)
-	sum[6] = (sum[6] & 0x0f) | 0x50
-	sum[8] = (sum[8] & 0x3f) | 0x80
-	return fmt.Sprintf("%08x-%04x-%04x-%04x-%012x", sum[0:4], sum[4:6], sum[6:8], sum[8:10], sum[10:16])
+	var b [16]byte
+	copy(b[:], sum[:16])
+	return contracts.FormatUUID(b, 5)
 }
 
 // PortfolioPointID builds a canonical UUIDv5 point identifier from docKey and chunkIndex.
@@ -124,20 +126,8 @@ func (c *Client) newRequest(ctx context.Context, method, path string, body any) 
 }
 
 func isValidRFC4122UUID(value string) bool {
-	if len(value) != 36 {
+	if !contracts.ValidateUUID(value) {
 		return false
-	}
-	for i := 0; i < len(value); i++ {
-		c := value[i]
-		if i == 8 || i == 13 || i == 18 || i == 23 {
-			if c != '-' {
-				return false
-			}
-			continue
-		}
-		if !((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')) {
-			return false
-		}
 	}
 	if value[14] < '1' || value[14] > '8' {
 		return false

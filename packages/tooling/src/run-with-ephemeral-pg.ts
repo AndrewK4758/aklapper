@@ -4,6 +4,8 @@ import { reserveLoopbackPort } from './e2e.ts';
 import {
   type EphemeralPostgresHandle,
   migrateAndSeedPostgres,
+  resolveAdminDatabaseUrl,
+  resolvePortalDatabaseUrl,
   resolveWorkspaceRootOrThrow,
   shouldReuseExternalDatabase,
   startEphemeralPostgres,
@@ -104,11 +106,30 @@ function runCommandWithEnv(
   });
 }
 
+export function buildExternalPgChildEnv(
+  env: Readonly<Record<string, string | undefined>> = process.env,
+): NodeJS.ProcessEnv {
+  const nextEnv: NodeJS.ProcessEnv = { ...env };
+  if (!env['PORTAL_DATABASE_URL']?.trim()) {
+    const resolvedPortalUrl = resolvePortalDatabaseUrl(env);
+    if (resolvedPortalUrl) {
+      nextEnv['PORTAL_DATABASE_URL'] = resolvedPortalUrl;
+    }
+  }
+  if (!env['ADMIN_DATABASE_URL']?.trim()) {
+    const resolvedAdminUrl = resolveAdminDatabaseUrl(env);
+    if (resolvedAdminUrl) {
+      nextEnv['ADMIN_DATABASE_URL'] = resolvedAdminUrl;
+    }
+  }
+  return nextEnv;
+}
+
 async function main(): Promise<void> {
   const { label, command, args } = parseEphemeralPgCliArgs(process.argv.slice(2));
 
   if (shouldReuseExternalDatabase(process.env)) {
-    const exitCode = await runCommandWithEnv(command, args, process.env);
+    const exitCode = await runCommandWithEnv(command, args, buildExternalPgChildEnv(process.env));
     process.exit(exitCode);
   }
 
@@ -131,7 +152,12 @@ async function main(): Promise<void> {
       `[ephemeral-pg:${label}] started ${handle.containerName} on 127.0.0.1:${handle.port}/${handle.dbName} (tmpfs)`,
     );
 
-    await migrateAndSeedPostgres(handle.databaseUrl, workspaceRoot);
+    await migrateAndSeedPostgres(
+      handle.databaseUrl,
+      workspaceRoot,
+      handle.portalDatabaseUrl,
+      handle.adminDatabaseUrl,
+    );
     console.error(`[ephemeral-pg:${label}] migrations and seed complete`);
 
     const childEnv: NodeJS.ProcessEnv = {
@@ -139,6 +165,8 @@ async function main(): Promise<void> {
       DATABASE_URL: handle.databaseUrl,
       TEST_DATABASE_URL: handle.databaseUrl,
       E2E_DATABASE_URL: handle.databaseUrl,
+      PORTAL_DATABASE_URL: handle.portalDatabaseUrl,
+      ADMIN_DATABASE_URL: handle.adminDatabaseUrl,
       AKLAPPER_EPHEMERAL_PG_ACTIVE: '1',
     };
 

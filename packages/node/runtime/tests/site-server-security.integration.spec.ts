@@ -368,4 +368,42 @@ export const basename = '/';
       await server.app.close();
     }
   });
+
+  it('redacts req.remoteAddress, x-internal-client-ip, and clientIp fields from Fastify Pino logs', async () => {
+    const logs = createJsonLogCollector();
+    const server = await startEchoOriginServer(logs.stream);
+    const visitorIp = '198.51.100.42';
+    const fakeSignedIpToken = 'v1.fake-signed-client-ip.sig-value';
+
+    try {
+      const address = await server.start();
+      const port = Number(new URL(address).port);
+      const res = await sendRawHttp(port, {
+        method: 'GET',
+        path: '/',
+        headers: {
+          host: `127.0.0.1:${port}`,
+          'x-forwarded-for': visitorIp,
+          'x-internal-client-ip': fakeSignedIpToken,
+          'x-correlation-id': 'sec-cid-ip-redact',
+        },
+      });
+      expect(res.status).toBe(200);
+
+      server.app.log.info(
+        {
+          event: 'test.client_ip_probe',
+          nested: { clientIp: visitorIp },
+        },
+        'Probe nested clientIp redaction',
+      );
+
+      const serialized = JSON.stringify(logs.records);
+      expect(serialized).not.toContain(visitorIp);
+      expect(serialized).not.toContain(fakeSignedIpToken);
+      expect(serialized).toContain('"[REDACTED]"');
+    } finally {
+      await server.app.close();
+    }
+  });
 });

@@ -1,0 +1,76 @@
+syntax = "proto3";
+
+package portal.v1;
+
+option go_package = "github.com/AndrewK4758/aklapper/packages/go/kit/gen/portal/v1;portalv1";
+
+service AnalyticsService {
+  rpc IngestAnalytics(IngestAnalyticsRequest) returns (IngestAnalyticsResponse);
+  rpc RecordSsrHit(RecordSsrHitRequest) returns (RecordSsrHitResponse);
+  rpc BindGuestSession(BindGuestSessionRequest) returns (BindGuestSessionResponse);
+}
+
+message ClientRequestContext {
+  string user_agent = 1;
+  string referer = 2;
+  string host = 3;
+  string request_url = 4;
+  string cloud_country = 5;
+  string cloud_region = 6;
+  string guest_session_id = 7;
+}
+
+message AnalyticsMetadataValue {
+  oneof kind {
+    string string_value = 1;
+    double number_value = 2;
+    bool bool_value = 3;
+  }
+}
+
+message AnalyticsEvent {
+  string type = 1;
+  string name = 2;
+  string path = 3;
+  optional double value = 4;
+  map<string, AnalyticsMetadataValue> metadata = 5;
+  string timestamp = 6;
+}
+
+message IngestAnalyticsRequest {
+  string session_id = 1;
+  optional string referrer = 2;
+  optional string landing_path = 3;
+  optional string ref_param = 4;
+  optional string utm_source = 5;
+  optional string utm_medium = 6;
+  optional string utm_campaign = 7;
+  optional string utm_content = 8;
+  repeated AnalyticsEvent events = 9;
+  ClientRequestContext client_context = 10;
+}
+
+message IngestAnalyticsResponse {
+  int32 accepted = 1;
+  string session_id = 2;
+  string ip_hash = 3;
+}
+
+message RecordSsrHitRequest {
+  string pathname = 1;
+  ClientRequestContext client_context = 2;
+}
+
+message RecordSsrHitResponse {
+  string session_id = 1;
+}
+
+message BindGuestSessionRequest {
+  string guest_session_id = 1;
+  string landing_path = 2;
+  ClientRequestContext client_context = 3;
+}
+
+message BindGuestSessionResponse {
+  string session_id = 1;
+}

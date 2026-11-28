@@ -1,8 +1,10 @@
 import type { AdminRootLoaderData } from '@aklapper/core';
 import {
   Button,
+  cx,
   LazyChunkBoundary,
   lazyWithRetry,
+  mobileChromeClasses,
   OscStatusBadge,
   SolarForgeEmblem,
 } from '@aklapper/ui';
@@ -68,7 +70,7 @@ export function AdminMobileWorkspaceHost({
       <Link
         to={href('/quotas')}
         prefetch='intent'
-        className={styles.mobileSecondaryLink}
+        className={mobileChromeClasses.secondaryLink}
         data-active={quotasActive ? 'true' : 'false'}
         aria-current={quotasActive ? 'page' : undefined}
       >
@@ -96,7 +98,7 @@ export function AdminMobileWorkspaceHost({
           key={item.id}
           to={item.to}
           prefetch='intent'
-          className={styles.mobileSecondaryLink}
+          className={mobileChromeClasses.secondaryLink}
           data-active={isNavItemActive(pathname, item.to) ? 'true' : 'false'}
         >
           {item.label}
@@ -105,7 +107,7 @@ export function AdminMobileWorkspaceHost({
       <Link
         to={href('/quotas')}
         prefetch='intent'
-        className={styles.mobileSecondaryLink}
+        className={mobileChromeClasses.secondaryLink}
         data-active={quotasActive ? 'true' : 'false'}
       >
         Quotas
@@ -125,7 +127,11 @@ export function AdminMobileWorkspaceHost({
         layoutMode={layoutMode}
         routeKey={pathname}
         brand={
-          <Link to={href('/')} prefetch='intent' className={styles.mobileBrand}>
+          <Link
+            to={href('/')}
+            prefetch='intent'
+            className={cx(mobileChromeClasses.brand, mobileChromeClasses.brandAccent)}
+          >
             <SolarForgeEmblem size={18} />
             <span>{chrome.brandLabel}</span>
           </Link>

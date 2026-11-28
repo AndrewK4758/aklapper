@@ -1,6 +1,9 @@
 import type { PortalHomeLoaderData } from '@aklapper/core';
-import { loadPortalHomeDataWithPrerender } from '@aklapper/db';
-import { deferStreamResult, getOrCreateCorrelationId } from '@aklapper/node-runtime/ssr/stream';
+import {
+  deferStreamResult,
+  getOrCreateCorrelationId,
+  getRequestContext,
+} from '@aklapper/node-runtime/ssr/stream';
 import { RouteErrorBoundaryView, SuspenseElement } from '@aklapper/ui';
 import { useMemo } from 'react';
 import { href, useNavigate } from 'react-router';
@@ -8,19 +11,28 @@ import { href, useNavigate } from 'react-router';
 import { PortalHomePage } from '#pages/home';
 
 import { reportPortalPublicError } from '../client-telemetry';
+import { loadPortalHomeDataWithPrerender } from '../portal-api.server';
 import { buildPortalPageMeta } from '../seo';
 import { createPortalTerminalForms } from '../terminalForms';
 import type { Route } from './+types/home';
 
 export function loader({ request, context }: Route.LoaderArgs) {
   const correlationId = getOrCreateCorrelationId(request, context);
+  const reqCtx = getRequestContext(context);
   return {
     correlationId,
-    payload: deferStreamResult(loadPortalHomeDataWithPrerender(), {
-      request,
-      context,
-      source: 'portal.home.loader',
-    }),
+    payload: deferStreamResult(
+      loadPortalHomeDataWithPrerender({
+        correlationId,
+        ...(reqCtx?.logger ? { logger: reqCtx.logger } : {}),
+        signal: reqCtx?.signal ?? request.signal,
+      }),
+      {
+        request,
+        context,
+        source: 'portal.home.loader',
+      },
+    ),
   };
 }
 

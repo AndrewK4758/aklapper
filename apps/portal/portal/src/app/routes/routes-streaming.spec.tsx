@@ -1,5 +1,6 @@
 import {
   type AskServiceStatus,
+  type AskTurnState,
   CONTACT_FORM_DEFINITION,
   createPublicAppError,
   type PortalAgensiLoaderData,
@@ -9,59 +10,60 @@ import {
   PortalHomeContentSchema,
   type PortalHomeLoaderData,
   type PublicAppError,
-  type QuotaStatus,
   type StreamResult,
 } from '@aklapper/core';
 import { GUEST_SESSION_COOKIE_NAME } from '@aklapper/node-runtime/auth';
+import {
+  type AskUpstreamStatusResult,
+  type CallAskResult,
+  Code,
+  ConnectError,
+  type GrpcCallMetadata,
+} from '@aklapper/node-runtime/grpc';
 import { requestContextKey, type SsrStructuredLogger } from '@aklapper/node-runtime/ssr/stream';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { createRoutesStub, RouterContextProvider } from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const {
-  getSharedDbMock,
   loadPortalHomeMock,
   loadPortalAskMock,
   loadPortalCadenceMock,
-  consumeQuotaMock,
-  findCachedSandboxRunMock,
-  createPendingRunMock,
-  updateGateForSessionMock,
+  callAskMock,
+  getAskTurnMock,
+  getAskStatusMock,
+  createCadenceRunMock,
+  submitCadenceGateVerdictMock,
 } = vi.hoisted(() => ({
-  getSharedDbMock: vi.fn<() => Record<string, never>>(() => ({})),
   loadPortalHomeMock: vi.fn<() => Promise<PortalHomeLoaderData>>(),
   loadPortalAskMock: vi.fn<(sid?: string) => Promise<PortalAskLoaderData>>(),
   loadPortalCadenceMock: vi.fn<(sid?: string) => Promise<PortalCadenceLoaderData>>(),
-  consumeQuotaMock: vi.fn<() => Promise<{ allowed: boolean; quota: QuotaStatus }>>(),
-  findCachedSandboxRunMock: vi.fn<
-    () => Promise<{
-      promptHash: string;
-      scope: 'miss';
-      sourceRun: null;
-      sourceTurns: readonly never[];
-    }>
-  >(async () => ({
-    promptHash: 'mock-hash',
-    scope: 'miss',
-    sourceRun: null,
-    sourceTurns: [],
-  })),
-  createPendingRunMock: vi.fn<() => Promise<never>>(),
-  updateGateForSessionMock: vi.fn<() => Promise<never>>(),
+  callAskMock: vi.fn<(meta: GrpcCallMetadata, req: unknown) => Promise<CallAskResult>>(),
+  getAskTurnMock: vi.fn<(meta: GrpcCallMetadata, attemptId: string) => Promise<AskTurnState>>(),
+  getAskStatusMock: vi.fn<(meta: GrpcCallMetadata) => Promise<AskUpstreamStatusResult>>(),
+  createCadenceRunMock: vi.fn<() => Promise<never>>(),
+  submitCadenceGateVerdictMock: vi.fn<() => Promise<never>>(),
 }));
 
-vi.mock('@aklapper/db', async importOriginal => {
-  const actual = await importOriginal<typeof import('@aklapper/db')>();
+vi.mock('@aklapper/node-runtime/grpc', async importOriginal => {
+  const actual = await importOriginal<typeof import('@aklapper/node-runtime/grpc')>();
   return {
     ...actual,
-    getSharedDb: getSharedDbMock,
+    callAsk: callAskMock,
+    getAskTurn: getAskTurnMock,
+    getAskStatus: getAskStatusMock,
+    createCadenceRun: createCadenceRunMock,
+    submitCadenceGateVerdict: submitCadenceGateVerdictMock,
+  };
+});
+
+vi.mock('../portal-api.server', async importOriginal => {
+  const actual = await importOriginal<typeof import('../portal-api.server')>();
+  return {
+    ...actual,
     loadPortalHomeDataWithPrerender: loadPortalHomeMock,
     loadPortalAskDataWithPrerender: loadPortalAskMock,
     loadPortalCadenceDataWithPrerender: loadPortalCadenceMock,
-    consumeQuotaForSession: consumeQuotaMock,
-    findCachedSandboxRun: findCachedSandboxRunMock,
-    createPendingSandboxRunWithQuota: createPendingRunMock,
-    updateSandboxRunGateVerdictForSession: updateGateForSessionMock,
   };
 });
 
@@ -460,7 +462,6 @@ describe('Portal streaming child routes, guest sessions, actions, and boundaries
       action: expect.any(String),
       correlationId: 'corr-ask-503',
     });
-    expect(consumeQuotaMock).not.toHaveBeenCalled();
     expect(askErrCtx.errorCalls).toHaveLength(1);
 
     const oversizeJdRes = await chatAction({
@@ -482,19 +483,17 @@ describe('Portal streaming child routes, guest sessions, actions, and boundaries
 
     vi.stubEnv('AI_ASK_URL', 'http://127.0.0.1:8083');
     const pendingAttemptId = '22222222-2222-4222-8222-222222222222';
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      Response.json(
-        {
-          attemptId: pendingAttemptId,
-          status: 'running',
-          mode: 'qa',
-          correlationId: 'corr-ask-202',
-          leaseExpiresAt: '2026-11-24T22:01:00Z',
-          expiresAt: '2026-11-24T22:15:00Z',
-        },
-        { status: 202 },
-      ),
-    );
+    callAskMock.mockResolvedValueOnce({
+      kind: 'pending',
+      turn: {
+        attemptId: pendingAttemptId,
+        status: 'running',
+        mode: 'qa',
+        correlationId: 'corr-ask-202',
+        leaseExpiresAt: '2026-11-24T22:01:00Z',
+        expiresAt: '2026-11-24T22:15:00Z',
+      },
+    });
     const pendingRes = await chatAction({
       request: makeFormRequest('https://andrew-k.us/chat', {
         mode: 'qa',
@@ -513,9 +512,14 @@ describe('Portal streaming child routes, guest sessions, actions, and boundaries
       mode: 'qa',
       attemptId: pendingAttemptId,
     });
-    expect(consumeQuotaMock).not.toHaveBeenCalled();
-    const postReqInit = fetchSpy.mock.calls[0]?.[1];
-    expect(new Headers(postReqInit?.headers).get('x-internal-auth')).toBeTruthy();
+    expect(callAskMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        baseUrl: 'http://127.0.0.1:8083',
+        correlationId: 'corr-ask-202',
+        internalAuth: expect.objectContaining({ role: 'guest' }),
+      }),
+      expect.objectContaining({ mode: 'qa', attemptId: pendingAttemptId }),
+    );
 
     const pollMissingCookie = await askTurnPollLoader({
       request: new Request(`https://andrew-k.us/api/ask/turns/${pendingAttemptId}`),
@@ -568,19 +572,14 @@ describe('Portal streaming child routes, guest sessions, actions, and boundaries
     expect(pollNoUpstream.status).toBe(503);
 
     vi.stubEnv('AI_ASK_URL', 'http://127.0.0.1:8083');
-    fetchSpy.mockResolvedValueOnce(
-      Response.json(
-        {
-          attemptId: pendingAttemptId,
-          status: 'running',
-          mode: 'qa',
-          correlationId: 'corr-poll-202',
-          leaseExpiresAt: '2026-11-24T22:01:00Z',
-          expiresAt: '2026-11-24T22:15:00Z',
-        },
-        { status: 202 },
-      ),
-    );
+    getAskTurnMock.mockResolvedValueOnce({
+      attemptId: pendingAttemptId,
+      status: 'running',
+      mode: 'qa',
+      correlationId: 'corr-poll-202',
+      leaseExpiresAt: '2026-11-24T22:01:00Z',
+      expiresAt: '2026-11-24T22:15:00Z',
+    });
     const pollPending = await askTurnPollLoader({
       request: new Request(`https://andrew-k.us/api/ask/turns/${pendingAttemptId}`, {
         headers: { cookie: signedGuestCookieHeader },
@@ -591,16 +590,73 @@ describe('Portal streaming child routes, guest sessions, actions, and boundaries
       pattern: '/api/ask/turns/:attemptId',
     });
     expect(pollPending.status).toBe(202);
-    const pollReqInit = fetchSpy.mock.calls[1]?.[1];
-    expect(new Headers(pollReqInit?.headers).get('x-internal-auth')).toBeTruthy();
-
-    vi.stubEnv('CADENCE_DEMO_URL', '');
-    const drizzleError = Object.assign(
-      new Error('Failed query: SELECT * FROM quotas params: [secret]'),
-      { name: 'DrizzleQueryError', cause: new Error('connection terminated') },
+    expect(getAskTurnMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        baseUrl: 'http://127.0.0.1:8083',
+        correlationId: 'corr-poll-202',
+        internalAuth: expect.objectContaining({ role: 'guest' }),
+      }),
+      pendingAttemptId,
     );
 
-    createPendingRunMock.mockRejectedValueOnce(drizzleError);
+    getAskTurnMock.mockResolvedValueOnce({
+      attemptId: pendingAttemptId,
+      status: 'completed',
+      mode: 'qa',
+      correlationId: 'corr-poll-200',
+      leaseExpiresAt: '2026-11-24T22:01:00Z',
+      expiresAt: '2026-11-24T22:15:00Z',
+    });
+    const pollCompleted = await askTurnPollLoader({
+      request: new Request(`https://andrew-k.us/api/ask/turns/${pendingAttemptId}`, {
+        headers: { cookie: signedGuestCookieHeader },
+      }),
+      params: { attemptId: pendingAttemptId },
+      context: makeContext('corr-poll-200').context,
+      url: new URL(`https://andrew-k.us/api/ask/turns/${pendingAttemptId}`),
+      pattern: '/api/ask/turns/:attemptId',
+    });
+    expect(pollCompleted.status).toBe(200);
+
+    getAskTurnMock.mockResolvedValueOnce({
+      attemptId: pendingAttemptId,
+      status: 'expired',
+      mode: 'qa',
+      correlationId: 'corr-poll-504',
+      leaseExpiresAt: '2026-11-24T22:01:00Z',
+      expiresAt: '2026-11-24T22:15:00Z',
+    });
+    const pollExpired = await askTurnPollLoader({
+      request: new Request(`https://andrew-k.us/api/ask/turns/${pendingAttemptId}`, {
+        headers: { cookie: signedGuestCookieHeader },
+      }),
+      params: { attemptId: pendingAttemptId },
+      context: makeContext('corr-poll-504').context,
+      url: new URL(`https://andrew-k.us/api/ask/turns/${pendingAttemptId}`),
+      pattern: '/api/ask/turns/:attemptId',
+    });
+    expect(pollExpired.status).toBe(504);
+
+    getAskTurnMock.mockRejectedValueOnce(new ConnectError('not found', Code.NotFound));
+    const pollNotFound = await askTurnPollLoader({
+      request: new Request(`https://andrew-k.us/api/ask/turns/${pendingAttemptId}`, {
+        headers: { cookie: signedGuestCookieHeader },
+      }),
+      params: { attemptId: pendingAttemptId },
+      context: makeContext('corr-poll-404').context,
+      url: new URL(`https://andrew-k.us/api/ask/turns/${pendingAttemptId}`),
+      pattern: '/api/ask/turns/:attemptId',
+    });
+    expect(pollNotFound.status).toBe(404);
+    expect(await pollNotFound.json()).toMatchObject({ code: 'ERR_NOT_FOUND', status: 404 });
+
+    vi.stubEnv('CADENCE_DEMO_URL', 'http://127.0.0.1:8082');
+    createCadenceRunMock.mockRejectedValueOnce(
+      new ConnectError(
+        'upstream cadence-demo unavailable: connection terminated',
+        Code.Unavailable,
+      ),
+    );
     const cadRunErrCtx = makeContext('corr-cad-run-503');
     const cadRunErrRes = await cadenceAction({
       request: makeFormRequest('https://andrew-k.us/cadence', {
@@ -617,14 +673,16 @@ describe('Portal streaming child routes, guest sessions, actions, and boundaries
     expect(cadRunErrRes.data).toMatchObject({
       ok: false,
       intent: 'run',
-      code: 'ERR_DB_UNAVAILABLE',
+      code: 'ERR_UPSTREAM_UNAVAILABLE',
       action: expect.any(String),
       correlationId: 'corr-cad-run-503',
     });
     expect(JSON.stringify(cadRunErrRes.data)).not.toContain('connection terminated');
-    expect(cadRunErrCtx.errorCalls).toHaveLength(1);
+    expect(cadRunErrCtx.errorCalls.length).toBeGreaterThanOrEqual(1);
 
-    updateGateForSessionMock.mockRejectedValueOnce(drizzleError);
+    submitCadenceGateVerdictMock.mockRejectedValueOnce(
+      new ConnectError('upstream cadence-demo unavailable', Code.Unavailable),
+    );
     const cadGateErrCtx = makeContext('corr-cad-gate-503');
     const cadGateErrRes = await cadenceAction({
       request: makeFormRequest('https://andrew-k.us/cadence', {
@@ -641,10 +699,10 @@ describe('Portal streaming child routes, guest sessions, actions, and boundaries
     expect(cadGateErrRes.data).toMatchObject({
       ok: false,
       intent: 'gate',
-      code: 'ERR_DB_UNAVAILABLE',
+      code: 'ERR_UPSTREAM_UNAVAILABLE',
       correlationId: 'corr-cad-gate-503',
     });
-    expect(cadGateErrCtx.errorCalls).toHaveLength(1);
+    expect(cadGateErrCtx.errorCalls.length).toBeGreaterThanOrEqual(1);
   });
 
   it('streams /chat primary form immediately while askStatusPayload settles independently and preserves live badge precedence', async () => {

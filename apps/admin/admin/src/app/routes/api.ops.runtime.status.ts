@@ -35,9 +35,16 @@ export async function loader({ request, context }: Route.LoaderArgs): Promise<Re
   const snapshot = await probeRuntimeServices({
     services: [
       { service: 'admin', localStatus: 'healthy', detail: 'SSR ready' },
-      { service: 'portal', url: process.env['PUBLIC_PORTAL_URL'], oidcAuth: false },
-      { service: 'ai-ask', url: process.env['AI_ASK_URL'] },
-      { service: 'cadence-demo', url: process.env['CADENCE_DEMO_URL'] },
+      { service: 'admin-api', url: process.env['ADMIN_API_URL'], transport: 'grpc' },
+      {
+        service: 'portal',
+        url: process.env['PUBLIC_PORTAL_URL'],
+        transport: 'http',
+        oidcAuth: false,
+      },
+      { service: 'portal-api', url: process.env['PORTAL_API_URL'], transport: 'grpc' },
+      { service: 'ai-ask', url: process.env['AI_ASK_URL'], transport: 'grpc' },
+      { service: 'cadence-demo', url: process.env['CADENCE_DEMO_URL'], transport: 'grpc' },
     ],
     timeoutMs: ADMIN_RUNTIME_TIMEOUT_MS,
     ttlMs: ADMIN_RUNTIME_TTL_MS,

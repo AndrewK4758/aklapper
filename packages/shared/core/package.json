@@ -46,6 +46,12 @@
       "types": "./dist/sse.d.ts",
       "import": "./dist/sse.js",
       "default": "./dist/sse.js"
+    },
+    "./prerender": {
+      "@aklapper/source": "./src/prerender.ts",
+      "types": "./dist/prerender.d.ts",
+      "import": "./dist/prerender.js",
+      "default": "./dist/prerender.js"
     }
   },
   "dependencies": {

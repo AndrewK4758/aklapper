@@ -21,14 +21,17 @@ export interface DeferStreamResultOptions {
   readonly streamTimeoutMs?: number;
 }
 
+export function isReactRouterPrerender(
+  env: Readonly<Record<string, string | undefined>> = process.env,
+): boolean {
+  return env['IS_RR_BUILD_REQUEST'] === 'yes';
+}
+
 export function isAuthenticPrerenderRequest(
   request: Request,
   env: Readonly<Record<string, string | undefined>> = process.env,
 ): boolean {
-  return (
-    env['IS_RR_BUILD_REQUEST'] === 'yes' &&
-    request.headers.get('x-react-router-prerender') === 'yes'
-  );
+  return isReactRouterPrerender(env) && request.headers.get('x-react-router-prerender') === 'yes';
 }
 
 export function resolveStreamDeadlineMs(

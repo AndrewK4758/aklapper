@@ -1,14 +1,13 @@
-import { type AppErrorCode, SITE_CONTENT_KEYS, validateSiteContentMetadata } from '@aklapper/core';
-import { getSharedDb, upsertSiteContent } from '@aklapper/db';
+import {
+  type AppErrorCode,
+  extractPrivacySanitizationFindings,
+  SITE_CONTENT_KEYS,
+  validateSiteContentMetadata,
+} from '@aklapper/core';
+import { upsertAdminSiteContentViaGrpc } from '@aklapper/node-runtime/grpc';
 import type { SsrStructuredLogger } from '@aklapper/node-runtime/ssr/stream';
 
 import type { AdminCmsActionData } from '#pages/cms';
-
-import {
-  validatePortalAboutPrivacyOutcome,
-  validatePortalAskPrivacyOutcome,
-  validatePortalHomePrivacyOutcome,
-} from './cms-reindex-privacy.server';
 
 export interface SiteContentActionOutcome {
   readonly status: number;
@@ -16,10 +15,17 @@ export interface SiteContentActionOutcome {
 }
 
 export interface UpsertSiteContentContext {
+  readonly sessionId: string;
   readonly correlationId: string;
   readonly logger: SsrStructuredLogger;
   readonly adminActor: string;
 }
+
+const PRIVACY_ENFORCED_KEYS = new Set<string>([
+  SITE_CONTENT_KEYS.portalAsk,
+  SITE_CONTENT_KEYS.portalHome,
+  SITE_CONTENT_KEYS.portalAbout,
+]);
 
 function failSiteContent(
   status: number,
@@ -31,11 +37,24 @@ function failSiteContent(
   return { status, payload: { ok: false, message, code, action, correlationId } };
 }
 
+function privacyRejectionMessage(key: string): string {
+  if (key === SITE_CONTENT_KEYS.portalAsk) {
+    return 'Portal Ask content failed privacy sanitization policy.';
+  }
+  if (key === SITE_CONTENT_KEYS.portalHome) {
+    return 'Portal Home content failed privacy sanitization policy.';
+  }
+  if (key === SITE_CONTENT_KEYS.portalAbout) {
+    return 'Portal About content failed privacy sanitization policy.';
+  }
+  return `Site content "${key}" failed privacy sanitization policy.`;
+}
+
 export async function handleUpsertSiteContentIntent(
   formData: FormData,
   ctx: UpsertSiteContentContext,
 ): Promise<SiteContentActionOutcome> {
-  const { correlationId, logger, adminActor } = ctx;
+  const { sessionId, correlationId, logger, adminActor } = ctx;
   const key = String(formData.get('key') ?? '').trim();
   const markdownBody = String(formData.get('markdownBody') ?? '');
   const rawJson = String(formData.get('metadataJson') ?? '{}');
@@ -119,46 +138,49 @@ export async function handleUpsertSiteContentIntent(
     );
   }
 
-  let sanitizationVerified = false;
-  if (key === SITE_CONTENT_KEYS.portalAsk) {
-    const privacyFailure = validatePortalAskPrivacyOutcome(
-      markdownBody,
-      validation.data,
-      correlationId,
+  try {
+    const saved = await upsertAdminSiteContentViaGrpc(
+      sessionId,
+      {
+        key,
+        markdownBody,
+        metadataJson: validation.data,
+      },
+      { correlationId, logger },
     );
-    if (privacyFailure) return privacyFailure;
-    sanitizationVerified = true;
-  } else if (key === SITE_CONTENT_KEYS.portalHome) {
-    const privacyFailure = validatePortalHomePrivacyOutcome(
-      markdownBody,
-      validation.data,
-      correlationId,
+    const sanitizationVerified = PRIVACY_ENFORCED_KEYS.has(key);
+    logger.info(
+      {
+        event: 'admin.cms.site_content_upsert_committed',
+        ...(sanitizationVerified
+          ? { seam_type: 'DELTA_AUDIT_GAP', sanitizationVerified: true }
+          : {}),
+        key: saved.key,
+        adminActor,
+        updatedAt: saved.updatedAt,
+        correlationId,
+      },
+      'Committed site_content update.',
     );
-    if (privacyFailure) return privacyFailure;
-    sanitizationVerified = true;
-  } else if (key === SITE_CONTENT_KEYS.portalAbout) {
-    const privacyFailure = validatePortalAboutPrivacyOutcome(
-      markdownBody,
-      validation.data,
-      correlationId,
-    );
-    if (privacyFailure) return privacyFailure;
-    sanitizationVerified = true;
+    return {
+      status: 200,
+      payload: { ok: true, message: `Saved site_content key "${saved.key}".` },
+    };
+  } catch (error) {
+    const findings = extractPrivacySanitizationFindings(error);
+    if (findings) {
+      return {
+        status: 422,
+        payload: {
+          ok: false,
+          message: privacyRejectionMessage(key),
+          code: 'ERR_CONSTRAINT',
+          action: 'Remove sensitive or denylisted terms and retry.',
+          correlationId,
+          sanitizationFindings: findings,
+        },
+      };
+    }
+    throw error;
   }
-
-  const saved = await upsertSiteContent(getSharedDb(), key, markdownBody, validation.data, {
-    correlationId,
-  });
-  logger.info(
-    {
-      event: 'admin.cms.site_content_upsert_committed',
-      ...(sanitizationVerified ? { seam_type: 'DELTA_AUDIT_GAP', sanitizationVerified: true } : {}),
-      key: saved.key,
-      adminActor,
-      updatedAt: saved.updatedAt,
-      correlationId,
-    },
-    'Committed site_content update.',
-  );
-  return { status: 200, payload: { ok: true, message: `Saved site_content key "${saved.key}".` } };
 }

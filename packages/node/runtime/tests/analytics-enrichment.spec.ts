@@ -338,4 +338,96 @@ describe('@aklapper/node-runtime/analytics', () => {
     expect(h1).not.toBe(hDiffUa);
     expect(h1).not.toBe(hDiffDay);
   });
+
+  it('matches every cross-language Go analytics golden parity vector byte-for-byte', async () => {
+    const { readFileSync } = await import('node:fs');
+    const { resolve } = await import('node:path');
+    const fixturePath = resolve(
+      import.meta.dirname,
+      '../../../go/kit/analytics/testdata/golden_parity.json',
+    );
+    const fixture = JSON.parse(readFileSync(fixturePath, 'utf8')) as {
+      readonly nowIso: string;
+      readonly baseSalt: string;
+      readonly currentSalt: string;
+      readonly priorSalt: string;
+      readonly withinGrace: boolean;
+      readonly identities: ReadonlyArray<{
+        readonly ip: string;
+        readonly ua: string;
+        readonly currentIpHash: string;
+        readonly priorIpHash: string;
+        readonly currentVisitorHash: string;
+        readonly priorVisitorHash: string;
+      }>;
+      readonly userAgents: ReadonlyArray<{
+        readonly ua: string;
+        readonly bot: { readonly isBot: boolean; readonly branch: string };
+        readonly profile: {
+          readonly deviceType: string;
+          readonly osName: string | null;
+          readonly browserName: string | null;
+        };
+      }>;
+      readonly referrers: ReadonlyArray<{
+        readonly raw: string;
+        readonly ownHosts: readonly string[];
+        readonly expected: {
+          readonly referrer: string | null;
+          readonly referrerHost: string | null;
+          readonly referrerCategory: string;
+        };
+      }>;
+      readonly campaigns: ReadonlyArray<{
+        readonly rawUrl: string;
+        readonly expected: {
+          readonly landingPath: string;
+          readonly refParam: string | null;
+          readonly utmSource: string | null;
+          readonly utmMedium: string | null;
+          readonly utmCampaign: string | null;
+          readonly utmContent: string | null;
+        };
+        readonly normalizedPath: string;
+      }>;
+    };
+
+    const {
+      buildDailyAnalyticsSalt,
+      buildPreviousUtcDayAnalyticsSalt,
+      classifyBotUserAgent,
+      hashVisitorIp,
+      isWithinUtcMidnightGraceWindow,
+      normalizeLandingPath,
+      parseUserAgentProfile,
+    } = await import('../src/analytics.ts');
+
+    const now = new Date(fixture.nowIso);
+    const currentSalt = buildDailyAnalyticsSalt(fixture.baseSalt, now);
+    const priorSalt = buildPreviousUtcDayAnalyticsSalt(fixture.baseSalt, now);
+    expect(currentSalt).toBe(fixture.currentSalt);
+    expect(priorSalt).toBe(fixture.priorSalt);
+    expect(isWithinUtcMidnightGraceWindow(now)).toBe(fixture.withinGrace);
+
+    for (const tc of fixture.identities) {
+      expect(hashVisitorIp(tc.ip, currentSalt)).toBe(tc.currentIpHash);
+      expect(hashVisitorIp(tc.ip, priorSalt)).toBe(tc.priorIpHash);
+      expect(hashVisitorIdentity(tc.ip, tc.ua, currentSalt)).toBe(tc.currentVisitorHash);
+      expect(hashVisitorIdentity(tc.ip, tc.ua, priorSalt)).toBe(tc.priorVisitorHash);
+    }
+
+    for (const tc of fixture.userAgents) {
+      expect(classifyBotUserAgent(tc.ua)).toEqual(tc.bot);
+      expect(parseUserAgentProfile(tc.ua)).toEqual(tc.profile);
+    }
+
+    for (const tc of fixture.referrers) {
+      expect(normalizeReferrer(tc.raw, tc.ownHosts)).toEqual(tc.expected);
+    }
+
+    for (const tc of fixture.campaigns) {
+      expect(extractCampaignParams(tc.rawUrl)).toEqual(tc.expected);
+      expect(normalizeLandingPath(tc.rawUrl)).toBe(tc.normalizedPath);
+    }
+  });
 });

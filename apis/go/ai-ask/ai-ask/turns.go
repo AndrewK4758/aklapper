@@ -10,6 +10,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"connectrpc.com/connect"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/contracts"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/httpkit"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/internalauth"
@@ -67,7 +68,116 @@ func resolveUnaryStores(deps unaryTurnDeps) (*pg.Store, turnTxStore) {
 	return store, turnStore
 }
 
-func handleAskPostWithDeps(deps unaryTurnDeps) http.HandlerFunc {
+func authenticateAndDecodeAskRequest(
+	w http.ResponseWriter,
+	r *http.Request,
+	corrID string,
+) (*internalauth.Claims, askRequest, bool) {
+	claims, authErr := internalauth.VerifyRequest(r)
+	if authErr != nil {
+		logAskEvent("ai_ask.auth.rejected", map[string]any{"correlationId": corrID, "seam_type": "BOUNDARY_FAULT"})
+		writePublicError(w, http.StatusUnauthorized, contracts.ErrCodeUnauthorized,
+			"Authentication is required.", "Retry through the portal.", corrID)
+		return nil, askRequest{}, false
+	}
+
+	var req askRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writePublicError(w, http.StatusBadRequest, contracts.ErrCodeValidation,
+			"Submitted fields need attention.", "Review highlighted fields and retry.", corrID)
+		return nil, askRequest{}, false
+	}
+	return claims, req, true
+}
+
+type unaryAskInput struct {
+	Mode           string
+	Question       string
+	JobDescription string
+	AttemptID      string
+	ConversationID string
+	VisitorLens    string
+	SessionID      string
+	Role           string
+	CorrelationID  string
+}
+
+type unaryAskOutcome struct {
+	HTTPStatus    int
+	ConnectCode   connect.Code
+	CorrelationID string
+	Response      *contracts.AskResponse
+	Pending       *contracts.AskTurnState
+	Err           *contracts.PublicAppError
+	Quota         *contracts.QuotaStatus
+}
+
+func unaryErrorOutcome(status int, code, msg, action, corrID string, quota *contracts.QuotaStatus) unaryAskOutcome {
+	return unaryAskOutcome{
+		HTTPStatus:    status,
+		ConnectCode:   httpStatusToGRPCCode(status),
+		CorrelationID: corrID,
+		Err: &contracts.PublicAppError{
+			Code:          code,
+			Status:        status,
+			Message:       msg,
+			Action:        action,
+			CorrelationID: corrID,
+		},
+		Quota: quota,
+	}
+}
+
+func reusedTurnOutcome(turn pg.TurnRecord, quota contracts.QuotaStatus) unaryAskOutcome {
+	state := turn.ToState(&quota)
+	switch turn.Status {
+	case contracts.TurnStatusCompleted, contracts.TurnStatusAbstained:
+		if turn.Result != nil {
+			return unaryAskOutcome{
+				HTTPStatus:    http.StatusOK,
+				CorrelationID: turn.CorrelationID,
+				Response:      turn.Result,
+			}
+		}
+		return unaryAskOutcome{
+			HTTPStatus:    http.StatusAccepted,
+			CorrelationID: turn.CorrelationID,
+			Pending:       &state,
+		}
+	case contracts.TurnStatusFailed, contracts.TurnStatusExpired:
+		status := http.StatusBadGateway
+		if state.Error != nil && state.Error.Status >= 400 {
+			status = state.Error.Status
+		} else if turn.Status == contracts.TurnStatusExpired {
+			status = http.StatusGatewayTimeout
+		}
+		errEnv := state.Error
+		if errEnv == nil {
+			errEnv = &contracts.PublicAppError{
+				Code:          contracts.ErrCodeUpstreamUnavailable,
+				Status:        status,
+				Message:       "Upstream service unreachable.",
+				Action:        "Retry shortly or go home.",
+				CorrelationID: turn.CorrelationID,
+			}
+		}
+		return unaryAskOutcome{
+			HTTPStatus:    status,
+			ConnectCode:   httpStatusToGRPCCode(status),
+			CorrelationID: turn.CorrelationID,
+			Err:           errEnv,
+			Quota:         &quota,
+		}
+	default:
+		return unaryAskOutcome{
+			HTTPStatus:    http.StatusAccepted,
+			CorrelationID: turn.CorrelationID,
+			Pending:       &state,
+		}
+	}
+}
+
+func executeUnaryAsk(ctx context.Context, deps unaryTurnDeps, in unaryAskInput) unaryAskOutcome {
 	if deps.syncWait <= 0 {
 		deps.syncWait = defaultSyncWaitWindow
 	}
@@ -78,139 +188,170 @@ func handleAskPostWithDeps(deps unaryTurnDeps) http.HandlerFunc {
 	if workerTimeout <= 0 {
 		workerTimeout = pg.AskTurnLeaseDuration
 	}
-	privacyCfg := deps.privacyCfg
+	corrID := in.CorrelationID
+	if corrID == "" {
+		corrID = contracts.NewUUIDv4()
+	}
+
+	mode := strings.TrimSpace(in.Mode)
+	if mode == "" {
+		mode = "qa"
+	}
+	if mode != "qa" && mode != "jd_match" {
+		return unaryErrorOutcome(http.StatusBadRequest, contracts.ErrCodeValidation,
+			"Mode must be qa or jd_match.", "Select Chat with Andrew or JD Match and retry.", corrID, nil)
+	}
+
+	var queryText string
+	if mode == "qa" {
+		queryText = strings.TrimSpace(in.Question)
+		qRunes := utf8.RuneCountInString(queryText)
+		if qRunes < 4 || qRunes > 800 {
+			return unaryErrorOutcome(http.StatusBadRequest, contracts.ErrCodeValidation,
+				"Question must be between 4 and 800 characters.", "Adjust your question and retry.", corrID, nil)
+		}
+	} else {
+		queryText = strings.TrimSpace(in.JobDescription)
+		if queryText == "" {
+			queryText = strings.TrimSpace(in.Question)
+		}
+		jdRunes := utf8.RuneCountInString(queryText)
+		if jdRunes < 20 || jdRunes > 8000 {
+			return unaryErrorOutcome(http.StatusBadRequest, contracts.ErrCodeValidation,
+				"Job description must be between 20 and 8000 characters.", "Adjust job description length and retry.", corrID, nil)
+		}
+	}
+
+	attemptID := strings.TrimSpace(in.AttemptID)
+	if attemptID == "" {
+		attemptID = contracts.NewUUIDv4()
+	} else if !contracts.ValidateUUID(attemptID) {
+		return unaryErrorOutcome(http.StatusBadRequest, contracts.ErrCodeValidation,
+			"Invalid attempt identifier.", "Refresh and submit again.", corrID, nil)
+	}
+
+	role := contracts.RoleGuest
+	if in.Role == contracts.RoleAdmin {
+		role = contracts.RoleAdmin
+	}
+	sessionID := in.SessionID
+	promptHash := hashPrompt(mode, queryText)
+
+	convID := strings.TrimSpace(in.ConversationID)
+	if convID != "" && !contracts.ValidateUUID(convID) {
+		return unaryErrorOutcome(http.StatusBadRequest, contracts.ErrCodeValidation,
+			"Invalid conversation identifier.", "Start a new conversation and retry.", corrID, nil)
+	}
+	storedPrompt := privacy.RedactTextForStorage(deps.privacyCfg, queryText, pg.MaxPromptTextRunes)
+
+	res, allowed, reserveErr := turnStore.ReserveTurnTx(ctx, pg.ReserveTurnInput{
+		AttemptID: attemptID, SessionID: sessionID, Role: role, Mode: mode,
+		PromptHash: promptHash, ConversationID: convID, PromptText: storedPrompt,
+		CorrelationID: corrID, ReserveTokens: pg.DefaultAskTurnReserveTokens,
+	})
+	if errors.Is(reserveErr, pg.ErrTurnConflict) {
+		return unaryErrorOutcome(http.StatusConflict, contracts.ErrCodeValidation,
+			"Submitted fields need attention.", "Use a fresh request attempt.", corrID, nil)
+	}
+	if reserveErr != nil {
+		logAskEvent("ai_ask.quota.reserve_error", map[string]any{"correlationId": corrID, "seam_type": "BOUNDARY_FAULT"})
+		return unaryErrorOutcome(http.StatusServiceUnavailable, contracts.ErrCodeDbUnavailable,
+			"Database temporarily unavailable.", "Retry shortly or share ID.", corrID, nil)
+	}
+	if !allowed {
+		quotaCopy := res.Quota
+		return unaryErrorOutcome(http.StatusTooManyRequests, contracts.ErrCodeRateLimited,
+			"Session or daily quota exceeded. Try again later.", "Wait a moment and submit again.", corrID, &quotaCopy)
+	}
+	if res.Reused {
+		return reusedTurnOutcome(res.Turn, res.Quota)
+	}
+
+	workerCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), workerTimeout)
+	doneCh := make(chan workerOutcome, 1)
+	go func() {
+		if deps.onWorkerExit != nil {
+			defer deps.onWorkerExit()
+		}
+		defer cancel()
+		doneCh <- executeTurnWorker(workerCtx, deps, attemptID, sessionID, role, mode, queryText, corrID)
+	}()
+
+	timer := time.NewTimer(deps.syncWait)
+	defer timer.Stop()
+
+	select {
+	case out := <-doneCh:
+		if out.response != nil {
+			return unaryAskOutcome{
+				HTTPStatus:    out.httpStatus,
+				CorrelationID: corrID,
+				Response:      out.response,
+			}
+		}
+		return unaryAskOutcome{
+			HTTPStatus:    out.httpStatus,
+			ConnectCode:   httpStatusToGRPCCode(out.httpStatus),
+			CorrelationID: corrID,
+			Err:           out.errEnv,
+		}
+	case <-timer.C:
+		state := res.Turn.ToState(&res.Quota)
+		return unaryAskOutcome{
+			HTTPStatus:    http.StatusAccepted,
+			CorrelationID: corrID,
+			Pending:       &state,
+		}
+	case <-ctx.Done():
+		return unaryAskOutcome{
+			HTTPStatus:    499,
+			ConnectCode:   connect.CodeCanceled,
+			CorrelationID: corrID,
+		}
+	}
+}
+
+func handleAskPostWithDeps(deps unaryTurnDeps) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		corrID := extractCorrelationID(r)
-		claims, authErr := internalauth.VerifyRequest(r)
-		if authErr != nil {
-			logAskEvent("ai_ask.auth.rejected", map[string]any{"correlationId": corrID, "seam_type": "BOUNDARY_FAULT"})
-			writePublicError(w, http.StatusUnauthorized, contracts.ErrCodeUnauthorized,
-				"Authentication is required.", "Retry through the portal.", corrID)
+		claims, req, ok := authenticateAndDecodeAskRequest(w, r, corrID)
+		if !ok {
 			return
 		}
-
-		var req askRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			writePublicError(w, http.StatusBadRequest, contracts.ErrCodeValidation,
-				"Submitted fields need attention.", "Review highlighted fields and retry.", corrID)
-			return
-		}
-
-		mode := strings.TrimSpace(req.Mode)
-		if mode == "" {
-			mode = "qa"
-		}
-		if mode != "qa" && mode != "jd_match" {
-			writePublicError(w, http.StatusBadRequest, contracts.ErrCodeValidation,
-				"Mode must be qa or jd_match.", "Select Chat with Andrew or JD Match and retry.", corrID)
-			return
-		}
-
-		var queryText string
-		if mode == "qa" {
-			queryText = strings.TrimSpace(req.Question)
-			qRunes := utf8.RuneCountInString(queryText)
-			if qRunes < 4 || qRunes > 800 {
-				writePublicError(w, http.StatusBadRequest, contracts.ErrCodeValidation,
-					"Question must be between 4 and 800 characters.", "Adjust your question and retry.", corrID)
-				return
-			}
-		} else {
-			queryText = strings.TrimSpace(req.JobDescription)
-			if queryText == "" {
-				queryText = strings.TrimSpace(req.Question)
-			}
-			jdRunes := utf8.RuneCountInString(queryText)
-			if jdRunes < 20 || jdRunes > 8000 {
-				writePublicError(w, http.StatusBadRequest, contracts.ErrCodeValidation,
-					"Job description must be between 20 and 8000 characters.", "Adjust job description length and retry.", corrID)
-				return
-			}
-		}
-
-		attemptID := strings.TrimSpace(req.AttemptID)
-		if attemptID == "" {
-			attemptID = newUUIDv4()
-		} else if !contracts.ValidateUUID(attemptID) {
-			writePublicError(w, http.StatusBadRequest, contracts.ErrCodeValidation,
-				"Invalid attempt identifier.", "Refresh and submit again.", corrID)
-			return
-		}
-
-		role := contracts.RoleGuest
-		if claims.Role == contracts.RoleAdmin {
-			role = contracts.RoleAdmin
-		}
-		sessionID := claims.Sub
-		promptHash := hashPrompt(mode, queryText)
-
-		convID := strings.TrimSpace(req.ConversationID)
-		if convID != "" && !contracts.ValidateUUID(convID) {
-			writePublicError(w, http.StatusBadRequest, contracts.ErrCodeValidation,
-				"Invalid conversation identifier.", "Start a new conversation and retry.", corrID)
-			return
-		}
-		storedPrompt := privacy.RedactTextForStorage(privacyCfg, queryText, pg.MaxPromptTextRunes)
-
-		res, allowed, reserveErr := turnStore.ReserveTurnTx(r.Context(), pg.ReserveTurnInput{
-			AttemptID: attemptID, SessionID: sessionID, Role: role, Mode: mode,
-			PromptHash: promptHash, ConversationID: convID, PromptText: storedPrompt,
-			CorrelationID: corrID, ReserveTokens: pg.DefaultAskTurnReserveTokens,
+		out := executeUnaryAsk(r.Context(), deps, unaryAskInput{
+			Mode:           req.Mode,
+			Question:       req.Question,
+			JobDescription: req.JobDescription,
+			AttemptID:      req.AttemptID,
+			ConversationID: req.ConversationID,
+			VisitorLens:    req.VisitorLens,
+			SessionID:      claims.Sub,
+			Role:           claims.Role,
+			CorrelationID:  corrID,
 		})
-		if errors.Is(reserveErr, pg.ErrTurnConflict) {
-			writePublicError(w, http.StatusConflict, contracts.ErrCodeValidation,
-				"Submitted fields need attention.", "Use a fresh request attempt.", corrID)
+		if out.HTTPStatus == 499 && out.Err == nil && out.Response == nil && out.Pending == nil {
 			return
 		}
-		if reserveErr != nil {
-			logAskEvent("ai_ask.quota.reserve_error", map[string]any{"correlationId": corrID, "seam_type": "BOUNDARY_FAULT"})
-			writePublicError(w, http.StatusServiceUnavailable, contracts.ErrCodeDbUnavailable,
-				"Database temporarily unavailable.", "Retry shortly or share ID.", corrID)
-			return
-		}
-		if !allowed {
-			w.Header().Set("X-Correlation-Id", corrID)
+		w.Header().Set("X-Correlation-Id", out.CorrelationID)
+		if out.HTTPStatus == http.StatusTooManyRequests && out.Quota != nil && out.Err != nil {
 			httpkit.WriteJSON(w, http.StatusTooManyRequests, map[string]any{
-				"error":         "Session or daily quota exceeded. Try again later.",
-				"code":          contracts.ErrCodeRateLimited,
-				"action":        "Wait a moment and submit again.",
-				"correlationId": corrID,
-				"quota":         res.Quota,
+				"error":         out.Err.Message,
+				"code":          out.Err.Code,
+				"action":        out.Err.Action,
+				"correlationId": out.Err.CorrelationID,
+				"quota":         out.Quota,
 			})
 			return
 		}
-		if res.Reused {
-			writeReusedTurn(w, res.Turn, res.Quota)
+		if out.Response != nil {
+			httpkit.WriteJSON(w, out.HTTPStatus, out.Response)
 			return
 		}
-
-		workerCtx, cancel := context.WithTimeout(context.WithoutCancel(r.Context()), workerTimeout)
-		doneCh := make(chan workerOutcome, 1)
-		go func() {
-			if deps.onWorkerExit != nil {
-				defer deps.onWorkerExit()
-			}
-			defer cancel()
-			doneCh <- executeTurnWorker(workerCtx, deps, attemptID, sessionID, role, mode, queryText, corrID)
-		}()
-
-		timer := time.NewTimer(deps.syncWait)
-		defer timer.Stop()
-
-		select {
-		case out := <-doneCh:
-			w.Header().Set("X-Correlation-Id", corrID)
-			if out.response != nil {
-				httpkit.WriteJSON(w, out.httpStatus, out.response)
-				return
-			}
-			httpkit.WriteJSON(w, out.httpStatus, out.errEnv)
-		case <-timer.C:
-			w.Header().Set("X-Correlation-Id", corrID)
-			httpkit.WriteJSON(w, http.StatusAccepted, res.Turn.ToState(&res.Quota))
-		case <-r.Context().Done():
+		if out.Pending != nil {
+			httpkit.WriteJSON(w, out.HTTPStatus, out.Pending)
 			return
 		}
+		httpkit.WriteJSON(w, out.HTTPStatus, out.Err)
 	}
 }
 

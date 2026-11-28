@@ -40,7 +40,7 @@ func TestSSEWriterValidationAndRaceFreeHeartbeat(t *testing.T) {
 	time.Sleep(35 * time.Millisecond)
 	wg.Wait()
 	stopHB()
-	stopHB() // idempotent
+	stopHB()
 
 	body := rec.Body.String()
 	if !strings.Contains(body, ": keepalive\n\n") || !strings.Contains(body, "event: delta\n") {
@@ -48,14 +48,24 @@ func TestSSEWriterValidationAndRaceFreeHeartbeat(t *testing.T) {
 	}
 }
 
-func TestListenAndServeDualGracefulCancelsBaseContextAndSupportsEmptyGRPC(t *testing.T) {
+func TestNewH2CServerKeepaliveAndZeroWriteTimeout(t *testing.T) {
+	srv := NewH2CServer(":0", http.NewServeMux(), context.Background())
+	if srv.WriteTimeout != 0 {
+		t.Fatalf("expected WriteTimeout=0 for long-lived streams, got %v", srv.WriteTimeout)
+	}
+	if srv.HTTP2 == nil || srv.HTTP2.SendPingTimeout != 30*time.Second || srv.HTTP2.PingTimeout != 10*time.Second {
+		t.Fatalf("expected HTTP2 SendPingTimeout=30s PingTimeout=10s, got %+v", srv.HTTP2)
+	}
+}
+
+func TestListenAndServeH2CGracefulMultiplexesHTTP1AndH2CAndDrains(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	streamCancelled := make(chan struct{}, 1)
 	streamStarted := make(chan struct{}, 1)
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /healthz", NewHealthHandler("dual-test"))
+	mux.HandleFunc("GET /healthz", NewHealthHandler("h2c-test"))
 	mux.HandleFunc("GET /stream", func(w http.ResponseWriter, r *http.Request) {
 		sw := NewSSEWriter(w)
 		_ = sw.WriteEvent("meta", map[string]string{"ok": "1"})
@@ -73,39 +83,45 @@ func TestListenAndServeDualGracefulCancelsBaseContextAndSupportsEmptyGRPC(t *tes
 	readyCh := make(chan string, 1)
 	doneCh := make(chan error, 1)
 	go func() {
-		doneCh <- ListenAndServeDualGraceful(ctx, DualServerConfig{
-			HTTPAddr:        "127.0.0.1:0",
-			HTTPHandler:     mux,
-			GRPCAddr:        "",
+		doneCh <- ListenAndServeH2CGraceful(ctx, H2CServerConfig{
+			Addr:            "127.0.0.1:0",
+			Handler:         mux,
 			ShutdownTimeout: 2 * time.Second,
-			OnReady: func(httpAddr, grpcAddr string) {
-				if grpcAddr != "" {
-					t.Errorf("expected empty grpcAddr when GRPCAddr is empty, got %q", grpcAddr)
-				}
-				readyCh <- httpAddr
+			OnReady: func(addr string) {
+				readyCh <- addr
 			},
 		})
 	}()
 
-	httpAddr := <-readyCh
-	client := &http.Client{
-		Transport: &http.Transport{
-			DisableKeepAlives: true,
-		},
+	addr := <-readyCh
+	http1Client := &http.Client{
+		Transport: &http.Transport{DisableKeepAlives: true},
 	}
-	defer client.CloseIdleConnections()
+	defer http1Client.CloseIdleConnections()
 
-	res, err := client.Get("http://" + httpAddr + "/healthz")
+	res, err := http1Client.Get("http://" + addr + "/healthz")
 	if err != nil || res.StatusCode != http.StatusOK {
-		t.Fatalf("healthz failed: res=%v err=%v", res, err)
+		t.Fatalf("HTTP/1.1 healthz failed: res=%v err=%v", res, err)
 	}
 	_, _ = io.Copy(io.Discard, res.Body)
 	_ = res.Body.Close()
 
+	// Verify h2c HTTP/2 request on the exact same port.
+	h2Protocols := new(http.Protocols)
+	h2Protocols.SetUnencryptedHTTP2(true)
+	h2Client := &http.Client{Transport: &http.Transport{Protocols: h2Protocols}}
+	defer h2Client.CloseIdleConnections()
+	h2Res, h2Err := h2Client.Get("http://" + addr + "/healthz")
+	if h2Err != nil || h2Res.StatusCode != http.StatusOK || h2Res.ProtoMajor != 2 {
+		t.Fatalf("h2c healthz failed: res=%v err=%v", h2Res, h2Err)
+	}
+	_, _ = io.Copy(io.Discard, h2Res.Body)
+	_ = h2Res.Body.Close()
+
 	// Hold an active SSE stream open until shutdown cancels BaseContext.
 	streamClientDone := make(chan error, 1)
 	go func() {
-		sRes, sErr := client.Get("http://" + httpAddr + "/stream")
+		sRes, sErr := http1Client.Get("http://" + addr + "/stream")
 		if sErr != nil {
 			streamClientDone <- sErr
 			return
@@ -126,11 +142,11 @@ func TestListenAndServeDualGracefulCancelsBaseContextAndSupportsEmptyGRPC(t *tes
 	select {
 	case <-streamCancelled:
 	case <-time.After(2 * time.Second):
-		t.Fatal("expected BaseContext cancellation to abort active SSE stream")
+		t.Fatal("expected BaseContext cancellation to abort active stream")
 	}
 
 	if err := <-doneCh; err != nil {
-		t.Fatalf("expected clean dual shutdown, got %v", err)
+		t.Fatalf("expected clean H2C shutdown, got %v", err)
 	}
 
 	select {
@@ -139,6 +155,6 @@ func TestListenAndServeDualGracefulCancelsBaseContextAndSupportsEmptyGRPC(t *tes
 			t.Fatalf("SSE client request failed: %v", sErr)
 		}
 	case <-time.After(2 * time.Second):
-		t.Fatal("timed out waiting for SSE client to observe stream EOF")
+		t.Fatal("timed out waiting for SSE client to observe EOF")
 	}
 }

@@ -1,6 +1,6 @@
 import type { AnalyticsBatch } from '@aklapper/core';
 import { bootstrapDocumentAnalytics, resetAnalyticsBootstrap } from '@aklapper/core/analytics';
-import { getPrerenderPortalAboutData } from '@aklapper/db';
+import { getPrerenderPortalAboutData } from '@aklapper/core/prerender';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 

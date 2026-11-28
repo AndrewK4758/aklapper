@@ -10,53 +10,21 @@ import {
   resolveSecretId,
   syncGcpSecretVersions,
 } from './sync-gcp-secrets.ts';
+import {
+  GITHUB_ENV_SECRETS,
+  GITHUB_OPTIONAL_ENV_SECRETS,
+  GITHUB_OPTIONAL_ENV_VARS,
+  GITHUB_REQUIRED_ENV_VARS,
+  RETIRED_ENV_KEYS,
+} from './sync-github-env-config.ts';
 
-export const GITHUB_ENV_SECRETS = [
-  'GCP_WORKLOAD_IDENTITY_PROVIDER',
-  'GCP_WIF_SERVICE_ACCOUNT',
-] as const;
-
-export const GITHUB_OPTIONAL_ENV_SECRETS = [
-  'QDRANT_API_KEY',
-  'AGENSI_API_KEY',
-  'AI_PRIVACY_DENYLIST',
-  'DOSSIER_PRIVACY_DENYLIST',
-  'MAXMIND_ACCOUNT_ID',
-  'MAXMIND_LICENSE_KEY',
-] as const;
-
-export const GITHUB_REQUIRED_ENV_VARS = ['GCP_PROJECT_ID', 'GCP_REGION', 'GAR_REPOSITORY'] as const;
-
-export const GITHUB_OPTIONAL_ENV_VARS = [
-  'PUBLIC_PORTAL_URL',
-  'PUBLIC_ADMIN_URL',
-  'PUBLIC_ANALYTICS_ENDPOINT',
-  'PUBLIC_GA_MEASUREMENT_ID',
-  'PUBLIC_GTM_ID',
-  'PUBLIC_GSC_VERIFICATION',
-  'WEBAUTHN_RP_ID',
-  'WEBAUTHN_RP_NAME',
-  'WEBAUTHN_ORIGIN',
-  'CADENCE_DEMO_URL',
-  'AI_ASK_URL',
-  'QDRANT_URL',
-  'AGENSI_API_BASE_URL',
-  'AGENSI_API_PATH',
-  'AGENSI_CREATOR_HANDLE',
-  'AGENSI_SYNC_DISABLED',
-  'AGENSI_CACHE_TTL_SECONDS',
-  'AGENSI_FETCH_TIMEOUT_MS',
-  'AI_PROVIDER',
-  'GCP_LOCATION',
-  'VERTEX_MODEL',
-  'VERTEX_THINKING_LEVEL',
-  'VERTEX_EMBED_MODEL',
-  'ADMIN_HANDLE',
-  'GCP_CLOUDRUN_SERVICE_ACCOUNT',
-  'GCP_MIGRATOR_SERVICE_ACCOUNT',
-  'GCP_PG19_VM_SERVICE_ACCOUNT',
-  'IAP_ACCESSOR_EMAIL',
-] as const;
+export {
+  GITHUB_ENV_SECRETS,
+  GITHUB_OPTIONAL_ENV_SECRETS,
+  GITHUB_OPTIONAL_ENV_VARS,
+  GITHUB_REQUIRED_ENV_VARS,
+  RETIRED_ENV_KEYS,
+} from './sync-github-env-config.ts';
 
 export type TargetEnvironment = 'production';
 
@@ -87,22 +55,6 @@ export interface SyncPlan {
 
 const DEFAULT_REPO = 'AndrewK4758/aklapper';
 const PLACEHOLDER_PATTERN = /REPLACE_ME|CHANGE_ME|YOUR_[A-Z0-9_]+/i;
-export const RETIRED_ENV_KEYS = [
-  'ADMIN_BOOTSTRAP_TOKEN',
-  'AUTH_API_URL',
-  'ANALYTICS_API_URL',
-  'CADENCE_ADMIN_URL',
-  'CONTACT_API_URL',
-  'CLOUD_RUN_ALLOW_UNAUTH_APIS',
-  'CLOUD_SQL_INSTANCE',
-  'GKE_CLUSTER_NAME',
-  'GKE_CLUSTER_LOCATION',
-  'GCP_GKE_WORKLOAD_SA',
-  'K8S_WATCH_URL',
-  'CLOUD_RUN_ALLOW_UNAUTH_ADMIN',
-  'VERTEX_THINKING_BUDGET',
-  'PORTAL_MAINTENANCE_MODE',
-] as const;
 
 export function parseEnvFileContent(content: string): Record<string, string> {
   const result: Record<string, string> = {};
@@ -297,6 +249,29 @@ function ensureGithubEnvironment(repo: string, env: TargetEnvironment, dryRun: b
   execFileSync('gh', ['api', '-X', 'PUT', `repos/${repo}/environments/${env}`], { stdio: 'pipe' });
 }
 
+export function runGcpSyncAndBootstrap(
+  values: Readonly<Record<string, string>>,
+  plan: SyncPlan,
+  args: Pick<ParsedSyncCliArgs, 'repo' | 'dryRun' | 'bootstrapWif' | 'skipGcpSecrets'>,
+  deps?: {
+    readonly syncSecrets?: typeof syncGcpSecretVersions;
+    readonly bootstrapWif?: typeof bootstrapGcpWorkloadIdentity;
+  },
+): void {
+  const runSyncSecrets = deps?.syncSecrets ?? syncGcpSecretVersions;
+  const runBootstrapWif = deps?.bootstrapWif ?? bootstrapGcpWorkloadIdentity;
+
+  // Secret versions MUST be created before per-secret IAM bindings run in bootstrapWif.
+  if (!args.skipGcpSecrets && plan.gcpSecrets.length > 0) {
+    const projectId = values['GCP_PROJECT_ID']?.trim() ?? '';
+    runSyncSecrets(plan.gcpSecrets, projectId, args.dryRun);
+  }
+
+  if (args.bootstrapWif) {
+    runBootstrapWif(values, args.repo, args.dryRun);
+  }
+}
+
 function main(): void {
   const args = parseSyncCliArgs(process.argv.slice(2));
   const resolvedPath = resolve(process.cwd(), args.filePath);
@@ -324,14 +299,7 @@ function main(): void {
     console.warn(`[dry-run warning] ${details.join(' | ')}`);
   }
 
-  if (args.bootstrapWif) {
-    bootstrapGcpWorkloadIdentity(values, args.repo, args.dryRun);
-  }
-
-  if (!args.skipGcpSecrets && plan.gcpSecrets.length > 0) {
-    const projectId = values['GCP_PROJECT_ID']?.trim() ?? '';
-    syncGcpSecretVersions(plan.gcpSecrets, projectId, args.dryRun);
-  }
+  runGcpSyncAndBootstrap(values, plan, args);
 
   ensureGithubEnvironment(args.repo, args.env, args.dryRun);
 

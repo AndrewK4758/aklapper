@@ -2,6 +2,7 @@ import type { ActionErrorMetadata, AdminQuotasLoaderData } from '@aklapper/core'
 import { ActionFeedbackBanner, Button, Field, Separator, TuiWindow } from '@aklapper/ui';
 import { Form } from 'react-router';
 
+import cardStyles from '../shared/adminSectionCard.module.css';
 import styles from './AdminQuotasPage.module.css';
 
 export interface AdminQuotasActionData extends ActionErrorMetadata {
@@ -28,9 +29,9 @@ export function AdminQuotasPage({ data, actionData }: AdminQuotasPageProps) {
               <Form
                 key={`${policy.role}:${policy.maxTurnsPerSession}:${policy.maxTokensPerRun}:${policy.maxDailyGlobalTokens}`}
                 method='post'
-                className={styles.card}
+                className={cardStyles.card}
               >
-                <h2 className={styles.sectionTitle}>Role Policy: {policy.role}</h2>
+                <h2 className={cardStyles.sectionTitle}>Role Policy: {policy.role}</h2>
                 <input type='hidden' name='intent' value='update-policy' />
                 <input type='hidden' name='role' value={policy.role} />
                 <div className={styles.formGrid}>
@@ -80,9 +81,11 @@ export function AdminQuotasPage({ data, actionData }: AdminQuotasPageProps) {
 
         <Separator.Root />
 
-        <section className={styles.card} aria-label='Rate limit buckets'>
-          <div className={styles.cardHeader}>
-            <h2 className={styles.sectionTitle}>Active Rate-Limit Buckets ({buckets.length})</h2>
+        <section className={cardStyles.card} aria-label='Rate limit buckets'>
+          <div className={cardStyles.cardHeader}>
+            <h2 className={cardStyles.sectionTitle}>
+              Active Rate-Limit Buckets ({buckets.length})
+            </h2>
             <Form method='post' className={styles.inlineForm}>
               <input type='hidden' name='intent' value='purge-stale' />
               <Field.Root>

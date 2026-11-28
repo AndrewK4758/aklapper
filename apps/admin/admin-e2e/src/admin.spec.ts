@@ -24,16 +24,25 @@ test.describe('admin SSR end-to-end journeys', () => {
     await assertSsrHealthz(request, 'admin-ssr');
   });
 
-  test('guards protected pages, renders unified login UI without bootstrap tab, and rejects unauthenticated registration @smoke', async ({
+  test('guards protected pages, renders unified login UI without bootstrap tab, suppresses unauthenticated analytics, and rejects unauthenticated registration @smoke', async ({
     page,
     request,
   }) => {
     const getErrors = trackPageErrors(page);
+    const analyticsBeacons: number[] = [];
+    page.on('response', res => {
+      if (new URL(res.url()).pathname === '/api/analytics/ingest') {
+        analyticsBeacons.push(res.status());
+      }
+    });
 
     await gotoStreamedPage(page, '/', { waitUntil: 'networkidle' });
     await expect(page).toHaveURL(/\/login$/);
     await expect(page.getByRole('heading', { name: /Admin Passkey Gate/i })).toBeVisible();
     await expect(page.getByRole('heading', { name: /Admin Operations Console/i })).toHaveCount(0);
+    await expect(page.locator('meta[name="aklapper-analytics-app"]')).toHaveCount(0);
+    await expect(page.locator('meta[name="aklapper-analytics-endpoint"]')).toHaveCount(0);
+    expect(analyticsBeacons).toEqual([]);
 
     await expect(page.getByLabel('Admin Handle', { exact: true })).toHaveAttribute(
       'autocomplete',
@@ -76,6 +85,25 @@ test.describe('admin SSR end-to-end journeys', () => {
     });
     expect(forgedBootstrapReg.status()).toBe(401);
 
+    const unauthAnalytics = await request.post('/api/analytics/ingest', {
+      data: {
+        app: 'admin',
+        events: [
+          {
+            type: 'page_view',
+            name: 'admin_page_view',
+            path: '/login',
+            timestamp: new Date().toISOString(),
+          },
+        ],
+      },
+    });
+    expect(unauthAnalytics.status()).toBe(401);
+
+    const retiredGuestAuth = await request.post('/api/auth/guest', { data: {} });
+    expect(retiredGuestAuth.status()).toBe(404);
+
+    expect(analyticsBeacons).toEqual([]);
     expect(getErrors()).toEqual([]);
   });
 
@@ -595,10 +623,13 @@ test.describe('admin SSR end-to-end journeys', () => {
         ],
       );
 
+      const attachmentPayload = Buffer.from(`%PDF-1.4\nE2E attachment ${suffix}\n`, 'utf8');
       const inserted = await pool.query<{ id: string }>(
         `INSERT INTO contact_submissions (
-           name, email, message, analytics_session_id, guest_session_id, created_at
-         ) VALUES ($1, $2, $3, $4, $5, $6::timestamptz)
+           name, email, message, analytics_session_id, guest_session_id,
+           attachment_name, attachment_mime_type, attachment_size_bytes,
+           attachment_sha256, attachment_content_base64, created_at
+         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::timestamptz)
          RETURNING id::text AS id`,
         [
           contactName,
@@ -606,6 +637,11 @@ test.describe('admin SSR end-to-end journeys', () => {
           'Interested in discussing distributed Go and TypeScript systems.',
           humanSessionId,
           guestSessionId,
+          'candidate-brief.pdf',
+          'application/pdf',
+          attachmentPayload.length,
+          sha256Hex(attachmentPayload.toString('utf8')),
+          attachmentPayload.toString('base64'),
           nowIso,
         ],
       );
@@ -670,6 +706,15 @@ test.describe('admin SSR end-to-end journeys', () => {
       await expect(visitorContext).toContainText(campaignTag);
       await expect(visitorContext).toContainText('/about');
       await expect(visitorContext).toContainText(promptExcerpt);
+
+      // Stream attachment via authenticated SSR route -> Go AdminInboxService.StreamContactAttachment
+      const attachmentDownload = await page.request.get(`/inbox/${submissionId}/attachment`);
+      expect(attachmentDownload.status()).toBe(200);
+      expect(attachmentDownload.headers()['content-type']).toContain('application/pdf');
+      expect(attachmentDownload.headers()['content-disposition']).toContain('candidate-brief.pdf');
+      expect((await attachmentDownload.body()).toString('utf8')).toContain(
+        `E2E attachment ${suffix}`,
+      );
 
       // Delete the submission in /inbox and verify PII disappears immediately from /analytics while anonymous session persists
       await page.getByRole('button', { name: 'Delete Submission' }).click();

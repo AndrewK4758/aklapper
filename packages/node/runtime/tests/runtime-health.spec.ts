@@ -213,4 +213,41 @@ describe('@aklapper/node-runtime/runtime-health', () => {
     expect(snapshot.services[0]?.status).toBe('healthy');
     expect(logs.some(l => l['event'] === 'runtime.oidc.non_run_app_url')).toBe(false);
   });
+
+  it('isolates a malformed gRPC URL as offline without failing healthy siblings in probeRuntimeServices', async () => {
+    const logs: Array<Record<string, unknown>> = [];
+    const logger = {
+      info: (entry: Record<string, unknown>) => logs.push(entry),
+      warn: (entry: Record<string, unknown>) => logs.push(entry),
+    };
+
+    const snapshot = await probeRuntimeServices({
+      runtime: 'cloud-run',
+      services: [
+        { service: 'ai-ask', url: 'not-a-valid-url', transport: 'grpc' },
+        { service: 'portal', url: 'http://127.0.0.1:4000', transport: 'http', oidcAuth: false },
+      ],
+      bypassCache: true,
+      timeoutMs: 1_500,
+      fetchImpl: async () => Response.json({ ok: true, service: 'portal' }),
+      logger,
+    });
+
+    const aiAsk = snapshot.services.find(s => s.service === 'ai-ask');
+    const portal = snapshot.services.find(s => s.service === 'portal');
+    expect(aiAsk?.status).toBe('offline');
+    expect(aiAsk?.detail).toBe('gRPC health probe failed');
+    expect(portal?.status).toBe('healthy');
+    expect(portal?.detail).toBe('HTTP 200 /health');
+    expect(logs).toContainEqual(
+      expect.objectContaining({
+        event: 'runtime.health.upstream_contract_fault',
+        seam: 'BOUNDARY_FAULT',
+        transport: 'grpc',
+        service: 'ai-ask',
+        host: 'invalid-url',
+        errorCode: 'UNKNOWN',
+      }),
+    );
+  });
 });

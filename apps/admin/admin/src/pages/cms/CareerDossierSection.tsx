@@ -28,6 +28,7 @@ import {
 } from './careerDossierMarkdown';
 import { CareerDossierTable } from './CareerDossierTable';
 
+import cardStyles from '../shared/adminSectionCard.module.css';
 import styles from './AdminCmsPage.module.css';
 
 export interface CareerDossierSectionProps {
@@ -73,9 +74,9 @@ export function CareerDossierSection({
   }
 
   return (
-    <section className={styles.card} aria-label='Career Dossier Studio'>
-      <div className={styles.cardHeader}>
-        <h2 className={styles.sectionTitle}>Career Dossier Studio ({dossiers.length})</h2>
+    <section className={cardStyles.card} aria-label='Career Dossier Studio'>
+      <div className={cardStyles.cardHeader}>
+        <h2 className={cardStyles.sectionTitle}>Career Dossier Studio ({dossiers.length})</h2>
         <div className={styles.actionCell}>
           <Button.Root
             type='button'
@@ -259,7 +260,7 @@ export function CareerDossierSection({
           </Field.Root>
 
           <div className={styles.stackForm}>
-            <div className={styles.cardHeader}>
+            <div className={cardStyles.cardHeader}>
               <span className={styles.muted}>Sections ({draft.sections.length})</span>
               <Button.Root
                 type='button'
@@ -276,8 +277,8 @@ export function CareerDossierSection({
               </Button.Root>
             </div>
             {draft.sections.map((section, index) => (
-              <div key={index} className={styles.card}>
-                <div className={styles.cardHeader}>
+              <div key={index} className={cardStyles.card}>
+                <div className={cardStyles.cardHeader}>
                   <span className={styles.muted}>Chunk #{index + 1}</span>
                   <Button.Root
                     type='button'

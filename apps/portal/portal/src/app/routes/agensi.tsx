@@ -1,22 +1,34 @@
-import { loadPortalAgensiDataWithPrerender } from '@aklapper/db';
-import { deferStreamResult, getOrCreateCorrelationId } from '@aklapper/node-runtime/ssr/stream';
+import {
+  deferStreamResult,
+  getOrCreateCorrelationId,
+  getRequestContext,
+} from '@aklapper/node-runtime/ssr/stream';
 import { RouteErrorBoundaryView } from '@aklapper/ui';
 import { href } from 'react-router';
 
 import { reportPortalPublicError } from '../client-telemetry';
 import { AgensiRouteView } from '../features/AgensiFeatureView';
+import { loadPortalAgensiDataWithPrerender } from '../portal-api.server';
 import { buildPortalPageMeta } from '../seo';
 import type { Route } from './+types/agensi';
 
 export function loader({ request, context }: Route.LoaderArgs) {
   const correlationId = getOrCreateCorrelationId(request, context);
+  const reqCtx = getRequestContext(context);
   return {
     correlationId,
-    payload: deferStreamResult(loadPortalAgensiDataWithPrerender({ correlationId }), {
-      request,
-      context,
-      source: 'portal.agensi.loader',
-    }),
+    payload: deferStreamResult(
+      loadPortalAgensiDataWithPrerender({
+        correlationId,
+        ...(reqCtx?.logger ? { logger: reqCtx.logger } : {}),
+        signal: reqCtx?.signal ?? request.signal,
+      }),
+      {
+        request,
+        context,
+        source: 'portal.agensi.loader',
+      },
+    ),
   };
 }
 

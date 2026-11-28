@@ -1,20 +1,23 @@
-import { execFileSync, spawn, type ChildProcess } from 'node:child_process';
+import { spawn, type ChildProcess } from 'node:child_process';
 import { createHmac } from 'node:crypto';
-import { existsSync, mkdtempSync, rmSync } from 'node:fs';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
-import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
-import { setTimeout as delay } from 'node:timers/promises';
 
 import { fetchJson, reserveLoopbackPort, type RunningNodeApi } from '@aklapper/tooling/e2e';
 
 import { handleMockChatCompletions } from './ask-harness-sse.ts';
+import {
+  buildSanitizedPortalEnv,
+  DEFAULT_E2E_INTERNAL_AUTH_SECRET,
+  ensurePortalProductionBuild,
+  PORTAL_APP_DIR,
+  startAiAskService,
+  startCadenceDemoService,
+  startIsolatedPortalServer,
+  startPortalApiService,
+  stopChildGracefully,
+} from './go-services-harness.ts';
 
-const DEFAULT_E2E_INTERNAL_AUTH_SECRET = 'portal-e2e-internal-auth-secret-not-for-prod';
 const VECTOR_DIMS = 768;
-const REPO_ROOT = resolve(import.meta.dirname, '..', '..', '..', '..');
-const PORTAL_APP_DIR = resolve(REPO_ROOT, 'apps', 'portal', 'portal');
-const AI_ASK_APP_DIR = resolve(REPO_ROOT, 'apis', 'go', 'ai-ask', 'ai-ask');
 
 interface StoredVectorPoint {
   readonly id: string;
@@ -209,51 +212,27 @@ export function signInternalAuthTokenForTest(options: {
 
 export async function startIsolatedPortalWithoutAsk(): Promise<RunningNodeApi> {
   const closedPort = await reserveLoopbackPort();
-  const isolatedPort = await reserveLoopbackPort();
   const secret = process.env['INTERNAL_AUTH_SECRET']?.trim() || DEFAULT_E2E_INTERNAL_AUTH_SECRET;
-  const baseUrl = `http://127.0.0.1:${isolatedPort}`;
-  const child = spawn(process.execPath, ['--conditions=@aklapper/source', './src/server.ts'], {
-    cwd: PORTAL_APP_DIR,
-    env: {
-      ...process.env,
-      NODE_ENV: 'production',
-      HOST: '127.0.0.1',
-      PORT: String(isolatedPort),
-      PORTAL_PORT: String(isolatedPort),
-      INTERNAL_AUTH_SECRET: secret,
-      AI_ASK_URL: `http://127.0.0.1:${closedPort}`,
-      CADENCE_DEMO_URL: '',
-    },
-    stdio: 'ignore',
-  });
-  await waitForHealth(baseUrl, child, 25_000);
-  return {
-    baseUrl,
-    port: isolatedPort,
-    close: async () => {
-      if (child.exitCode !== null || child.signalCode !== null) return;
-      child.kill('SIGTERM');
-      await delay(100);
-      if (child.exitCode === null && child.signalCode === null) child.kill('SIGKILL');
-    },
-  };
-}
-
-async function waitForHealth(baseUrl: string, child: ChildProcess, timeoutMs: number) {
-  const deadline = Date.now() + timeoutMs;
-  while (Date.now() < deadline) {
-    if (child.exitCode !== null || child.signalCode !== null) {
-      throw new Error(`Process exited early with code=${String(child.exitCode)}`);
-    }
-    try {
-      const res = await fetch(`${baseUrl}/healthz`);
-      if (res.ok) return;
-    } catch (error) {
-      if (error instanceof Error && error.message.includes('EACCES')) throw error;
-    }
-    await delay(50);
+  const portalApi = await startPortalApiService({ secret });
+  try {
+    const portal = await startIsolatedPortalServer({
+      portalApiUrl: portalApi.baseUrl,
+      aiAskUrl: `http://127.0.0.1:${closedPort}`,
+      cadenceDemoUrl: '',
+      secret,
+    });
+    return {
+      baseUrl: portal.baseUrl,
+      port: portal.port,
+      close: async () => {
+        await portal.close().catch(() => {});
+        await portalApi.close().catch(() => {});
+      },
+    };
+  } catch (err) {
+    await portalApi.close().catch(() => {});
+    throw err;
   }
-  throw new Error(`Timed out waiting for ${baseUrl}/healthz after ${timeoutMs}ms`);
 }
 
 async function runServePortalSupervisor(): Promise<void> {
@@ -264,50 +243,25 @@ async function runServePortalSupervisor(): Promise<void> {
   const secret = process.env['INTERNAL_AUTH_SECRET']?.trim() || DEFAULT_E2E_INTERNAL_AUTH_SECRET;
   const portalPort = Number(process.env['PORTAL_PORT'] ?? process.env['PORT'] ?? 4300);
 
-  if (!existsSync(resolve(PORTAL_APP_DIR, 'dist/server/index.js'))) {
-    execFileSync('pnpm', ['exec', 'react-router', 'build', '--mode', 'production'], {
-      cwd: PORTAL_APP_DIR,
-      stdio: 'inherit',
-    });
-  }
-
-  const buildDir = mkdtempSync(join(tmpdir(), 'aklapper-portal-e2e-'));
-  const aiAskBin = join(buildDir, 'ai-ask');
-  execFileSync('go', ['build', '-o', aiAskBin, '.'], {
-    cwd: AI_ASK_APP_DIR,
-    stdio: 'inherit',
-  });
+  ensurePortalProductionBuild();
 
   const mockServer = await startMockAiAndQdrantServer();
-  const aiAskPort = await reserveLoopbackPort();
-  const aiAskUrl = `http://127.0.0.1:${aiAskPort}`;
-
-  const aiAskChild = spawn(aiAskBin, [], {
-    cwd: AI_ASK_APP_DIR,
-    env: {
-      ...process.env,
-      APP_ENV: 'production',
-      PORT: String(aiAskPort),
-      DATABASE_URL: databaseUrl,
-      INTERNAL_AUTH_SECRET: secret,
-      AI_PROVIDER: 'local',
-      LOCAL_LLM_BASE_URL: `${mockServer.baseUrl}/v1`,
-      LOCAL_LLM_CHAT_MODEL: 'gemma-4',
-      LOCAL_LLM_EMBED_MODEL: 'embedding',
-      QDRANT_URL: mockServer.baseUrl,
-    },
-    stdio: 'inherit',
-  });
-
+  let portalApi: Awaited<ReturnType<typeof startPortalApiService>> | null = null;
+  let aiAsk: Awaited<ReturnType<typeof startAiAskService>> | null = null;
+  let cadenceDemo: Awaited<ReturnType<typeof startCadenceDemoService>> | null = null;
   let portalChild: ChildProcess | null = null;
+
   let cleaningUp = false;
   const cleanup = async () => {
     if (cleaningUp) return;
     cleaningUp = true;
-    portalChild?.kill('SIGTERM');
-    aiAskChild.kill('SIGTERM');
-    await mockServer.close().catch(() => {});
-    rmSync(buildDir, { recursive: true, force: true });
+    await Promise.allSettled([
+      portalChild ? stopChildGracefully(portalChild) : Promise.resolve(),
+      portalApi ? portalApi.close() : Promise.resolve(),
+      aiAsk ? aiAsk.close() : Promise.resolve(),
+      cadenceDemo ? cadenceDemo.close() : Promise.resolve(),
+      mockServer.close(),
+    ]);
   };
 
   process.once('SIGTERM', () => {
@@ -318,13 +272,28 @@ async function runServePortalSupervisor(): Promise<void> {
   });
 
   try {
-    await waitForHealth(aiAskUrl, aiAskChild, 20_000);
+    [portalApi, aiAsk, cadenceDemo] = await Promise.all([
+      startPortalApiService({ secret, inheritStdio: true }),
+      startAiAskService({
+        databaseUrl,
+        mockBaseUrl: mockServer.baseUrl,
+        secret,
+        inheritStdio: true,
+      }),
+      startCadenceDemoService({
+        databaseUrl,
+        mockBaseUrl: mockServer.baseUrl,
+        secret,
+        inheritStdio: true,
+      }),
+    ]);
+
     const adminToken = signInternalAuthTokenForTest({
       role: 'admin',
       subject: 'portal-e2e-supervisor',
       secret,
     });
-    const reindexRes = await fetchJson<{ indexed: number }>(`${aiAskUrl}/v1/ask/reindex`, {
+    const reindexRes = await fetchJson<{ indexed: number }>(`${aiAsk.baseUrl}/v1/ask/reindex`, {
       method: 'POST',
       headers: { 'x-internal-auth': adminToken },
     });
@@ -336,16 +305,16 @@ async function runServePortalSupervisor(): Promise<void> {
 
     portalChild = spawn(process.execPath, ['--conditions=@aklapper/source', './src/server.ts'], {
       cwd: PORTAL_APP_DIR,
-      env: {
-        ...process.env,
+      env: buildSanitizedPortalEnv({
         NODE_ENV: 'production',
         HOST: '127.0.0.1',
         PORT: String(portalPort),
         PORTAL_PORT: String(portalPort),
         INTERNAL_AUTH_SECRET: secret,
-        AI_ASK_URL: aiAskUrl,
-        CADENCE_DEMO_URL: '',
-      },
+        PORTAL_API_URL: portalApi.baseUrl,
+        AI_ASK_URL: aiAsk.baseUrl,
+        CADENCE_DEMO_URL: cadenceDemo.baseUrl,
+      }),
       stdio: 'inherit',
     });
 

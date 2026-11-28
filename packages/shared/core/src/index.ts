@@ -25,3 +25,4 @@ export * from './site-content-registry.ts';
 export * from './sse.ts';
 export * from './terminal-shortcuts.ts';
 export * from './terminal.ts';
+export * from './text-sanitize.ts';

@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 import type { PortalAboutLoaderData } from '@aklapper/core';
-import { getPrerenderPortalAboutData } from '@aklapper/db';
+import { getPrerenderPortalAboutData } from '@aklapper/core/prerender';
 import { requestContextKey, type SsrStructuredLogger } from '@aklapper/node-runtime/ssr/stream';
 import { render, screen } from '@testing-library/react';
 import { createRoutesStub, RouterContextProvider } from 'react-router';
@@ -12,8 +12,8 @@ const { loadPortalAboutMock } = vi.hoisted(() => ({
   loadPortalAboutMock: vi.fn<() => Promise<PortalAboutLoaderData>>(),
 }));
 
-vi.mock('@aklapper/db', async importOriginal => {
-  const actual = await importOriginal<typeof import('@aklapper/db')>();
+vi.mock('../portal-api.server', async importOriginal => {
+  const actual = await importOriginal<typeof import('../portal-api.server')>();
   return {
     ...actual,
     loadPortalAboutDataWithPrerender: loadPortalAboutMock,

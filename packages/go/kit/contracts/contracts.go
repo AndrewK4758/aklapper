@@ -1,7 +1,9 @@
 package contracts
 
 import (
+	"crypto/rand"
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 )
@@ -69,11 +71,12 @@ type QuotaStatus struct {
 }
 
 type PublicAppError struct {
-	Code          string `json:"code"`
-	Status        int    `json:"status"`
-	Message       string `json:"message"`
-	Action        string `json:"action"`
-	CorrelationID string `json:"correlationId"`
+	Code          string              `json:"code"`
+	Status        int                 `json:"status"`
+	Message       string              `json:"message"`
+	Action        string              `json:"action"`
+	CorrelationID string              `json:"correlationId"`
+	FieldErrors   map[string][]string `json:"fieldErrors,omitempty"`
 }
 
 type CadenceRunRequest struct {
@@ -281,6 +284,20 @@ type AskServiceStatus struct {
 	Provider    string               `json:"provider"`
 	PGConnected bool                 `json:"pgConnected"`
 	Collection  *AskCollectionStatus `json:"collection,omitempty"`
+}
+
+// FormatUUID formats a 16-byte RFC 4122 UUID with the specified version nibble (1–8).
+func FormatUUID(b [16]byte, version byte) string {
+	b[6] = (b[6] & 0x0f) | ((version & 0x0f) << 4)
+	b[8] = (b[8] & 0x3f) | 0x80
+	return fmt.Sprintf("%08x-%04x-%04x-%04x-%012x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:16])
+}
+
+// NewUUIDv4 generates a cryptographically random RFC 4122 version 4 UUID string.
+func NewUUIDv4() string {
+	var b [16]byte
+	_, _ = rand.Read(b[:])
+	return FormatUUID(b, 4)
 }
 
 // ValidateUUID returns true strictly when value is a canonical 36-char UUID string.

@@ -9,13 +9,13 @@ import (
 	"sync"
 	"time"
 
+	"connectrpc.com/connect"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/contracts"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/httpkit"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/llm"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/pg"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/privacy"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/qdrant"
-	"google.golang.org/grpc/codes"
 )
 
 const (
@@ -88,7 +88,7 @@ type streamEmitter interface {
 
 type streamSyncFailure struct {
 	HTTPStatus int
-	GRPCCode   codes.Code
+	GRPCCode   connect.Code
 	Error      contracts.PublicAppError
 	Quota      *contracts.QuotaStatus
 }
@@ -154,26 +154,28 @@ func (e *sseStreamEmitter) EmitError(pubErr contracts.PublicAppError, quota *con
 	return e.writer.WriteEvent("error", payload)
 }
 
-func httpStatusToGRPCCode(status int) codes.Code {
+func httpStatusToGRPCCode(status int) connect.Code {
 	switch status {
 	case http.StatusBadRequest:
-		return codes.InvalidArgument
+		return connect.CodeInvalidArgument
 	case http.StatusUnauthorized:
-		return codes.Unauthenticated
+		return connect.CodeUnauthenticated
 	case http.StatusForbidden:
-		return codes.PermissionDenied
+		return connect.CodePermissionDenied
 	case http.StatusNotFound:
-		return codes.NotFound
+		return connect.CodeNotFound
 	case http.StatusConflict:
-		return codes.AlreadyExists
+		return connect.CodeAlreadyExists
+	case http.StatusUnprocessableEntity:
+		return connect.CodeFailedPrecondition
 	case http.StatusTooManyRequests:
-		return codes.ResourceExhausted
+		return connect.CodeResourceExhausted
 	case 499:
-		return codes.Canceled
+		return connect.CodeCanceled
 	case http.StatusGatewayTimeout:
-		return codes.DeadlineExceeded
+		return connect.CodeDeadlineExceeded
 	default:
-		return codes.Unavailable
+		return connect.CodeUnavailable
 	}
 }
 

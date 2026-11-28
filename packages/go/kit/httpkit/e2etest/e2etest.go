@@ -54,6 +54,14 @@ func ReservePort(t *testing.T) int {
 // SIGTERM shutdown in t.Cleanup.
 func StartBinary(t *testing.T, serviceDir string, extraEnv ...string) string {
 	t.Helper()
+	baseURL, _ := StartBinaryWithLogs(t, serviceDir, extraEnv...)
+	return baseURL
+}
+
+// StartBinaryWithLogs is identical to StartBinary and also returns a thread-safe
+// reader for the child service's captured stdout/stderr log output.
+func StartBinaryWithLogs(t *testing.T, serviceDir string, extraEnv ...string) (string, func() string) {
+	t.Helper()
 
 	absDir, err := filepath.Abs(serviceDir)
 	if err != nil {
@@ -125,14 +133,14 @@ func StartBinary(t *testing.T, serviceDir string, extraEnv ...string) string {
 			_, _ = io.Copy(io.Discard, res.Body)
 			_ = res.Body.Close()
 			if res.StatusCode == http.StatusOK {
-				return baseURL
+				return baseURL, logs.String
 			}
 		}
 		time.Sleep(50 * time.Millisecond)
 	}
 
 	t.Fatalf("service %s did not become healthy at %s/healthz within 10s\nlogs:\n%s", filepath.Base(absDir), baseURL, logs.String())
-	return ""
+	return "", logs.String
 }
 
 // DoRequest sends a real HTTP request and returns the response and raw body bytes.

@@ -197,9 +197,13 @@ export const ContactAttachmentSchema = z.object({
     .trim()
     .min(1, 'Attachment filename is required')
     .max(255, 'Attachment filename must be 255 characters or fewer')
-    .refine(name => !name.includes('/') && !name.includes('\\') && !name.includes('..'), {
-      message: 'Attachment filename contains disallowed path segments',
-    }),
+    .refine(
+      name =>
+        !name.includes('\0') && !name.includes('/') && !name.includes('\\') && !name.includes('..'),
+      {
+        message: 'Attachment filename contains disallowed path segments',
+      },
+    ),
   mimeType: z.enum(CONTACT_ALLOWED_MIME_TYPES),
   sizeBytes: z
     .number()
@@ -244,7 +248,10 @@ export const ContactFormSubmissionSchema = z.object({
     .string()
     .trim()
     .min(10, 'Message must be at least 10 characters')
-    .max(4000, 'Message must be 4000 characters or fewer'),
+    .max(4000, 'Message must be 4000 characters or fewer')
+    .refine(val => !val.includes('\0'), {
+      message: 'Message contains unsupported characters',
+    }),
   attachment: ContactAttachmentSchema.nullable(),
 });
 
@@ -315,6 +322,11 @@ export function validateFormField(
     if (!resolvedMime) {
       errors.push(`Unsupported file type. Allowed: ${CONTACT_ALLOWED_EXTENSIONS.join(', ')}`);
     }
+    return errors;
+  }
+
+  if (typeof rawValue === 'string' && rawValue.includes('\0')) {
+    errors.push(`${field.label} contains unsupported characters`);
     return errors;
   }
 

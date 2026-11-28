@@ -1,3 +1,4 @@
+import { isReactRouterPrerender } from '@aklapper/node-runtime/ssr/stream';
 import { drizzle, type NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { Pool, type PoolClient } from 'pg';
 
@@ -5,9 +6,7 @@ import * as schema from './schema.ts';
 
 export type AppDatabase = NodePgDatabase<typeof schema>;
 
-export function isReactRouterPrerender(): boolean {
-  return process.env['IS_RR_BUILD_REQUEST'] === 'yes';
-}
+export { isReactRouterPrerender };
 
 export function createDbPool(connectionString = process.env['DATABASE_URL']): Pool {
   if (!connectionString) {

@@ -1,6 +1,6 @@
 import type { PortalRootLoaderData } from '@aklapper/core';
 import { trackPaneOpen } from '@aklapper/core/analytics';
-import { OscStatusBadge, SolarForgeEmblem } from '@aklapper/ui';
+import { mobileChromeClasses, OscStatusBadge, SolarForgeEmblem } from '@aklapper/ui';
 import { type MobileNavItem, MobileTuiWorkspace } from '@aklapper/ui/mobile-tui-workspace';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { href, Link, Outlet } from 'react-router';
@@ -10,8 +10,6 @@ import { PortalLauncherTui } from '#pages/home';
 import { isPortalPaneRoute, renderPortalPaneView } from './portalPaneViews';
 import type { RuntimeStatusTelemetrySnapshot } from './runtime-status';
 import { portalPaneStreamStore } from './workspace/portalPaneStreamStore';
-
-import styles from './root.module.css';
 
 const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 const MOBILE_PANE_ID = 'mobile-tty1';
@@ -126,7 +124,7 @@ export function PortalMobileWorkspaceHost({
     <Link
       to={href('/about')}
       prefetch='intent'
-      className={styles.mobileSecondaryLink}
+      className={mobileChromeClasses.secondaryLink}
       data-active={aboutActive ? 'true' : 'false'}
       aria-current={aboutActive ? 'page' : undefined}
     >
@@ -147,7 +145,7 @@ export function PortalMobileWorkspaceHost({
       layoutMode={layoutMode}
       routeKey={pathname}
       brand={
-        <Link to={href('/')} prefetch='intent' className={styles.mobileBrand}>
+        <Link to={href('/')} prefetch='intent' className={mobileChromeClasses.brand}>
           <SolarForgeEmblem size={18} />
           <span>{chrome.brandLabel}</span>
         </Link>
@@ -164,7 +162,11 @@ export function PortalMobileWorkspaceHost({
         <>
           {aboutLink}
           {chrome.brandContactEmail ? (
-            <Link to={href('/contact')} prefetch='intent' className={styles.mobileSecondaryLink}>
+            <Link
+              to={href('/contact')}
+              prefetch='intent'
+              className={mobileChromeClasses.secondaryLink}
+            >
               {chrome.brandContactEmail}
             </Link>
           ) : null}

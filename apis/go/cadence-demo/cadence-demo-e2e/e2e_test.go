@@ -1,16 +1,28 @@
 package cadencedemo_e2e_test
 
 import (
+	"context"
 	"fmt"
 	"net/http"
+	"net/url"
+	"os"
+	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 
+	"connectrpc.com/connect"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/contracts"
+	cadencev1 "github.com/AndrewK4758/aklapper/packages/go/kit/gen/cadence/v1"
+	"github.com/AndrewK4758/aklapper/packages/go/kit/gen/cadence/v1/cadencev1connect"
+	"github.com/AndrewK4758/aklapper/packages/go/kit/grpckit"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/httpkit"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/httpkit/e2etest"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/internalauth"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 )
 
 type cadenceRunResponse struct {
@@ -301,6 +313,139 @@ func TestCadenceDemoEndToEnd(t *testing.T) {
 		)
 		if resLong.StatusCode != http.StatusBadRequest {
 			t.Fatalf("expected 400 for oversized prompt, got %d", resLong.StatusCode)
+		}
+	})
+
+	t.Run("Single-port $PORT serves native grpc-go Health/Check and full ConnectRPC CadenceService workflow", func(t *testing.T) {
+		parsedBase, err := url.Parse(baseURL)
+		if err != nil {
+			t.Fatalf("parse baseURL: %v", err)
+		}
+		conn, err := grpc.NewClient(parsedBase.Host, grpc.WithTransportCredentials(insecure.NewCredentials()))
+		if err != nil {
+			t.Fatalf("grpc.NewClient: %v", err)
+		}
+		t.Cleanup(func() { _ = conn.Close() })
+
+		hc := healthpb.NewHealthClient(conn)
+		hRes, err := hc.Check(context.Background(), &healthpb.HealthCheckRequest{Service: "cadence.v1.CadenceService"})
+		if err != nil || hRes.GetStatus() != healthpb.HealthCheckResponse_SERVING {
+			t.Fatalf("single-port gRPC Health/Check failed: res=%v err=%v", hRes, err)
+		}
+
+		h2cHTTP := grpckit.NewH2CClient()
+		t.Cleanup(h2cHTTP.CloseIdleConnections)
+		client := cadencev1connect.NewCadenceServiceClient(
+			h2cHTTP,
+			baseURL,
+			connect.WithGRPC(),
+			connect.WithInterceptors(grpckit.NewClientAuthInterceptor(grpckit.ClientAuthConfig{
+				Role: internalauth.RoleGuest, Subject: "e2e-grpc-cadence", TTL: time.Minute,
+			})),
+		)
+
+		createRes, err := client.CreateRun(context.Background(), connect.NewRequest(&cadencev1.CreateRunRequest{
+			Prompt:              "Single-port gRPC E2E workbench card",
+			PresetSlug:          "custom",
+			Mode:                contracts.CadenceModeFast,
+			DeferExecution:      true,
+			RequireSpecApproval: true,
+		}))
+		if err != nil || createRes.Msg.GetCreatedImmediately() || createRes.Msg.GetRun().GetRunStatus() != contracts.CadenceStatusPending {
+			t.Fatalf("CreateRun failed: %+v err=%v", createRes, err)
+		}
+		runID := createRes.Msg.GetRun().GetRunId()
+
+		st1, err := client.StreamRun(context.Background(), connect.NewRequest(&cadencev1.StreamRunRequest{RunId: runID}))
+		if err != nil {
+			t.Fatalf("StreamRun spec: %v", err)
+		}
+		var sawAwaiting bool
+		for st1.Receive() {
+			if c := st1.Msg().GetComplete(); c != nil && c.GetRun().GetRunStatus() == contracts.CadenceStatusAwaitingApproval {
+				sawAwaiting = true
+			}
+		}
+		_ = st1.Close()
+		if !sawAwaiting || st1.Err() != nil {
+			t.Fatalf("expected awaiting_approval complete frame, saw=%v err=%v", sawAwaiting, st1.Err())
+		}
+
+		approveRes, err := client.ApproveSpecGate(context.Background(), connect.NewRequest(&cadencev1.ApproveSpecGateRequest{RunId: runID}))
+		if err != nil || approveRes.Msg.GetRun().GetRunStatus() != contracts.CadenceStatusBuildQueued {
+			t.Fatalf("ApproveSpecGate failed: %+v err=%v", approveRes, err)
+		}
+
+		st2, err := client.StreamRun(context.Background(), connect.NewRequest(&cadencev1.StreamRunRequest{RunId: runID}))
+		if err != nil {
+			t.Fatalf("StreamRun build: %v", err)
+		}
+		var sawReady bool
+		for st2.Receive() {
+			if c := st2.Msg().GetComplete(); c != nil && c.GetRun().GetRunStatus() == contracts.CadenceStatusReady && c.GetRun().GetArtifactHtml() != "" {
+				sawReady = true
+			}
+		}
+		_ = st2.Close()
+		if !sawReady || st2.Err() != nil {
+			t.Fatalf("expected ready complete frame, saw=%v err=%v", sawReady, st2.Err())
+		}
+
+		verdictRes, err := client.SubmitGateVerdict(context.Background(), connect.NewRequest(&cadencev1.SubmitGateVerdictRequest{
+			RunId:   runID,
+			Verdict: "approved",
+		}))
+		if err != nil || verdictRes.Msg.GetRun().GetGateVerdict() != "approved" {
+			t.Fatalf("SubmitGateVerdict failed: %+v err=%v", verdictRes, err)
+		}
+
+		listRes, err := client.ListRuns(context.Background(), connect.NewRequest(&cadencev1.ListRunsRequest{
+			SessionId: "e2e-grpc-cadence",
+			Limit:     10,
+		}))
+		if err != nil || len(listRes.Msg.GetRuns()) != 1 || listRes.Msg.GetQuota() == nil {
+			t.Fatalf("ListRuns failed: %+v err=%v", listRes, err)
+		}
+
+		clearRes, err := client.ClearSessionRuns(context.Background(), connect.NewRequest(&cadencev1.ClearSessionRunsRequest{}))
+		if err != nil || clearRes.Msg.GetDeletedCount() != 1 {
+			t.Fatalf("ClearSessionRuns failed: %+v err=%v", clearRes, err)
+		}
+
+		listAfterClear, err := client.ListRuns(context.Background(), connect.NewRequest(&cadencev1.ListRunsRequest{
+			SessionId: "e2e-grpc-cadence",
+			Limit:     10,
+		}))
+		if err != nil || len(listAfterClear.Msg.GetRuns()) != 0 {
+			t.Fatalf("expected 0 runs after ClearSessionRuns, got %+v err=%v", listAfterClear, err)
+		}
+	})
+
+	t.Run("Production startup fails closed when INTERNAL_AUTH_SECRET is absent", func(t *testing.T) {
+		absDir, err := filepath.Abs("../cadence-demo")
+		if err != nil {
+			t.Fatalf("resolve ../cadence-demo: %v", err)
+		}
+		binPath := filepath.Join(t.TempDir(), "cadence-demo-strict-check")
+		c := exec.Command("go", "build", "-o", binPath, ".")
+		c.Dir = absDir
+		if o, buildErr := c.CombinedOutput(); buildErr != nil {
+			t.Fatalf("build strict binary: %v\n%s", buildErr, string(o))
+		}
+		cmd := exec.Command(binPath)
+		var filteredEnv []string
+		for _, kv := range os.Environ() {
+			if !strings.HasPrefix(kv, "INTERNAL_AUTH_SECRET=") && !strings.HasPrefix(kv, "APP_ENV=") {
+				filteredEnv = append(filteredEnv, kv)
+			}
+		}
+		cmd.Env = append(filteredEnv, "APP_ENV=production", "INTERNAL_AUTH_SECRET=", "PG_DISABLE_LIVE=true")
+		out, runErr := cmd.CombinedOutput()
+		if runErr == nil {
+			t.Fatalf("expected non-zero exit when APP_ENV=production and INTERNAL_AUTH_SECRET is empty, output=%s", string(out))
+		}
+		if !strings.Contains(string(out), "grpc.startup.secret_missing") {
+			t.Fatalf("expected grpc.startup.secret_missing structured log, got:\n%s", string(out))
 		}
 	})
 }

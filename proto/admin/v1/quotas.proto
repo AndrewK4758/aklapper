@@ -1,0 +1,60 @@
+syntax = "proto3";
+
+package admin.v1;
+
+option go_package = "github.com/AndrewK4758/aklapper/packages/go/kit/gen/admin/v1;adminv1";
+
+service AdminQuotasService {
+  rpc ListQuotasAndBuckets(ListQuotasAndBucketsRequest) returns (ListQuotasAndBucketsResponse);
+  rpc UpdateQuotaPolicy(UpdateQuotaPolicyRequest) returns (UpdateQuotaPolicyResponse);
+  rpc ResetRateLimitBucket(ResetRateLimitBucketRequest) returns (ResetRateLimitBucketResponse);
+  rpc PurgeStaleRateLimitBuckets(PurgeStaleRateLimitBucketsRequest) returns (PurgeStaleRateLimitBucketsResponse);
+}
+
+message QuotaPolicyRecord {
+  string role = 1;
+  int32 max_turns_per_session = 2;
+  int32 max_tokens_per_run = 3;
+  int32 max_daily_global_tokens = 4;
+}
+
+message RateLimitBucketRecord {
+  string scope_key = 1;
+  string window_start = 2;
+  int32 turns_used = 3;
+  int32 tokens_used = 4;
+}
+
+message ListQuotasAndBucketsRequest {}
+
+message ListQuotasAndBucketsResponse {
+  repeated QuotaPolicyRecord policies = 1;
+  repeated RateLimitBucketRecord buckets = 2;
+}
+
+message UpdateQuotaPolicyRequest {
+  string role = 1;
+  int32 max_turns_per_session = 2;
+  int32 max_tokens_per_run = 3;
+  int32 max_daily_global_tokens = 4;
+}
+
+message UpdateQuotaPolicyResponse {
+  QuotaPolicyRecord policy = 1;
+}
+
+message ResetRateLimitBucketRequest {
+  string scope_key = 1;
+}
+
+message ResetRateLimitBucketResponse {
+  bool reset = 1;
+}
+
+message PurgeStaleRateLimitBucketsRequest {
+  int32 older_than_hours = 1;
+}
+
+message PurgeStaleRateLimitBucketsResponse {
+  int32 purged_count = 1;
+}

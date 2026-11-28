@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"log"
 	"net/http"
 	"os"
@@ -12,7 +11,7 @@ import (
 	"time"
 
 	"github.com/AndrewK4758/aklapper/packages/go/kit/contracts"
-	cadencev1 "github.com/AndrewK4758/aklapper/packages/go/kit/gen/cadence/v1"
+	"github.com/AndrewK4758/aklapper/packages/go/kit/gen/cadence/v1/cadencev1connect"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/grpckit"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/httpkit"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/internalauth"
@@ -54,34 +53,22 @@ func newHandlerWithDeps(deps cadenceServiceDeps) http.Handler {
 		if !ok {
 			return
 		}
-
 		candidate := strings.TrimSpace(r.URL.Query().Get("sessionId"))
 		if candidate == "" {
 			candidate = strings.TrimSpace(r.Header.Get("X-Session-Id"))
 		}
-		role := contracts.RoleGuest
-		if claims.Role == internalauth.RoleAdmin {
-			role = contracts.RoleAdmin
-		}
-		sessionID, authOK := resolveAuthorizedSession(w, r, claims, candidate, role != contracts.RoleAdmin)
-		if !authOK {
-			return
-		}
-
 		limit := 10
 		if rawLimit := strings.TrimSpace(r.URL.Query().Get("limit")); rawLimit != "" {
 			if parsed, err := strconv.Atoi(rawLimit); err == nil && parsed > 0 && parsed <= 50 {
 				limit = parsed
 			}
 		}
-
-		runs, err := deps.store.ListSandboxRuns(r.Context(), sessionID, limit)
-		if err != nil {
-			httpkit.WriteError(w, http.StatusInternalServerError, "failed to list sandbox runs")
+		corrID := strings.TrimSpace(r.Header.Get("X-Correlation-Id"))
+		runs, quota, svcErr := executeListRuns(r.Context(), deps, claims, candidate, true, limit, corrID)
+		if svcErr != nil {
+			httpkit.WriteError(w, svcErr.HTTPStatus, svcErr.Error.Message)
 			return
 		}
-		quota, _ := deps.store.GetQuotaStatus(r.Context(), role, sessionID)
-
 		httpkit.WriteJSON(w, http.StatusOK, map[string]any{
 			"runs":  runs,
 			"quota": quota,
@@ -95,52 +82,14 @@ func newHandlerWithDeps(deps cadenceServiceDeps) http.Handler {
 		if !ok {
 			return
 		}
-		runID := strings.TrimSpace(r.PathValue("id"))
-		if runID == "" {
-			httpkit.WriteError(w, http.StatusBadRequest, "missing run id")
+		corrID := strings.TrimSpace(r.Header.Get("X-Correlation-Id"))
+		updated, contractRun, quota, svcErr := executeApproveSpecGate(
+			r.Context(), deps, claims, r.PathValue("id"), r.Header.Get("X-Session-Id"), corrID,
+		)
+		if svcErr != nil {
+			httpkit.WriteError(w, svcErr.HTTPStatus, svcErr.Error.Message)
 			return
 		}
-		headerSession := strings.TrimSpace(r.Header.Get("X-Session-Id"))
-		if headerSession == "" && (claims == nil || strings.TrimSpace(claims.Sub) == "") {
-			httpkit.WriteError(w, http.StatusUnauthorized, "missing X-Session-Id header")
-			return
-		}
-		sessionID, authOK := resolveAuthorizedSession(w, r, claims, headerSession, false)
-		if !authOK {
-			return
-		}
-
-		updated, err := deps.store.ApproveSandboxRunSpecForSession(r.Context(), runID, sessionID)
-		if err != nil {
-			switch {
-			case errors.Is(err, pg.ErrGoldenRunImmutable):
-				httpkit.WriteError(w, http.StatusConflict, err.Error())
-			case errors.Is(err, pg.ErrRunNotFound):
-				httpkit.WriteError(w, http.StatusNotFound, err.Error())
-			case errors.Is(err, pg.ErrForbiddenSession):
-				httpkit.WriteError(w, http.StatusForbidden, err.Error())
-			case errors.Is(err, pg.ErrRunNotAwaitingApproval):
-				httpkit.WriteError(w, http.StatusConflict, err.Error())
-			default:
-				httpkit.WriteError(w, http.StatusInternalServerError, "failed to approve spec gate")
-			}
-			return
-		}
-
-		pct := 55
-		queuedStatus := contracts.Osc7501Status{
-			Source:    "cadence-demo",
-			State:     contracts.CadenceStatusRunning,
-			Label:     "Spec approved · queuing CHORD build",
-			Progress:  &pct,
-			Timestamp: time.Now().UTC(),
-		}
-		role := contracts.RoleGuest
-		if claims.Role == internalauth.RoleAdmin {
-			role = contracts.RoleAdmin
-		}
-		quota, _ := deps.store.GetQuotaStatus(r.Context(), role, sessionID)
-		contractRun := pg.SandboxRunToContractResult(updated, &quota, &queuedStatus, contracts.FormatOSC7501(queuedStatus))
 		httpkit.WriteJSON(w, http.StatusAccepted, map[string]any{
 			"runId":  updated.RunID,
 			"status": updated.Status,
@@ -154,63 +103,19 @@ func newHandlerWithDeps(deps cadenceServiceDeps) http.Handler {
 		if !ok {
 			return
 		}
-		runID := strings.TrimSpace(r.PathValue("id"))
-		if runID == "" {
-			httpkit.WriteError(w, http.StatusBadRequest, "missing run id")
-			return
-		}
-		headerSession := strings.TrimSpace(r.Header.Get("X-Session-Id"))
-		if headerSession == "" && (claims == nil || strings.TrimSpace(claims.Sub) == "") {
-			logCadenceSeam("UNSOUND_CONDITION", "cadence.stream.session_mismatch_or_missing", "critical", map[string]any{
-				"runId":  runID,
-				"reason": "missing_session",
-			})
-			httpkit.WriteError(w, http.StatusUnauthorized, "missing X-Session-Id header")
-			return
-		}
-		sessionID, authOK := resolveAuthorizedSession(w, r, claims, headerSession, false)
-		if !authOK {
-			return
-		}
 		var req gateVerdictRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			httpkit.WriteError(w, http.StatusBadRequest, "invalid JSON payload")
 			return
 		}
-
-		updated, err := deps.store.UpdateSandboxGateVerdictForSession(
-			r.Context(),
-			runID,
-			sessionID,
-			strings.TrimSpace(req.Verdict),
+		corrID := strings.TrimSpace(r.Header.Get("X-Correlation-Id"))
+		updated, contractRun, svcErr := executeSubmitGateVerdict(
+			r.Context(), deps, claims, r.PathValue("id"), r.Header.Get("X-Session-Id"), req.Verdict, corrID,
 		)
-		if err != nil {
-			switch {
-			case errors.Is(err, pg.ErrInvalidVerdict):
-				httpkit.WriteError(w, http.StatusBadRequest, err.Error())
-			case errors.Is(err, pg.ErrGoldenRunImmutable):
-				logCadenceSeam("UNSOUND_CONDITION", "cadence.gate.golden_mutation_blocked", "critical", map[string]any{
-					"runId": runID,
-				})
-				httpkit.WriteError(w, http.StatusConflict, err.Error())
-			case errors.Is(err, pg.ErrRunNotFound):
-				httpkit.WriteError(w, http.StatusNotFound, err.Error())
-			case errors.Is(err, pg.ErrForbiddenSession):
-				logCadenceSeam("UNSOUND_CONDITION", "cadence.stream.session_mismatch_or_missing", "critical", map[string]any{
-					"runId":  runID,
-					"reason": "gate_session_mismatch",
-				})
-				httpkit.WriteError(w, http.StatusForbidden, err.Error())
-			case errors.Is(err, pg.ErrRunNotReady):
-				httpkit.WriteError(w, http.StatusConflict, err.Error())
-			default:
-				httpkit.WriteError(w, http.StatusInternalServerError, "failed to update gate verdict")
-			}
+		if svcErr != nil {
+			httpkit.WriteError(w, svcErr.HTTPStatus, svcErr.Error.Message)
 			return
 		}
-
-		readyStatus, osc := buildReadyStatus()
-		contractRun := pg.SandboxRunToContractResult(updated, nil, &readyStatus, osc)
 		httpkit.WriteJSON(w, http.StatusOK, map[string]any{
 			"runId":       updated.RunID,
 			"gateVerdict": updated.GateVerdict,
@@ -229,204 +134,47 @@ func newHandlerWithDeps(deps cadenceServiceDeps) http.Handler {
 			httpkit.WriteError(w, http.StatusBadRequest, "invalid JSON payload")
 			return
 		}
-		if err := req.Validate(); err != nil {
-			httpkit.WriteError(w, http.StatusBadRequest, err.Error())
-			return
-		}
-
-		role := contracts.RoleGuest
-		if claims.Role == internalauth.RoleAdmin {
-			role = contracts.RoleAdmin
-		}
 		candidateSession := strings.TrimSpace(req.SessionID)
 		if candidateSession == "" {
 			candidateSession = strings.TrimSpace(r.Header.Get("X-Session-Id"))
 		}
-		sessionID, authOK := resolveAuthorizedSession(w, r, claims, candidateSession, false)
-		if !authOK {
-			return
-		}
-		if sessionID == "" {
-			sessionID = "anonymous"
-		}
-
-		presetSlug := strings.TrimSpace(req.PresetSlug)
-		if presetSlug == "" {
-			if req.DeferExecution {
-				presetSlug = "custom"
-			} else {
-				presetSlug = "chord-decomposition-workbench"
-			}
-		}
-
-		mode := strings.TrimSpace(req.Mode)
-		if mode == "" {
-			mode = contracts.CadenceModeLLM
-		}
-
-		// Compute canonical prompt_hash for auditability; only clone cached runs in fast mode when
-		// human spec approval is NOT required, so live LLM and spec-gated runs always execute fresh.
-		var cacheRes cacheLookupResult
-		if mode == contracts.CadenceModeFast && !req.RequireSpecApproval {
-			var cacheErr error
-			cacheRes, cacheErr = resolveCacheLookupAndClone(
-				r.Context(),
-				deps.store,
-				sessionID,
-				"portal-proxy",
-				presetSlug,
-				mode,
-				strings.TrimSpace(req.Prompt),
-			)
-			if cacheErr == nil && cacheRes.Hit && cacheRes.ClonedRun != nil {
-				quota, _ := deps.store.GetQuotaStatus(r.Context(), role, sessionID)
-				readyStatus, osc := buildReadyStatus()
-				res := pg.SandboxRunToContractResult(cacheRes.ClonedRun, &quota, &readyStatus, osc)
-				httpkit.WriteJSON(w, http.StatusCreated, res)
-				return
-			}
-		} else {
-			cacheRes.PromptHash = computePromptHash(presetSlug, "", mode, strings.TrimSpace(req.Prompt))
-			logCadenceSeam("RULE_DIVERGENCE", "cadence.cache.lookup_outcome", "info", map[string]any{
-				"branch":              "bypass_live_or_gated",
-				"presetSlug":          nonEmptyOr(presetSlug, "custom"),
-				"mode":                mode,
-				"requireSpecApproval": req.RequireSpecApproval,
-			})
-		}
-
-		if req.DeferExecution {
-			pendingRun, quota, allowed, initErr := deps.store.CreatePendingSandboxRunWithQuota(
-				r.Context(),
-				role,
-				sessionID,
-				1,
-				800,
-				pg.PendingSandboxRunInput{
-					SessionID:           sessionID,
-					IPHash:              "portal-proxy",
-					PresetSlug:          presetSlug,
-					Prompt:              strings.TrimSpace(req.Prompt),
-					Mode:                mode,
-					PromptHash:          cacheRes.PromptHash,
-					RequireSpecApproval: req.RequireSpecApproval,
-				},
-			)
-			if initErr != nil {
-				httpkit.WriteError(w, http.StatusInternalServerError, "failed to initialize sandbox run")
-				return
-			}
-			if !allowed {
+		corrID := strings.TrimSpace(r.Header.Get("X-Correlation-Id"))
+		res, createdImmediately, svcErr := executeCreateRun(r.Context(), deps, claims, req, candidateSession, corrID)
+		if svcErr != nil {
+			if svcErr.HTTPStatus == http.StatusTooManyRequests && svcErr.Quota != nil {
 				httpkit.WriteJSON(w, http.StatusTooManyRequests, map[string]any{
-					"error": "Session or daily CADENCE quota exceeded.",
-					"quota": quota,
+					"error": svcErr.Error.Message,
+					"quota": svcErr.Quota,
 				})
 				return
 			}
-			pct := 0
-			queuedStatus := contracts.Osc7501Status{
-				Source:    "cadence-demo",
-				State:     contracts.CadenceStatusRunning,
-				Label:     "CHORD pipeline queued (" + mode + ")",
-				Progress:  &pct,
-				Timestamp: time.Now().UTC(),
-			}
-			res := pg.SandboxRunToContractResult(pendingRun, &quota, &queuedStatus, contracts.FormatOSC7501(queuedStatus))
-			httpkit.WriteJSON(w, http.StatusAccepted, res)
+			httpkit.WriteError(w, svcErr.HTTPStatus, svcErr.Error.Message)
 			return
 		}
-
-		quota, allowed, quotaErr := deps.store.CheckAndConsumeQuota(r.Context(), role, sessionID, 1, 800)
-		if quotaErr != nil {
-			httpkit.WriteError(w, http.StatusInternalServerError, "failed to evaluate quota")
-			return
+		status := http.StatusAccepted
+		if createdImmediately {
+			status = http.StatusCreated
 		}
-		if !allowed {
-			httpkit.WriteJSON(w, http.StatusTooManyRequests, map[string]any{
-				"error": "Session or daily CADENCE quota exceeded.",
-				"quota": quota,
-			})
-			return
-		}
-
-		logCadenceSeam("RULE_DIVERGENCE", "cadence.run.execution_branch", "info", map[string]any{
-			"branch": mode + "-go",
-		})
-
-		execOut, execErr := executeChordStepsWithOptions(r.Context(), chordExecInput{
-			Provider:    deps.provider,
-			VectorStore: deps.vectorStore,
-			Store:       deps.store,
-			PrivacyCfg:  deps.privacyCfg,
-			CorrID:      strings.TrimSpace(r.Header.Get("X-Correlation-Id")),
-			Prompt:      req.Prompt,
-			PresetSlug:  presetSlug,
-			Mode:        mode,
-		})
-		if execErr != nil {
-			if errors.Is(execErr, privacy.ErrPrivacyAborted) {
-				httpkit.WriteError(w, http.StatusForbidden, "output blocked by privacy boundary")
-				return
-			}
-			httpkit.WriteError(w, http.StatusInternalServerError, "failed to execute sandbox run")
-			return
-		}
-
-		runID, err := deps.store.CreateSandboxRun(r.Context(), pg.SandboxRunInput{
-			SessionID:     sessionID,
-			IPHash:        "portal-proxy",
-			MenuSlug:      presetSlug,
-			Prompt:        req.Prompt,
-			Status:        contracts.CadenceStatusReady,
-			GateVerdict:   "pending",
-			TokensIn:      execOut.TokensIn,
-			TokensOut:     execOut.TokensOut,
-			ArtifactHTML:  execOut.ArtifactHTML,
-			PromptHash:    cacheRes.PromptHash,
-			ExecutionMode: execOut.ExecutionMode,
-			SpecJSON:      execOut.Spec,
-			GateAuditJSON: execOut.GateAudit,
-		})
-		if err != nil {
-			httpkit.WriteError(w, http.StatusInternalServerError, "failed to persist sandbox run")
-			return
-		}
-
-		turns := make([]contracts.CadenceTurn, 0, len(execOut.Turns))
-		for _, ti := range execOut.Turns {
-			ti.RunID = runID
-			recorded, turnErr := deps.store.InsertSandboxTurn(r.Context(), ti)
-			if turnErr == nil {
-				turns = append(turns, recorded)
-			}
-		}
-
-		res := contracts.CadenceRunResult{
-			RunID:         runID,
-			Prompt:        req.Prompt,
-			PresetSlug:    presetSlug,
-			RunStatus:     contracts.CadenceStatusReady,
-			Mode:          mode,
-			ExecutionMode: execOut.ExecutionMode,
-			IsGolden:      false,
-			Spec:          execOut.Spec,
-			GateAudit:     execOut.GateAudit,
-			Status:        &execOut.Status,
-			OSC7501:       execOut.OSC7501,
-			GateVerdict:   "pending",
-			Turns:         turns,
-			ArtifactHTML:  execOut.ArtifactHTML,
-			TokensIn:      execOut.TokensIn,
-			TokensOut:     execOut.TokensOut,
-			Quota:         &quota,
-		}
-		httpkit.WriteJSON(w, http.StatusCreated, res)
+		httpkit.WriteJSON(w, status, res)
 	})
 
+	grpcHealthPath, grpcHealthHandler := grpckit.NewHealthHandler("cadence.v1.CadenceService")
+	mux.Handle(grpcHealthPath, grpcHealthHandler)
+	cadencePath, cadenceGRPCHandler := cadencev1connect.NewCadenceServiceHandler(
+		newCadenceConnectServer(deps),
+		grpckit.NewHandlerOptions("")...,
+	)
+	mux.Handle(cadencePath, grpckit.NewGRPCOnlyMiddleware(cadenceGRPCHandler))
 	return mux
 }
 
 func main() {
+	if _, err := internalauth.ResolveSecret(""); err != nil {
+		logCadenceSeam("UNSOUND_CONDITION", "grpc.startup.secret_missing", "critical", map[string]any{
+			"service": "cadence-demo",
+		})
+		log.Fatalf("cadence-demo production auth startup failure: %v", err)
+	}
 	if _, err := llm.ParseVertexThinkingLevel(os.Getenv("VERTEX_THINKING_LEVEL")); err != nil {
 		log.Fatalf("cadence-demo invalid VERTEX_THINKING_LEVEL: %v", err)
 	}
@@ -436,7 +184,7 @@ func main() {
 	}
 	_ = llm.IsDevUnlimitedEnabled()
 
-	store, err := pg.OpenServiceFromEnv(context.Background())
+	store, err := pg.OpenServiceFromEnvCapped(context.Background(), pg.DefaultServiceLazyMaxConns, false)
 	if err != nil {
 		log.Fatalf("cadence-demo failed to initialize PostgreSQL store: %v", err)
 	}
@@ -450,24 +198,9 @@ func main() {
 	}
 	httpHandler := newHandlerWithDeps(deps)
 	addr := httpkit.ListenAddr("8082")
-	grpcAddr := grpckit.GRPCListenAddr()
+	log.Printf("cadence-demo listening on single-port h2c=%s (pgLive=%v)", addr, store.IsLivePG())
 
-	var grpcSrv httpkit.GRPCGracefulServer
-	if grpcAddr != "" {
-		srv, _ := grpckit.NewServer("", "cadence.v1.CadenceService")
-		cadencev1.RegisterCadenceServiceServer(srv, newCadenceGRPCServer(deps))
-		grpcSrv = srv
-		log.Printf("cadence-demo listening on http=%s grpc=%s (pgLive=%v)", addr, grpcAddr, store.IsLivePG())
-	} else {
-		log.Printf("cadence-demo listening on http=%s (gRPC disabled: GRPC_PORT empty, pgLive=%v)", addr, store.IsLivePG())
-	}
-
-	if err := httpkit.ListenAndServeDualGracefulSignals(httpkit.DualServerConfig{
-		HTTPAddr:    addr,
-		HTTPHandler: httpHandler,
-		GRPCAddr:    grpcAddr,
-		GRPCServer:  grpcSrv,
-	}); err != nil {
+	if err := httpkit.ListenAndServeH2CGracefulSignals(addr, httpHandler, 10*time.Second); err != nil {
 		log.Fatal(err)
 	}
 }

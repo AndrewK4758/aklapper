@@ -246,27 +246,14 @@ func (s *Store) ReconcilePartialAbortTurnTx(
 		return s.reconcilePartialAbortMemory(now, attemptID, tokensUsed, code)
 	}
 
-	tx, err := s.pool.Begin(ctx)
+	tx, row, err := s.beginAndLockAskTurn(ctx, attemptID)
 	if err != nil {
 		return contracts.QuotaStatus{}, err
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 
-	row, err := lockAskTurnRow(ctx, tx, attemptID)
-	if err != nil {
-		return contracts.QuotaStatus{}, err
-	}
 	if row.Status != contracts.TurnStatusPending && row.Status != contracts.TurnStatusRunning {
-		sessionKey := "session:" + row.SessionID
-		globalKey := "global:" + row.CreatedAt.UTC().Format("2006-01-02")
-		policy, turnsUsed, sessionTokens, _, qErr := s.lockAndReadQuota(ctx, tx, row.Role, sessionKey, globalKey)
-		if qErr != nil {
-			return contracts.QuotaStatus{}, qErr
-		}
-		if err := tx.Commit(ctx); err != nil {
-			return contracts.QuotaStatus{}, err
-		}
-		return formatQuotaStatus(row.Role, policy, turnsUsed, sessionTokens), nil
+		return s.commitReadOnlyQuotaStatus(ctx, tx, row)
 	}
 
 	sessionKey := "session:" + row.SessionID
@@ -309,22 +296,13 @@ func (s *Store) reconcilePartialAbortMemory(
 	if s == nil {
 		return contracts.QuotaStatus{}, errors.New("store is nil")
 	}
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	rec, ok := s.turns[attemptID]
-	if !ok {
-		return contracts.QuotaStatus{}, ErrTurnNotFound
-	}
-	policy, sb, gb := s.ensureMemStateLocked(rec.Role, rec.SessionID, rec.CreatedAt.UTC().Format("2006-01-02"))
-	if rec.Status != contracts.TurnStatusPending && rec.Status != contracts.TurnStatusRunning {
-		return formatQuotaStatus(rec.Role, policy, sb.turnsUsed, sb.tokensUsed), nil
-	}
-	delta := tokensUsed - rec.TokensReserved
-	sb.tokensUsed = max(0, sb.tokensUsed+delta)
-	gb.tokensUsed = max(0, gb.tokensUsed+delta)
-	rec.Status = contracts.TurnStatusFailed
-	rec.TokensUsed = tokensUsed
-	rec.ErrorCode = errorCode
-	rec.UpdatedAt = now
-	return formatQuotaStatus(rec.Role, policy, sb.turnsUsed, sb.tokensUsed), nil
+	return s.withLockedActiveMemTurn(attemptID, func(rec *TurnRecord, sb, gb *memBucket) {
+		delta := tokensUsed - rec.TokensReserved
+		sb.tokensUsed = max(0, sb.tokensUsed+delta)
+		gb.tokensUsed = max(0, gb.tokensUsed+delta)
+		rec.Status = contracts.TurnStatusFailed
+		rec.TokensUsed = tokensUsed
+		rec.ErrorCode = errorCode
+		rec.UpdatedAt = now
+	})
 }

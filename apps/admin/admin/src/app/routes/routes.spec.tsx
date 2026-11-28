@@ -1,3 +1,6 @@
+import http2 from 'node:http2';
+import type { AddressInfo } from 'node:net';
+
 import {
   type AdminAnalyticsBreakdownsData,
   type AdminAnalyticsSummaryData,
@@ -8,33 +11,42 @@ import {
   type QdrantHealthStatus,
   type StreamResult,
 } from '@aklapper/core';
-import { ADMIN_OPS_TERMINAL_PROFILE, closeSharedDb } from '@aklapper/db';
+import { buildSeedTerminalProfile, TERMINAL_PROFILE_SLUGS } from '@aklapper/core/prerender';
+import { clearGoGrpcTransportCacheForTest, Code, ConnectError } from '@aklapper/node-runtime/grpc';
 import { INTERNAL_AUTH_HEADER, verifyInternalAuthToken } from '@aklapper/node-runtime/http';
 import { requestContextKey } from '@aklapper/node-runtime/ssr/stream';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { createRoutesStub, RouterContextProvider } from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-const authMocks = vi.hoisted(() => ({
-  resolveAdminSessionFromRequest: vi.fn<(request: Request) => Promise<unknown>>(),
+const ADMIN_OPS_TERMINAL_PROFILE = buildSeedTerminalProfile(TERMINAL_PROFILE_SLUGS.adminOps);
+
+const grpcMocks = vi.hoisted(() => ({
+  resolveAdminSessionViaGrpc: vi.fn<(...args: unknown[]) => Promise<unknown>>(),
+  getAdminCmsDataViaGrpc: vi.fn<(...args: unknown[]) => Promise<unknown>>(),
+  listAdminContactSubmissionsViaGrpc: vi.fn<(...args: unknown[]) => Promise<unknown>>(),
+  getAdminAnalyticsSummaryViaGrpc: vi.fn<(...args: unknown[]) => Promise<unknown>>(),
+  getAdminAnalyticsBreakdownsViaGrpc: vi.fn<(...args: unknown[]) => Promise<unknown>>(),
+  getAdminQdrantStatusViaGrpc: vi.fn<(...args: unknown[]) => Promise<QdrantHealthStatus>>(),
 }));
 
-const dbSpies = vi.hoisted(() => ({
-  listContactSubmissions: vi.fn<(...args: unknown[]) => Promise<unknown>>(),
-}));
-
-vi.mock('@aklapper/db', async importOriginal => {
-  const actual = await importOriginal<typeof import('@aklapper/db')>();
+vi.mock('@aklapper/node-runtime/grpc', async importOriginal => {
+  const actual = await importOriginal<typeof import('@aklapper/node-runtime/grpc')>();
   return {
     ...actual,
-    listContactSubmissions: (...args: unknown[]) => {
-      dbSpies.listContactSubmissions(...args);
-      return (actual.listContactSubmissions as (...a: unknown[]) => Promise<unknown>)(...args);
-    },
+    resolveAdminSessionViaGrpc: (...args: unknown[]) =>
+      grpcMocks.resolveAdminSessionViaGrpc(...args),
+    getAdminCmsDataViaGrpc: (...args: unknown[]) => grpcMocks.getAdminCmsDataViaGrpc(...args),
+    listAdminContactSubmissionsViaGrpc: (...args: unknown[]) =>
+      grpcMocks.listAdminContactSubmissionsViaGrpc(...args),
+    getAdminAnalyticsSummaryViaGrpc: (...args: unknown[]) =>
+      grpcMocks.getAdminAnalyticsSummaryViaGrpc(...args),
+    getAdminAnalyticsBreakdownsViaGrpc: (...args: unknown[]) =>
+      grpcMocks.getAdminAnalyticsBreakdownsViaGrpc(...args),
+    getAdminQdrantStatusViaGrpc: (...args: unknown[]) =>
+      grpcMocks.getAdminQdrantStatusViaGrpc(...args),
   };
 });
-
-vi.mock('@aklapper/db/auth', () => authMocks);
 
 import {
   fetchQdrantStatus,
@@ -87,15 +99,8 @@ function makeArgs(
 }
 
 describe('Admin streaming routes, auth guards & SEO', () => {
-  const originalDatabaseUrl = process.env['DATABASE_URL'];
-
-  afterEach(async () => {
-    await closeSharedDb();
-    if (originalDatabaseUrl === undefined) {
-      delete process.env['DATABASE_URL'];
-    } else {
-      process.env['DATABASE_URL'] = originalDatabaseUrl;
-    }
+  afterEach(() => {
+    clearGoGrpcTransportCacheForTest();
     vi.clearAllMocks();
   });
 
@@ -244,7 +249,7 @@ describe('Admin streaming routes, auth guards & SEO', () => {
   });
 
   it('rejects unauthenticated direct loader calls with HTTP 401 across all 6 protected child routes and 2 resource routes', async () => {
-    authMocks.resolveAdminSessionFromRequest.mockResolvedValue(UNAUTH_STATUS);
+    grpcMocks.resolveAdminSessionViaGrpc.mockResolvedValue(UNAUTH_STATUS);
 
     const protectedCalls = [
       () => homeLoader(makeArgs('http://localhost:4301/', '/') as never),
@@ -275,7 +280,7 @@ describe('Admin streaming routes, auth guards & SEO', () => {
     }
   });
 
-  it('classifies auth DB outages to HTTP 503 and settles missing DATABASE_URL lazily into StreamResult failure', async () => {
+  it('classifies auth gRPC outages to HTTP 503 and settles upstream CMS gRPC outages lazily into StreamResult failure', async () => {
     const logger = { info: vi.fn<LogFn>(), warn: vi.fn<LogFn>(), error: vi.fn<LogFn>() };
     const context = new RouterContextProvider();
     context.set(requestContextKey, {
@@ -284,8 +289,8 @@ describe('Admin streaming routes, auth guards & SEO', () => {
       serviceName: 'admin-ssr',
       signal: new AbortController().signal,
     });
-    authMocks.resolveAdminSessionFromRequest.mockRejectedValueOnce(
-      new Error('connection terminated'),
+    grpcMocks.resolveAdminSessionViaGrpc.mockRejectedValueOnce(
+      new ConnectError('admin-api unavailable', Code.Unavailable),
     );
 
     const cmsThrown = await cmsLoader(
@@ -295,8 +300,8 @@ describe('Admin streaming routes, auth guards & SEO', () => {
     expect(dataErr.init?.status).toBe(503);
     expect(isPublicAppError(dataErr.data)).toBe(true);
 
-    authMocks.resolveAdminSessionFromRequest.mockRejectedValueOnce(
-      new Error('connection terminated'),
+    grpcMocks.resolveAdminSessionViaGrpc.mockRejectedValueOnce(
+      new ConnectError('admin-api unavailable', Code.Unavailable),
     );
     const attThrown = await attachmentLoader(
       makeArgs(
@@ -310,9 +315,11 @@ describe('Admin streaming routes, auth guards & SEO', () => {
     expect((attThrown as Response).status).toBe(503);
     expect((attThrown as Response).headers.get('X-Correlation-Id')).toBe('corr-child-503');
 
-    await closeSharedDb();
-    delete process.env['DATABASE_URL'];
-    authMocks.resolveAdminSessionFromRequest.mockResolvedValueOnce(AUTH_STATUS);
+    grpcMocks.resolveAdminSessionViaGrpc.mockResolvedValueOnce(AUTH_STATUS);
+    grpcMocks.getAdminCmsDataViaGrpc.mockRejectedValueOnce(
+      new ConnectError('admin-api unavailable', Code.Unavailable),
+    );
+    grpcMocks.getAdminQdrantStatusViaGrpc.mockResolvedValueOnce(QDRANT_FIXTURE);
     const deferredResult = await cmsLoader(
       makeArgs('http://localhost:4301/cms', '/cms', {}, context) as never,
     );
@@ -321,7 +328,7 @@ describe('Admin streaming routes, auth guards & SEO', () => {
       expect.objectContaining({
         ok: false,
         error: expect.objectContaining({
-          code: 'ERR_DB_UNAVAILABLE',
+          code: 'ERR_UPSTREAM_UNAVAILABLE',
           correlationId: 'corr-child-503',
         }),
       }),
@@ -464,55 +471,110 @@ describe('Admin streaming routes, auth guards & SEO', () => {
     expect(await screen.findByRole('heading', { name: 'Admin Passkey Gate' })).toBeTruthy();
   });
 
-  it('forwards api-key on direct Qdrant probe, honors 90s reindex timeout, and renders multi-collection breakdown', async () => {
-    const prevAiAsk = process.env['AI_ASK_URL'];
-    const prevQdrantUrl = process.env['QDRANT_URL'];
-    const prevQdrantKey = process.env['QDRANT_API_KEY'];
+  function frameGrpcProto(payload: Buffer): Buffer {
+    const frame = Buffer.alloc(5 + payload.length);
+    frame.writeUInt8(0, 0);
+    frame.writeUInt32BE(payload.length, 1);
+    payload.copy(frame, 5);
+    return frame;
+  }
 
-    const seenHeaders: Array<string | null> = [];
-    const seenUrls: string[] = [];
-    const timeoutSpy = vi.spyOn(AbortSignal, 'timeout');
-    let reindexHasSignal = false;
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
-      const url =
-        typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
-      seenUrls.push(url);
-      seenHeaders.push(new Headers(init?.headers).get('api-key'));
-      if (url.endsWith('/collections/portfolio_docs')) {
-        return Response.json({ result: { status: 'green', points_count: 11 } });
-      }
-      if (url.endsWith('/collections/cadence_patterns')) {
-        return Response.json({ result: { status: 'green', points_count: 8 } });
-      }
-      if (url.endsWith('/v1/ask/reindex')) {
-        reindexHasSignal = Boolean(init?.signal);
-        return Response.json({ indexed: 11, collection: 'portfolio_docs', provider: 'local' });
-      }
-      return new Response('not found', { status: 404 });
+  function encodeProtoString(fieldNum: number, value: string): Buffer {
+    const bytes = Buffer.from(value, 'utf8');
+    return Buffer.concat([Buffer.from([(fieldNum << 3) | 2, bytes.length]), bytes]);
+  }
+
+  function encodeProtoVarint(fieldNum: number, value: number): Buffer {
+    return Buffer.from([(fieldNum << 3) | 0, value]);
+  }
+
+  async function startAskAdminH2CServer(
+    onCall: (
+      path: string,
+      headers: http2.IncomingHttpHeaders,
+    ) => { readonly frame: Buffer; readonly grpcStatus?: string },
+  ): Promise<{ readonly baseUrl: string; readonly close: () => Promise<void> }> {
+    const server = http2.createServer();
+    server.on('stream', (stream: http2.ServerHttp2Stream, headers) => {
+      const path = String(headers[':path'] ?? '');
+      stream.on('data', () => undefined);
+      stream.on('end', () => {
+        const reply = onCall(path, headers);
+        stream.respond(
+          { ':status': 200, 'content-type': 'application/grpc+proto' },
+          { waitForTrailers: true },
+        );
+        stream.on('wantTrailers', () => {
+          stream.sendTrailers({ 'grpc-status': reply.grpcStatus ?? '0' });
+        });
+        stream.end(reply.frame);
+      });
+    });
+    await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
+    const addr = server.address() as AddressInfo;
+    return {
+      baseUrl: `http://127.0.0.1:${addr.port}`,
+      close: () => new Promise<void>(resolve => server.close(() => resolve())),
+    };
+  }
+
+  it('delegates multi-collection Qdrant probe to admin-api, honors 90s gRPC reindex timeout, signs X-Internal-Auth, and renders breakdown', async () => {
+    const prevAiAsk = process.env['AI_ASK_URL'];
+    const prevSecret = process.env['INTERNAL_AUTH_SECRET'];
+
+    let reindexGrpcTimeout: string | undefined;
+    let reindexPath = '';
+    let capturedInternalAuth: string | null = null;
+    let capturedCorrelationId: string | null = null;
+
+    const askSrv = await startAskAdminH2CServer((path, headers) => {
+      reindexPath = path;
+      reindexGrpcTimeout = String(headers['grpc-timeout'] ?? '');
+      capturedInternalAuth = String(headers[INTERNAL_AUTH_HEADER.toLowerCase()] ?? '') || null;
+      capturedCorrelationId = String(headers['x-correlation-id'] ?? '') || null;
+      const payload = Buffer.concat([
+        encodeProtoVarint(1, 11),
+        encodeProtoString(3, 'portfolio_docs'),
+        encodeProtoString(5, 'local'),
+      ]);
+      return { frame: frameGrpcProto(payload) };
     });
 
     try {
-      delete process.env['AI_ASK_URL'];
-      process.env['QDRANT_URL'] = 'http://qdrant.local:6333';
-      process.env['QDRANT_API_KEY'] = 'qdrant-secret-api-key';
+      grpcMocks.getAdminQdrantStatusViaGrpc.mockResolvedValueOnce({
+        online: true,
+        collection: 'portfolio_docs',
+        pointsCount: 11,
+        status: 'green',
+        provider: 'ai-ask',
+        collections: [
+          { name: 'portfolio_docs', online: true, status: 'green', pointsCount: 11 },
+          { name: 'cadence_patterns', online: true, status: 'green', pointsCount: 8 },
+        ],
+      });
 
-      const status = await fetchQdrantStatus();
+      const status = await fetchQdrantStatus(AUTH_STATUS.session.sessionId, 'corr-qdrant-multi');
       expect(status.online).toBe(true);
       expect(status.pointsCount).toBe(11);
       expect(status.collections).toEqual([
         { name: 'portfolio_docs', online: true, status: 'green', pointsCount: 11 },
         { name: 'cadence_patterns', online: true, status: 'green', pointsCount: 8 },
       ]);
-      expect(seenUrls).toEqual([
-        'http://qdrant.local:6333/collections/portfolio_docs',
-        'http://qdrant.local:6333/collections/cadence_patterns',
-      ]);
-      expect(seenHeaders).toEqual(['qdrant-secret-api-key', 'qdrant-secret-api-key']);
+      expect(grpcMocks.getAdminQdrantStatusViaGrpc).toHaveBeenCalledWith(
+        AUTH_STATUS.session.sessionId,
+        expect.objectContaining({ correlationId: 'corr-qdrant-multi' }),
+      );
 
-      process.env['AI_ASK_URL'] = 'http://ai-ask.local:8083';
-      const reindex = await triggerQdrantReindex();
-      expect(reindexHasSignal).toBe(true);
-      expect(timeoutSpy).toHaveBeenCalledWith(QDRANT_REINDEX_TIMEOUT_MS);
+      process.env['AI_ASK_URL'] = askSrv.baseUrl;
+      process.env['INTERNAL_AUTH_SECRET'] = 'admin-ops-test-secret';
+      expect(QDRANT_REINDEX_TIMEOUT_MS).toBe(90_000);
+      const reindex = await triggerQdrantReindex('corr-admin-reindex-h2c');
+      expect(reindexPath).toBe('/ai_ask.v1.AskService/Reindex');
+      expect(reindexGrpcTimeout).toBe('90000m');
+      expect(capturedCorrelationId).toBe('corr-admin-reindex-h2c');
+      const claims = verifyInternalAuthToken(capturedInternalAuth, 'admin-ops-test-secret');
+      expect(claims?.role).toBe('admin');
+      expect(claims?.sub).toBe('admin-console-reindex');
       expect(reindex).toEqual({
         ok: true,
         indexed: 11,
@@ -543,112 +605,12 @@ describe('Admin streaming routes, auth guards & SEO', () => {
       expect(await screen.findByText('8 pts (green)')).toBeTruthy();
       expect(screen.getByText('11 pts (green)')).toBeTruthy();
     } finally {
-      timeoutSpy.mockRestore();
-      fetchSpy.mockRestore();
+      await askSrv.close();
+      clearGoGrpcTransportCacheForTest();
       if (prevAiAsk === undefined) delete process.env['AI_ASK_URL'];
       else process.env['AI_ASK_URL'] = prevAiAsk;
-      if (prevQdrantUrl === undefined) delete process.env['QDRANT_URL'];
-      else process.env['QDRANT_URL'] = prevQdrantUrl;
-      if (prevQdrantKey === undefined) delete process.env['QDRANT_API_KEY'];
-      else process.env['QDRANT_API_KEY'] = prevQdrantKey;
-    }
-  });
-
-  it('probes direct Qdrant Cloud with api-key header, skips GCP OIDC JWTs, and logs BOUNDARY_FAULT on 401/404', async () => {
-    const origAiAsk = process.env['AI_ASK_URL'];
-    const origQdrantUrl = process.env['QDRANT_URL'];
-    const origQdrantKey = process.env['QDRANT_API_KEY'];
-    const requests: Array<{ url: string; apiKey: string | null; authorization: string | null }> =
-      [];
-    let failWithAuthError = false;
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
-      const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
-      const headers = new Headers(init?.headers);
-      requests.push({
-        url,
-        apiKey: headers.get('api-key'),
-        authorization: headers.get('authorization'),
-      });
-      if (failWithAuthError) {
-        return new Response('unauthorized', { status: 401 });
-      }
-      return Response.json({ result: { status: 'green', points_count: 14 } });
-    });
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-
-    try {
-      delete process.env['AI_ASK_URL'];
-      process.env['QDRANT_URL'] = 'https://cluster.example.qdrant.io';
-      process.env['QDRANT_API_KEY'] = 'qdrant-cloud-secret';
-
-      const okStatus = await fetchQdrantStatus();
-      expect(okStatus.online).toBe(true);
-      expect(okStatus.collection).toBe('portfolio_docs');
-      expect(okStatus.pointsCount).toBe(14);
-      expect(requests[0]).toEqual({
-        url: 'https://cluster.example.qdrant.io/collections/portfolio_docs',
-        apiKey: 'qdrant-cloud-secret',
-        authorization: null,
-      });
-
-      failWithAuthError = true;
-      const failedStatus = await fetchQdrantStatus();
-      expect(failedStatus.online).toBe(false);
-      expect(failedStatus.status).toBe('error');
-      expect(warnSpy).toHaveBeenCalledWith(
-        expect.stringContaining('admin.qdrant_probe.auth_or_collection'),
-      );
-      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('BOUNDARY_FAULT'));
-    } finally {
-      fetchSpy.mockRestore();
-      warnSpy.mockRestore();
-      if (origAiAsk === undefined) delete process.env['AI_ASK_URL'];
-      else process.env['AI_ASK_URL'] = origAiAsk;
-      if (origQdrantUrl === undefined) delete process.env['QDRANT_URL'];
-      else process.env['QDRANT_URL'] = origQdrantUrl;
-      if (origQdrantKey === undefined) delete process.env['QDRANT_API_KEY'];
-      else process.env['QDRANT_API_KEY'] = origQdrantKey;
-    }
-  });
-
-  it('signs X-Internal-Auth admin token when probing AI_ASK_URL /v1/ask/status', async () => {
-    const origAiAsk = process.env['AI_ASK_URL'];
-    const origQdrantUrl = process.env['QDRANT_URL'];
-    const origSecret = process.env['INTERNAL_AUTH_SECRET'];
-    let capturedInternalAuth: string | null = null;
-    let capturedUrl = '';
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
-      capturedUrl =
-        typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
-      capturedInternalAuth = new Headers(init?.headers).get(INTERNAL_AUTH_HEADER);
-      return Response.json({
-        status: 'ready',
-        provider: 'vertex',
-        pgConnected: true,
-        collection: { name: 'portfolio_docs', status: 'green', pointsCount: 9 },
-      });
-    });
-
-    try {
-      delete process.env['QDRANT_URL'];
-      process.env['AI_ASK_URL'] = 'http://127.0.0.1:8083';
-      process.env['INTERNAL_AUTH_SECRET'] = 'admin-ops-test-secret';
-
-      const status = await fetchQdrantStatus();
-      expect(status.online).toBe(true);
-      expect(status.pointsCount).toBe(9);
-      expect(capturedUrl).toBe('http://127.0.0.1:8083/v1/ask/status');
-      const claims = verifyInternalAuthToken(capturedInternalAuth, 'admin-ops-test-secret');
-      expect(claims?.role).toBe('admin');
-      expect(claims?.sub).toBe('admin-console-status');
-    } finally {
-      fetchSpy.mockRestore();
-      if (origAiAsk === undefined) delete process.env['AI_ASK_URL'];
-      else process.env['AI_ASK_URL'] = origAiAsk;
-      if (origQdrantUrl === undefined) delete process.env['QDRANT_URL'];
-      else process.env['QDRANT_URL'] = origQdrantUrl;
-      if (origSecret === undefined) delete process.env['INTERNAL_AUTH_SECRET'];
-      else process.env['INTERNAL_AUTH_SECRET'] = origSecret;
+      if (prevSecret === undefined) delete process.env['INTERNAL_AUTH_SECRET'];
+      else process.env['INTERNAL_AUTH_SECRET'] = prevSecret;
     }
   });
 
@@ -752,106 +714,107 @@ describe('Admin streaming routes, auth guards & SEO', () => {
   });
 
   it('parses all 7 analytics URL filters, emits UNSOUND_CONDITION on clamped params, and forwards selectedId on /inbox', async () => {
-    const origPrerender = process.env['IS_RR_BUILD_REQUEST'];
-    const origDbUrl = process.env['DATABASE_URL'];
-    try {
-      await closeSharedDb();
-      delete process.env['DATABASE_URL'];
-      process.env['IS_RR_BUILD_REQUEST'] = 'yes';
-      authMocks.resolveAdminSessionFromRequest.mockResolvedValue(AUTH_STATUS);
+    grpcMocks.resolveAdminSessionViaGrpc.mockResolvedValue(AUTH_STATUS);
+    grpcMocks.getAdminAnalyticsSummaryViaGrpc.mockImplementation(
+      async (_sid: unknown, filter: unknown) => ({
+        content: ADMIN_ANALYTICS_FIXTURE.content,
+        window: ADMIN_ANALYTICS_FIXTURE.window,
+        filters: filter,
+        totalSessions: ADMIN_ANALYTICS_FIXTURE.totalSessions,
+        totalEvents: ADMIN_ANALYTICS_FIXTURE.totalEvents,
+        summary: ADMIN_ANALYTICS_FIXTURE.summary,
+        cwv: ADMIN_ANALYTICS_FIXTURE.cwv,
+        aiMetrics: ADMIN_ANALYTICS_FIXTURE.aiMetrics,
+      }),
+    );
+    grpcMocks.getAdminAnalyticsBreakdownsViaGrpc.mockResolvedValue({
+      topPaths: ADMIN_ANALYTICS_FIXTURE.topPaths,
+      topReferrers: ADMIN_ANALYTICS_FIXTURE.topReferrers,
+      geoBreakdown: ADMIN_ANALYTICS_FIXTURE.geoBreakdown,
+      agensiConversions: ADMIN_ANALYTICS_FIXTURE.agensiConversions,
+    });
+    grpcMocks.listAdminContactSubmissionsViaGrpc.mockResolvedValue(ADMIN_INBOX_FIXTURE);
 
-      const logger = { info: vi.fn<LogFn>(), warn: vi.fn<LogFn>(), error: vi.fn<LogFn>() };
-      const context = new RouterContextProvider();
-      context.set(requestContextKey, {
+    const logger = { info: vi.fn<LogFn>(), warn: vi.fn<LogFn>(), error: vi.fn<LogFn>() };
+    const context = new RouterContextProvider();
+    context.set(requestContextKey, {
+      correlationId: 'corr-filter-clamp',
+      logger,
+      serviceName: 'admin-ssr',
+      signal: new AbortController().signal,
+    });
+
+    const clampedStream = await analyticsLoader(
+      makeArgs(
+        'http://localhost:4301/analytics?window=999y&bots=invalid&identified=nope&country=US&source=linkedin.com',
+        '/analytics',
+        {},
+        context,
+      ) as never,
+    );
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        seam_type: 'UNSOUND_CONDITION',
+        event: 'admin.analytics.invalid_filter_clamped',
         correlationId: 'corr-filter-clamp',
-        logger,
-        serviceName: 'admin-ssr',
-        signal: new AbortController().signal,
-      });
+        clampedFields: expect.arrayContaining(['window', 'bots', 'identified']),
+      }),
+      expect.any(String),
+    );
+    expect(clampedStream.filter).toEqual({
+      window: '7d',
+      bots: 'exclude',
+      identified: 'all',
+      country: 'US',
+      source: 'linkedin.com',
+    });
+    const [resolvedSummary, resolvedBreakdowns] = await Promise.all([
+      clampedStream.summaryPayload,
+      clampedStream.breakdownsPayload,
+    ]);
+    expect(resolvedSummary).toMatchObject({
+      ok: true,
+      data: { filters: clampedStream.filter },
+    });
+    expect(resolvedBreakdowns.ok).toBe(true);
 
-      const clampedStream = await analyticsLoader(
-        makeArgs(
-          'http://localhost:4301/analytics?window=999y&bots=invalid&identified=nope&country=US&source=linkedin.com',
-          '/analytics',
-          {},
-          context,
-        ) as never,
-      );
-      expect(logger.warn).toHaveBeenCalledWith(
-        expect.objectContaining({
-          seam_type: 'UNSOUND_CONDITION',
-          event: 'admin.analytics.invalid_filter_clamped',
-          correlationId: 'corr-filter-clamp',
-          clampedFields: expect.arrayContaining(['window', 'bots', 'identified']),
-        }),
-        expect.any(String),
-      );
-      expect(clampedStream.filter).toEqual({
-        window: '7d',
-        bots: 'exclude',
-        identified: 'all',
-        country: 'US',
-        source: 'linkedin.com',
-      });
-      const [resolvedSummary, resolvedBreakdowns] = await Promise.all([
-        clampedStream.summaryPayload,
-        clampedStream.breakdownsPayload,
-      ]);
-      expect(resolvedSummary).toMatchObject({
-        ok: true,
-        data: { filters: clampedStream.filter },
-      });
-      expect(resolvedBreakdowns.ok).toBe(true);
+    const validStream = await analyticsLoader(
+      makeArgs(
+        'http://localhost:4301/analytics?window=30d&bots=include&identified=true&path=/about&campaign=fall26',
+        '/analytics',
+        {},
+        context,
+      ) as never,
+    );
+    expect(validStream.filter).toEqual({
+      window: '30d',
+      bots: 'include',
+      identified: 'true',
+      path: '/about',
+      campaign: 'fall26',
+    });
+    await Promise.all([validStream.summaryPayload, validStream.breakdownsPayload]);
 
-      const validStream = await analyticsLoader(
-        makeArgs(
-          'http://localhost:4301/analytics?window=30d&bots=include&identified=true&path=/about&campaign=fall26',
-          '/analytics',
-          {},
-          context,
-        ) as never,
-      );
-      expect(validStream.filter).toEqual({
-        window: '30d',
-        bots: 'include',
-        identified: 'true',
-        path: '/about',
-        campaign: 'fall26',
-      });
-      await Promise.all([validStream.summaryPayload, validStream.breakdownsPayload]);
-
-      // Verify /inbox loader forwards ?selected=<uuid> into listContactSubmissions
-      const targetUuid = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
-      const origUrlForInbox = origDbUrl;
-      if (origUrlForInbox) {
-        process.env['DATABASE_URL'] = origUrlForInbox;
-      } else {
-        process.env['DATABASE_URL'] = 'postgres://postgres:postgres@127.0.0.1:1/unused';
-      }
-      const inboxStream = await inboxLoader(
-        makeArgs(
-          `http://localhost:4301/inbox?q=ada&page=2&selected=${targetUuid}`,
-          '/inbox',
-          {},
-          context,
-        ) as never,
-      );
-      await inboxStream.payload;
-      expect(dbSpies.listContactSubmissions).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({
-          query: 'ada',
-          page: 2,
-          pageSize: 20,
-          selectedId: targetUuid,
-        }),
-      );
-    } finally {
-      await closeSharedDb();
-      if (origPrerender === undefined) delete process.env['IS_RR_BUILD_REQUEST'];
-      else process.env['IS_RR_BUILD_REQUEST'] = origPrerender;
-      if (origDbUrl === undefined) delete process.env['DATABASE_URL'];
-      else process.env['DATABASE_URL'] = origDbUrl;
-    }
+    // Verify /inbox loader forwards ?selected=<uuid> into listAdminContactSubmissionsViaGrpc
+    const targetUuid = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    const inboxStream = await inboxLoader(
+      makeArgs(
+        `http://localhost:4301/inbox?q=ada&page=2&selected=${targetUuid}`,
+        '/inbox',
+        {},
+        context,
+      ) as never,
+    );
+    await inboxStream.payload;
+    expect(grpcMocks.listAdminContactSubmissionsViaGrpc).toHaveBeenCalledWith(
+      AUTH_STATUS.session.sessionId,
+      expect.objectContaining({
+        query: 'ada',
+        page: 2,
+        pageSize: 20,
+        selectedId: targetUuid,
+      }),
+      expect.objectContaining({ correlationId: 'corr-filter-clamp' }),
+    );
   });
 });

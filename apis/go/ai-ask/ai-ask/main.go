@@ -2,11 +2,9 @@ package main
 
 import (
 	"context"
-	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -14,7 +12,7 @@ import (
 	"time"
 
 	"github.com/AndrewK4758/aklapper/packages/go/kit/contracts"
-	ai_askv1 "github.com/AndrewK4758/aklapper/packages/go/kit/gen/ai_ask/v1"
+	"github.com/AndrewK4758/aklapper/packages/go/kit/gen/ai_ask/v1/ai_askv1connect"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/grpckit"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/httpkit"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/internalauth"
@@ -50,21 +48,13 @@ func stringFromPayload(payload map[string]any, key, fallback string) string {
 	return fallback
 }
 
-func newUUIDv4() string {
-	var b [16]byte
-	_, _ = rand.Read(b[:])
-	b[6] = (b[6] & 0x0f) | 0x40
-	b[8] = (b[8] & 0x3f) | 0x80
-	return fmt.Sprintf("%08x-%04x-%04x-%04x-%012x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:16])
-}
-
 func extractCorrelationID(r *http.Request) string {
 	if r != nil {
 		if c := strings.TrimSpace(r.Header.Get("X-Correlation-Id")); c != "" && len(c) <= 128 {
 			return c
 		}
 	}
-	return newUUIDv4()
+	return contracts.NewUUIDv4()
 }
 
 func hashPrompt(mode, text string) string {
@@ -186,11 +176,23 @@ func newHandlerWithDeps(deps askStreamDeps, syncWait time.Duration) http.Handler
 	mux.HandleFunc("POST /v1/ask", handleAskPost(deps.provider, deps.vectorStore, deps.store, deps.privacyCfg, syncWait))
 	mux.HandleFunc("POST /v1/ask/stream", handleAskStreamPost(deps))
 	mux.HandleFunc("GET /v1/ask/turns/{attemptId}", handleTurnLookup(deps.store))
+
+	grpcHealthPath, grpcHealthHandler := grpckit.NewHealthHandler("ai_ask.v1.AskService")
+	mux.Handle(grpcHealthPath, grpcHealthHandler)
+	askPath, askGRPCHandler := ai_askv1connect.NewAskServiceHandler(
+		newAskConnectServer(deps, syncWait),
+		grpckit.NewHandlerOptions("")...,
+	)
+	mux.Handle(askPath, grpckit.NewGRPCOnlyMiddleware(askGRPCHandler))
 	return mux
 }
 
 func main() {
 	if _, err := internalauth.ResolveSecret(""); err != nil {
+		logAskEvent("grpc.startup.secret_missing", map[string]any{
+			"seam_type": "UNSOUND_CONDITION",
+			"service":   "ai-ask",
+		})
 		log.Fatalf("ai-ask production auth startup failure: %v", err)
 	}
 	if _, err := llm.ParseVertexThinkingLevel(os.Getenv("VERTEX_THINKING_LEVEL")); err != nil {
@@ -208,7 +210,7 @@ func main() {
 	// Evaluate AI_DEV_UNLIMITED once at startup so invalid prod/vertex overrides log loudly.
 	_ = llm.IsDevUnlimitedEnabled()
 
-	store, err := pg.OpenFromEnvStrict(context.Background())
+	store, err := pg.OpenServiceFromEnvCapped(context.Background(), pg.DefaultServiceLazyMaxConns, true)
 	if err != nil {
 		log.Fatalf("ai-ask strict postgres startup failure: %v", err)
 	}
@@ -225,24 +227,9 @@ func main() {
 	}
 	httpHandler := newHandlerWithDeps(deps, defaultSyncWaitWindow)
 	addr := httpkit.ListenAddr("8083")
-	grpcAddr := grpckit.GRPCListenAddr()
+	log.Printf("ai-ask listening on single-port h2c=%s (pgLive=%v)", addr, store.IsLivePG())
 
-	var grpcSrv httpkit.GRPCGracefulServer
-	if grpcAddr != "" {
-		srv, _ := grpckit.NewServer("", "ai_ask.v1.AskService")
-		ai_askv1.RegisterAskServiceServer(srv, newAskGRPCServer(deps))
-		grpcSrv = srv
-		log.Printf("ai-ask listening on http=%s grpc=%s (pgLive=%v)", addr, grpcAddr, store.IsLivePG())
-	} else {
-		log.Printf("ai-ask listening on http=%s (gRPC disabled: GRPC_PORT empty, pgLive=%v)", addr, store.IsLivePG())
-	}
-
-	if err := httpkit.ListenAndServeDualGracefulSignals(httpkit.DualServerConfig{
-		HTTPAddr:    addr,
-		HTTPHandler: httpHandler,
-		GRPCAddr:    grpcAddr,
-		GRPCServer:  grpcSrv,
-	}); err != nil {
+	if err := httpkit.ListenAndServeH2CGracefulSignals(addr, httpHandler, 10*time.Second); err != nil {
 		log.Fatal(err)
 	}
 }

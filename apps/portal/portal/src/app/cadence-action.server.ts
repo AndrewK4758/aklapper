@@ -1,24 +1,12 @@
+import { type AppErrorCode, CadenceRunRequestSchema, type QuotaStatus } from '@aklapper/core';
 import {
-  type AppErrorCode,
-  CadenceRunRequestSchema,
-  CadenceRunResultSchema,
-  type QuotaStatus,
-  QuotaStatusSchema,
-} from '@aklapper/core';
-import { classifyServerError } from '@aklapper/core/server-errors';
-import {
-  approveSandboxRunSpecForSession,
-  clearSandboxRunsForSession,
-  cloneCachedSandboxRunForSession,
-  createPendingSandboxRunWithQuota,
-  findCachedSandboxRun,
-  getQuotaStatusForSession,
-  getSharedDb,
-  GoldenRunImmutableError,
-  updateSandboxRunGateVerdictForSession,
-} from '@aklapper/db';
-import { proxyJson } from '@aklapper/node-runtime/http';
-import { logDiagnosticError, type SsrStructuredLogger } from '@aklapper/node-runtime/ssr/stream';
+  approveCadenceSpecGate,
+  classifyGrpcError,
+  clearCadenceSessionRuns,
+  createCadenceRun,
+  submitCadenceGateVerdict,
+} from '@aklapper/node-runtime/grpc';
+import type { SsrStructuredLogger } from '@aklapper/node-runtime/ssr/stream';
 import { data } from 'react-router';
 
 import type { PortalCadenceActionResult } from '#pages/cadence';
@@ -55,29 +43,6 @@ function logGateUnsound(runId: string, reason: string): void {
   );
 }
 
-const HTTP_STATUS_ERROR_CODES: Readonly<Record<number, AppErrorCode>> = {
-  400: 'ERR_VALIDATION',
-  401: 'ERR_UNAUTHORIZED',
-  403: 'ERR_FORBIDDEN',
-  404: 'ERR_NOT_FOUND',
-  409: 'ERR_CONSTRAINT',
-  422: 'ERR_VALIDATION',
-  429: 'ERR_RATE_LIMITED',
-};
-
-function mapHttpStatusToErrorCode(status: number): AppErrorCode {
-  return (
-    HTTP_STATUS_ERROR_CODES[status] ?? (status >= 500 ? 'ERR_UPSTREAM_UNAVAILABLE' : 'ERR_INTERNAL')
-  );
-}
-
-function makeUpstreamStatusError(
-  status: number,
-  message: string,
-): Error & { status: number; statusText: string; data: null } {
-  return Object.assign(new Error(message), { status, statusText: message, data: null });
-}
-
 function actionError(
   intent: 'run' | 'gate' | 'spec-approve' | 'reset',
   status: number,
@@ -92,38 +57,49 @@ function actionError(
   );
 }
 
-export function classifyCadenceActionFailure(
-  error: unknown,
+function unavailableResponse(
   intent: 'run' | 'gate' | 'spec-approve' | 'reset',
-  correlationId: string,
-  logger: SsrStructuredLogger,
-  headers: Record<string, string>,
+  ctx: CadenceActionContext,
 ) {
-  const { publicError, diagnostic } = classifyServerError(error, {
-    correlationId,
-    source: `portal.cadence.${intent}`,
-  });
-  logDiagnosticError(logger, diagnostic);
   return actionError(
     intent,
-    publicError.status,
-    publicError.message,
-    publicError.code,
-    {
-      correlationId: publicError.correlationId,
-      headers,
-    },
-    { action: publicError.action },
+    503,
+    'Upstream service unreachable.',
+    'ERR_UPSTREAM_UNAVAILABLE',
+    ctx,
+    { action: 'Retry shortly or go home.' },
   );
 }
 
 export async function handleCadenceResetAction(ctx: CadenceActionContext) {
-  const { sessionId, correlationId, logger, headers } = ctx;
+  const { sessionId, correlationId, logger, headers, cadenceDemoUrl } = ctx;
+  if (!cadenceDemoUrl) {
+    return unavailableResponse('reset', ctx);
+  }
   try {
-    await clearSandboxRunsForSession(getSharedDb(), sessionId);
+    await clearCadenceSessionRuns({
+      baseUrl: cadenceDemoUrl,
+      internalAuth: { role: 'guest', subject: sessionId },
+      correlationId,
+      timeoutMs: 6_000,
+      logger,
+    });
     return data<PortalCadenceActionResult>({ ok: true, intent: 'reset' }, { status: 200, headers });
   } catch (error) {
-    return classifyCadenceActionFailure(error, 'reset', correlationId, logger, headers);
+    const failure = classifyGrpcError(error, {
+      correlationId,
+      source: 'portal.cadence.reset',
+      normalizeUnavailableStatus: 503,
+      logger,
+    });
+    return actionError(
+      'reset',
+      failure.publicError.status,
+      failure.publicError.message,
+      failure.publicError.code,
+      ctx,
+      { action: failure.publicError.action },
+    );
   }
 }
 
@@ -135,120 +111,44 @@ export async function handleCadenceGateAction(formData: FormData, ctx: CadenceAc
   if (!UUID_RE.test(runId) || (rawVerdict !== 'approved' && rawVerdict !== 'rejected')) {
     return actionError('gate', 400, 'Invalid runId or gate verdict.', 'ERR_VALIDATION', ctx);
   }
-
-  if (cadenceDemoUrl) {
-    let upstream: Awaited<ReturnType<typeof proxyJson<Record<string, unknown>>>>;
-    try {
-      upstream = await proxyJson<Record<string, unknown>>({
-        baseUrl: cadenceDemoUrl,
-        path: `/v1/cadence/runs/${encodeURIComponent(runId)}/gate`,
-        method: 'POST',
-        headers: { 'x-session-id': sessionId, 'X-Correlation-Id': correlationId },
-        body: { verdict: rawVerdict },
-        timeoutMs: 6_000,
-        internalAuth: { role: 'guest', subject: sessionId },
-      });
-    } catch (error) {
-      return classifyCadenceActionFailure(error, 'gate', correlationId, logger, headers);
-    }
-
-    if (upstream.status !== 502 && upstream.status !== 504) {
-      if (!upstream.ok) {
-        if (upstream.status === 403) {
-          logGateUnsound(runId, 'upstream_gate_forbidden');
-        }
-        if (upstream.status >= 500) {
-          return classifyCadenceActionFailure(
-            makeUpstreamStatusError(upstream.status, upstream.error ?? 'Upstream gate failed.'),
-            'gate',
-            correlationId,
-            logger,
-            headers,
-          );
-        }
-        const msg =
-          typeof upstream.data?.['error'] === 'string'
-            ? upstream.data['error']
-            : 'Upstream gate update failed.';
-        return actionError(
-          'gate',
-          upstream.status,
-          msg,
-          mapHttpStatusToErrorCode(upstream.status),
-          ctx,
-        );
-      }
-
-      const parsed = CadenceRunResultSchema.safeParse(upstream.data?.['run']);
-      if (!parsed.success) {
-        return actionError(
-          'gate',
-          502,
-          'Upstream gate payload failed contract validation.',
-          'ERR_UPSTREAM_UNAVAILABLE',
-          ctx,
-          { action: 'Retry shortly.' },
-        );
-      }
-
-      return data<PortalCadenceActionResult>(
-        { ok: true, intent: 'gate', run: parsed.data },
-        { status: 200, headers },
-      );
-    }
+  if (!cadenceDemoUrl) {
+    return unavailableResponse('gate', ctx);
   }
 
   try {
-    const db = getSharedDb();
-    const result = await updateSandboxRunGateVerdictForSession(db, runId, rawVerdict, sessionId);
-    if (result.outcome === 'not-found') {
-      return actionError('gate', 404, 'Sandbox run not found.', 'ERR_NOT_FOUND', ctx);
-    }
-    if (result.outcome === 'forbidden') {
-      logGateUnsound(runId, 'gate_session_mismatch');
-      return actionError(
-        'gate',
-        403,
-        'Sandbox run belongs to a different session.',
-        'ERR_FORBIDDEN',
-        ctx,
-      );
-    }
-    if (result.outcome === 'conflict') {
-      return actionError(
-        'gate',
-        409,
-        `Run is currently "${result.status}" and cannot accept a gate verdict yet.`,
-        'ERR_CONSTRAINT',
-        ctx,
-      );
-    }
-
+    const res = await submitCadenceGateVerdict(
+      {
+        baseUrl: cadenceDemoUrl,
+        internalAuth: { role: 'guest', subject: sessionId },
+        correlationId,
+        timeoutMs: 6_000,
+        logger,
+      },
+      runId,
+      rawVerdict,
+    );
     return data<PortalCadenceActionResult>(
-      { ok: true, intent: 'gate', run: result.run },
+      { ok: true, intent: 'gate', run: res.run },
       { status: 200, headers },
     );
   } catch (error) {
-    if (error instanceof GoldenRunImmutableError) {
-      logger.warn(
-        {
-          seam_type: 'UNSOUND_CONDITION',
-          event: 'cadence.gate.golden_mutation_blocked',
-          runId: error.runId,
-          correlationId,
-        },
-        'Blocked portal gate update against read-only Golden showcase run',
-      );
-      return actionError(
-        'gate',
-        409,
-        'Golden showcase runs are read-only and cannot be mutated.',
-        'ERR_CONSTRAINT',
-        ctx,
-        { action: 'Run your own prompt to test gate approvals.' },
-      );
+    const failure = classifyGrpcError(error, {
+      correlationId,
+      source: 'portal.cadence.gate',
+      normalizeUnavailableStatus: 503,
+      logger,
+    });
+    if (failure.publicError.status === 403) {
+      logGateUnsound(runId, 'upstream_gate_forbidden');
     }
-    return classifyCadenceActionFailure(error, 'gate', correlationId, logger, headers);
+    return actionError(
+      'gate',
+      failure.publicError.status,
+      failure.publicError.message,
+      failure.publicError.code,
+      ctx,
+      { action: failure.publicError.action },
+    );
   }
 }
 
@@ -268,116 +168,45 @@ export async function handleCadenceSpecApproveAction(
       ctx,
     );
   }
-
-  if (cadenceDemoUrl) {
-    let upstream: Awaited<ReturnType<typeof proxyJson<Record<string, unknown>>>>;
-    try {
-      upstream = await proxyJson<Record<string, unknown>>({
-        baseUrl: cadenceDemoUrl,
-        path: `/v1/cadence/runs/${encodeURIComponent(runId)}/spec-gate`,
-        method: 'POST',
-        headers: { 'x-session-id': sessionId, 'X-Correlation-Id': correlationId },
-        body: { approved: true },
-        timeoutMs: 8_000,
-        internalAuth: { role: 'guest', subject: sessionId },
-      });
-    } catch (error) {
-      return classifyCadenceActionFailure(error, 'spec-approve', correlationId, logger, headers);
-    }
-
-    if (upstream.status !== 502 && upstream.status !== 504) {
-      if (!upstream.ok) {
-        if (upstream.status >= 500) {
-          return classifyCadenceActionFailure(
-            makeUpstreamStatusError(
-              upstream.status,
-              upstream.error ?? 'Upstream spec approval failed.',
-            ),
-            'spec-approve',
-            correlationId,
-            logger,
-            headers,
-          );
-        }
-        const msg =
-          typeof upstream.data?.['error'] === 'string'
-            ? upstream.data['error']
-            : 'Upstream spec approval rejected.';
-        return actionError(
-          'spec-approve',
-          upstream.status,
-          msg,
-          mapHttpStatusToErrorCode(upstream.status),
-          ctx,
-        );
-      }
-
-      const parsedRun = CadenceRunResultSchema.safeParse(upstream.data?.['run']);
-      const parsedQuota = QuotaStatusSchema.safeParse(upstream.data?.['quota']);
-      if (!parsedRun.success) {
-        return actionError(
-          'spec-approve',
-          502,
-          'Upstream spec approval payload failed contract validation.',
-          'ERR_UPSTREAM_UNAVAILABLE',
-          ctx,
-          { action: 'Retry shortly.' },
-        );
-      }
-
-      return data<PortalCadenceActionResult>(
-        {
-          ok: true,
-          intent: 'spec-approve',
-          run: parsedRun.data,
-          ...(parsedQuota.success ? { quota: parsedQuota.data } : {}),
-        },
-        { status: 202, headers },
-      );
-    }
+  if (!cadenceDemoUrl) {
+    return unavailableResponse('spec-approve', ctx);
   }
 
   try {
-    const db = getSharedDb();
-    const result = await approveSandboxRunSpecForSession(db, runId, sessionId);
-    if (result.outcome === 'not-found') {
-      return actionError('spec-approve', 404, 'Sandbox run not found.', 'ERR_NOT_FOUND', ctx);
-    }
-    if (result.outcome === 'forbidden') {
-      return actionError(
-        'spec-approve',
-        403,
-        'Sandbox run belongs to a different session.',
-        'ERR_FORBIDDEN',
-        ctx,
-      );
-    }
-    if (result.outcome === 'conflict') {
-      return actionError(
-        'spec-approve',
-        409,
-        `Run is currently "${result.status}" and is not awaiting spec approval.`,
-        'ERR_CONSTRAINT',
-        ctx,
-      );
-    }
-
-    const quota = await getQuotaStatusForSession(db, 'guest', sessionId);
+    const res = await approveCadenceSpecGate(
+      {
+        baseUrl: cadenceDemoUrl,
+        internalAuth: { role: 'guest', subject: sessionId },
+        correlationId,
+        timeoutMs: 8_000,
+        logger,
+      },
+      runId,
+    );
     return data<PortalCadenceActionResult>(
-      { ok: true, intent: 'spec-approve', run: { ...result.run, quota }, quota },
+      {
+        ok: true,
+        intent: 'spec-approve',
+        run: res.run,
+        ...(res.quota ? { quota: res.quota } : {}),
+      },
       { status: 202, headers },
     );
   } catch (error) {
-    if (error instanceof GoldenRunImmutableError) {
-      return actionError(
-        'spec-approve',
-        409,
-        'Golden showcase runs are read-only and cannot be mutated.',
-        'ERR_CONSTRAINT',
-        ctx,
-      );
-    }
-    return classifyCadenceActionFailure(error, 'spec-approve', correlationId, logger, headers);
+    const failure = classifyGrpcError(error, {
+      correlationId,
+      source: 'portal.cadence.spec-approve',
+      normalizeUnavailableStatus: 503,
+      logger,
+    });
+    return actionError(
+      'spec-approve',
+      failure.publicError.status,
+      failure.publicError.message,
+      failure.publicError.code,
+      ctx,
+      { action: failure.publicError.action },
+    );
   }
 }
 
@@ -410,171 +239,66 @@ export async function handleCadenceRunAction(formData: FormData, ctx: CadenceAct
     );
   }
 
+  if (!cadenceDemoUrl) {
+    return unavailableResponse('run', ctx);
+  }
+
   const resolvedMode = validatedReq.data.mode ?? 'fast';
-
-  if (cadenceDemoUrl) {
-    let upstream: Awaited<ReturnType<typeof proxyJson<Record<string, unknown>>>>;
-    try {
-      upstream = await proxyJson<Record<string, unknown>>({
+  try {
+    const res = await createCadenceRun(
+      {
         baseUrl: cadenceDemoUrl,
-        path: '/v1/cadence/runs',
-        method: 'POST',
-        headers: { 'x-session-id': sessionId, 'X-Correlation-Id': correlationId },
-        body: validatedReq.data,
-        timeoutMs: resolveInitTimeoutMs(resolvedMode),
         internalAuth: { role: 'guest', subject: sessionId },
-      });
-    } catch (error) {
-      return classifyCadenceActionFailure(error, 'run', correlationId, logger, headers);
-    }
-
-    if (upstream.status !== 502 && upstream.status !== 504) {
-      if (upstream.status === 429) {
-        const parsedQuota = QuotaStatusSchema.safeParse(upstream.data?.['quota']);
-        return data<PortalCadenceActionResult>(
-          {
-            ok: false,
-            intent: 'run',
-            error:
-              typeof upstream.data?.['error'] === 'string'
-                ? upstream.data['error']
-                : 'Session or daily CADENCE quota exceeded.',
-            code: 'ERR_RATE_LIMITED',
-            action: 'Wait a moment and submit again.',
-            correlationId,
-            ...(parsedQuota.success ? { quota: parsedQuota.data } : {}),
-          },
-          { status: 429, headers },
-        );
-      }
-
-      if (!upstream.ok) {
-        if (upstream.status >= 500) {
-          return classifyCadenceActionFailure(
-            makeUpstreamStatusError(upstream.status, upstream.error ?? 'Upstream run failed.'),
-            'run',
-            correlationId,
-            logger,
-            headers,
-          );
-        }
-        const msg =
-          typeof upstream.data?.['error'] === 'string'
-            ? upstream.data['error']
-            : 'Upstream CADENCE run request rejected.';
-        return data<PortalCadenceActionResult>(
-          {
-            ok: false,
-            intent: 'run',
-            error: msg,
-            code: mapHttpStatusToErrorCode(upstream.status),
-            correlationId,
-          },
-          { status: upstream.status, headers },
-        );
-      }
-
-      const parsedRun = CadenceRunResultSchema.safeParse(upstream.data);
-      const parsedQuota = QuotaStatusSchema.safeParse(upstream.data?.['quota']);
-      if (!parsedRun.success) {
-        return data<PortalCadenceActionResult>(
-          {
-            ok: false,
-            intent: 'run',
-            error: 'Upstream run payload failed contract validation.',
-            code: 'ERR_UPSTREAM_UNAVAILABLE',
-            action: 'Retry shortly.',
-            correlationId,
-          },
-          { status: 502, headers },
-        );
-      }
-
-      // Honor legacy synchronous 201 upstream responses without requiring an extra stream hop.
-      if (!parsedRun.data.runStatus || parsedRun.data.runStatus === 'ready') {
-        return data<PortalCadenceActionResult>(
-          {
-            ok: true,
-            intent: 'run',
-            run: parsedRun.data,
-            ...(parsedQuota.success ? { quota: parsedQuota.data } : {}),
-          },
-          { status: 201, headers },
-        );
-      }
-
+        correlationId,
+        timeoutMs: resolveInitTimeoutMs(resolvedMode),
+        logger,
+      },
+      {
+        prompt: validatedReq.data.prompt,
+        presetSlug,
+        mode: resolvedMode,
+        deferExecution: true,
+        ...(requireSpecApproval ? { requireSpecApproval: true } : {}),
+      },
+    );
+    const quota = res.run.quota;
+    if (res.createdImmediately || !res.run.runStatus || res.run.runStatus === 'ready') {
       return data<PortalCadenceActionResult>(
         {
           ok: true,
-          intent: 'run-init',
-          run: parsedRun.data,
-          ...(parsedQuota.success ? { quota: parsedQuota.data } : {}),
+          intent: 'run',
+          run: res.run,
+          ...(quota ? { quota } : {}),
         },
-        { status: 202, headers },
-      );
-    }
-  }
-
-  // Fallback ONLY when CADENCE_DEMO_URL is unset or returned 502/504.
-  try {
-    const db = getSharedDb();
-    const cacheLookup = await findCachedSandboxRun(db, {
-      sessionId,
-      presetSlug,
-      mode: resolvedMode,
-      prompt: validatedReq.data.prompt,
-    });
-    if (resolvedMode === 'fast' && !requireSpecApproval && cacheLookup.sourceRun) {
-      const cloned = await cloneCachedSandboxRunForSession(
-        db,
-        { run: cacheLookup.sourceRun, turns: cacheLookup.sourceTurns },
-        {
-          sessionId,
-          ipHash: 'portal-ssr',
-          presetSlug,
-          prompt: validatedReq.data.prompt,
-          promptHash: cacheLookup.promptHash,
-        },
-      );
-      const quota = await getQuotaStatusForSession(db, 'guest', sessionId);
-      return data<PortalCadenceActionResult>(
-        { ok: true, intent: 'run', run: { ...cloned, quota }, quota },
         { status: 201, headers },
       );
     }
-
-    const initResult = await createPendingSandboxRunWithQuota(db, {
-      role: 'guest',
-      sessionId,
-      ipHash: 'portal-ssr',
-      presetSlug,
-      prompt: validatedReq.data.prompt,
-      mode: resolvedMode,
-      promptHash: cacheLookup.promptHash,
-      estimatedTokens: 800,
-      ...(requireSpecApproval ? { requireSpecApproval: true } : {}),
-    });
-
-    if (!initResult.allowed) {
-      return data<PortalCadenceActionResult>(
-        {
-          ok: false,
-          intent: 'run',
-          error: 'Session or daily CADENCE guest quota exceeded.',
-          code: 'ERR_RATE_LIMITED',
-          action: 'Wait a moment and submit again.',
-          correlationId,
-          quota: initResult.quota,
-        },
-        { status: 429, headers },
-      );
-    }
-
     return data<PortalCadenceActionResult>(
-      { ok: true, intent: 'run-init', run: initResult.run, quota: initResult.quota },
+      {
+        ok: true,
+        intent: 'run-init',
+        run: res.run,
+        ...(quota ? { quota } : {}),
+      },
       { status: 202, headers },
     );
   } catch (error) {
-    return classifyCadenceActionFailure(error, 'run', correlationId, logger, headers);
+    const failure = classifyGrpcError(error, {
+      correlationId,
+      source: 'portal.cadence.run',
+      normalizeUnavailableStatus: 503,
+      logger,
+    });
+    return actionError(
+      'run',
+      failure.publicError.status,
+      failure.publicError.message,
+      failure.publicError.code,
+      ctx,
+      {
+        action: failure.publicError.action,
+        ...(failure.quota ? { quota: failure.quota } : {}),
+      },
+    );
   }
 }

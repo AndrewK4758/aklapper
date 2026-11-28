@@ -1,13 +1,11 @@
-import { spawn } from 'node:child_process';
 import { once } from 'node:events';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
-import { resolve } from 'node:path';
-import { setTimeout as delay } from 'node:timers/promises';
 
-import { createDb, createDbPool, deleteCreatorAgensiCache } from '@aklapper/db';
-import { reserveLoopbackPort } from '@aklapper/tooling/e2e';
+import { createDbPool } from '@aklapper/db';
 import { gotoStreamedPage } from '@aklapper/tooling/playwright';
 import { expect, type Page, type TestInfo, test } from '@playwright/test';
+
+import { startIsolatedPortalServer, startPortalApiService } from './go-services-harness.ts';
 
 const IS_LIVE_EXTERNAL_TARGET = Boolean(process.env['PORTAL_BASE_URL']?.trim());
 
@@ -29,73 +27,41 @@ async function withIsolatedAgensiSsr(
     throw new Error('Failed to bind loopback mock Agensi server');
   }
   const mockBaseUrl = `http://127.0.0.1:${mockAddr.port}`;
-  const ssrPort = await reserveLoopbackPort();
-  const portalAppDir = resolve(import.meta.dirname, '../../portal');
+  const pool = createDbPool();
 
-  const logs: string[] = [];
-  const child = spawn(process.execPath, ['--conditions=@aklapper/source', './src/server.ts'], {
-    cwd: portalAppDir,
-    env: {
-      ...process.env,
-      NODE_ENV: 'production',
-      HOST: '127.0.0.1',
-      PORTAL_HOST: '127.0.0.1',
-      PORT: String(ssrPort),
-      PORTAL_PORT: String(ssrPort),
-      SERVE_PRERENDERED_STATIC: 'false',
+  const portalApi = await startPortalApiService({
+    envOverrides: {
       AGENSI_API_BASE_URL: mockBaseUrl,
+      AGENSI_API_PATH: `/creators/${encodeURIComponent(creatorHandle)}`,
       AGENSI_API_KEY: '',
       AGENSI_CREATOR_HANDLE: creatorHandle,
+      AGENSI_SYNC_DISABLED: 'false',
       AGENSI_CACHE_TTL_SECONDS: '0',
+      AGENSI_FETCH_TIMEOUT_MS: '1800',
     },
-    stdio: ['ignore', 'pipe', 'pipe'],
   });
-  child.stdout?.on('data', (chunk: Buffer) => logs.push(chunk.toString('utf8')));
-  child.stderr?.on('data', (chunk: Buffer) => logs.push(chunk.toString('utf8')));
-
-  const ssrBaseUrl = `http://127.0.0.1:${ssrPort}`;
-  const pool = createDbPool();
-  const db = createDb(pool);
+  let portal: Awaited<ReturnType<typeof startIsolatedPortalServer>> | null = null;
 
   try {
-    const deadline = Date.now() + 15_000;
-    let ready = false;
-    while (Date.now() < deadline) {
-      if (child.exitCode !== null || child.signalCode !== null) {
-        throw new Error(
-          `Isolated portal SSR exited early (code=${String(child.exitCode)}):\n${logs.join('')}`,
-        );
-      }
-      try {
-        const healthRes = await fetch(`${ssrBaseUrl}/healthz`);
-        if (healthRes.ok) {
-          ready = true;
-          break;
-        }
-      } catch {
-        // Wait until SSR socket begins listening.
-      }
-      await delay(50);
-    }
-    expect(ready).toBe(true);
-
-    await run({ ssrBaseUrl });
+    portal = await startIsolatedPortalServer({
+      portalApiUrl: portalApi.baseUrl,
+      servePrerenderedStatic: false,
+    });
+    await run({ ssrBaseUrl: portal.baseUrl });
   } finally {
-    if (child.exitCode === null && child.signalCode === null) {
-      child.kill('SIGTERM');
-      await new Promise<void>(resolveExit => {
-        const timer = setTimeout(() => {
-          child.kill('SIGKILL');
-          resolveExit();
-        }, 4_000);
-        child.once('exit', () => {
-          clearTimeout(timer);
-          resolveExit();
-        });
-      });
+    if (portal) {
+      await portal.close().catch(() => {});
     }
+    await portalApi.close().catch(() => {});
     await new Promise<void>(resolveClose => mockAgensiServer.close(() => resolveClose()));
-    await deleteCreatorAgensiCache(db, creatorHandle).catch(() => {});
+    await pool
+      .query(`DELETE FROM agensi_skills WHERE lower(creator_handle) = lower($1)`, [creatorHandle])
+      .catch(() => {});
+    await pool
+      .query(`DELETE FROM agensi_sync_state WHERE lower(creator_handle) = lower($1)`, [
+        creatorHandle,
+      ])
+      .catch(() => {});
     await pool.end();
   }
 }

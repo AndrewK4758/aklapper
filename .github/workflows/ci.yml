@@ -40,8 +40,10 @@ env:
   PNPM_VERSION: 12.23.0
   NODE_VERSION: 26.13.1
   GO_VERSION: '1.27'
+  BUF_VERSION: '1.72.0'
   NX_DAEMON: 'false'
-  NX_NO_CLOUD: 'true'
+  NX_CLOUD_ACCESS_TOKEN: ${{ secrets.NX_CLOUD_ACCESS_TOKEN }}
+  NX_NO_CLOUD: ${{ secrets.NX_CLOUD_ACCESS_TOKEN == '' }}
 
 jobs:
   format:
@@ -58,10 +60,46 @@ jobs:
         with:
           pnpm-version: ${{ env.PNPM_VERSION }}
           node-version: ${{ env.NODE_VERSION }}
-          restore-nx-cache: 'false'
 
       - name: Check formatting
         run: pnpm format:check
+
+  proto-check:
+    name: Protobuf lint & codegen drift (buf)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup workspace
+        uses: ./.github/actions/setup-workspace
+        with:
+          pnpm-version: ${{ env.PNPM_VERSION }}
+          node-version: ${{ env.NODE_VERSION }}
+          go-version: ${{ env.GO_VERSION }}
+          setup-go: 'true'
+
+      - name: Install buf CLI
+        uses: bufbuild/buf-action@v1
+        with:
+          version: ${{ env.BUF_VERSION }}
+          setup_only: true
+
+      - name: Verify protobuf lint and generated stubs have zero drift
+        shell: bash
+        run: |
+          buf lint
+          buf generate
+          pnpm exec oxfmt packages/node/runtime/src/grpc/gen
+          pnpm format:check
+          git diff --exit-code
+          if [ -n "$(git status --porcelain packages/go/kit/gen packages/node/runtime/src/grpc/gen)" ]; then
+            echo "::error::Generated protobuf stubs are untracked or out of date; run 'buf generate && pnpm format'."
+            git status --short packages/go/kit/gen packages/node/runtime/src/grpc/gen
+            exit 1
+          fi
 
   plan:
     name: Plan Nx affected graph
@@ -103,7 +141,6 @@ jobs:
         with:
           pnpm-version: ${{ env.PNPM_VERSION }}
           node-version: ${{ env.NODE_VERSION }}
-          restore-nx-cache: 'false'
 
       - name: Compute affected CI plan
         id: plan
@@ -140,7 +177,6 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           go-version: ${{ env.GO_VERSION }}
           setup-go: ${{ needs.plan.outputs.needs_go }}
-          cache-scope: lint
 
       - name: Run lint
         shell: bash
@@ -169,7 +205,6 @@ jobs:
         with:
           pnpm-version: ${{ env.PNPM_VERSION }}
           node-version: ${{ env.NODE_VERSION }}
-          cache-scope: typecheck
 
       - name: Run typecheck
         shell: bash
@@ -200,7 +235,6 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           go-version: ${{ env.GO_VERSION }}
           setup-go: ${{ needs.plan.outputs.needs_go }}
-          cache-scope: build
 
       - name: Run build
         shell: bash
@@ -251,7 +285,13 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           go-version: ${{ env.GO_VERSION }}
           setup-go: ${{ needs.plan.outputs.needs_go }}
-          cache-scope: test
+
+      - name: Build Go privacy-check CLI for DB and tooling suites
+        if: needs.plan.outputs.needs_go == 'true'
+        shell: bash
+        run: |
+          (cd packages/go/kit && GOWORK=off go build -o /tmp/privacy-check ./cmd/privacy-check)
+          echo "PRIVACY_CHECK_BIN=/tmp/privacy-check" >> "$GITHUB_ENV"
 
       - name: Run tests
         shell: bash
@@ -288,7 +328,6 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           go-version: ${{ env.GO_VERSION }}
           setup-go: ${{ needs.plan.outputs.needs_go }}
-          cache-scope: api-e2e
 
       - name: Run affected API E2E suites
         shell: bash
@@ -324,6 +363,9 @@ jobs:
           --health-retries=10
     env:
       DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5439/aklapper?sslmode=disable
+      PORTAL_DATABASE_URL: postgres://portal_app:portal_app_local_dev_password@127.0.0.1:5439/aklapper?sslmode=disable
+      ADMIN_DATABASE_URL: postgres://admin_app:admin_app_local_dev_password@127.0.0.1:5439/aklapper?sslmode=disable
+      ANALYTICS_DAILY_SALT: dev-only-rotate-daily
     strategy:
       fail-fast: false
       matrix:
@@ -343,13 +385,18 @@ jobs:
           pnpm-version: ${{ env.PNPM_VERSION }}
           node-version: ${{ env.NODE_VERSION }}
           go-version: ${{ env.GO_VERSION }}
-          setup-go: ${{ matrix.app == 'portal-e2e' }}
-          cache-scope: e2e-${{ matrix.app }}-${{ matrix.engine }}
+          setup-go: 'true'
 
       - name: Download built SSR artifacts
         uses: actions/download-artifact@v8
         with:
           name: ssr-dist-${{ github.run_id }}-${{ github.run_attempt }}
+
+      - name: Build Go privacy-check CLI for PostgreSQL seeding
+        shell: bash
+        run: |
+          (cd packages/go/kit && GOWORK=off go build -o /tmp/privacy-check ./cmd/privacy-check)
+          echo "PRIVACY_CHECK_BIN=/tmp/privacy-check" >> "$GITHUB_ENV"
 
       - name: Migrate and seed PostgreSQL 19
         run: pnpm db:setup
@@ -424,13 +471,21 @@ jobs:
           context: .
           file: ${{ matrix.dockerfile }}
           push: false
+          load: ${{ matrix.service == 'portal-api' }}
+          tags: aklapper-ci/${{ matrix.service }}:check
           cache-from: type=gha,scope=${{ matrix.service }}
           cache-to: type=gha,mode=max,scope=${{ matrix.service }}
+
+      - name: Verify portal-api 512Mi GeoLite2 RSS ceiling
+        if: matrix.service == 'portal-api'
+        shell: bash
+        run: bash infra/docker/verify-portal-api-rss.sh aklapper-ci/portal-api:check
 
   ci-status:
     name: CI status gate
     needs:
       - format
+      - proto-check
       - plan
       - lint
       - typecheck

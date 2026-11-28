@@ -2,45 +2,182 @@ syntax = "proto3";
 
 package cadence.v1;
 
+import "common/v1/error.proto";
+
 option go_package = "github.com/AndrewK4758/aklapper/packages/go/kit/gen/cadence/v1;cadencev1";
 
 service CadenceService {
+  rpc CreateRun(CreateRunRequest) returns (CreateRunResponse);
+  rpc ListRuns(ListRunsRequest) returns (ListRunsResponse);
+  rpc ApproveSpecGate(ApproveSpecGateRequest) returns (ApproveSpecGateResponse);
+  rpc SubmitGateVerdict(SubmitGateVerdictRequest) returns (SubmitGateVerdictResponse);
+  rpc ClearSessionRuns(ClearSessionRunsRequest) returns (ClearSessionRunsResponse);
   rpc StreamRun(StreamRunRequest) returns (stream StreamRunResponse);
 }
 
-message StreamRunRequest {
-  string prompt = 1;
-  string preset_slug = 2;
+message Osc7501Status {
+  string source = 1;
+  string state = 2;
+  string label = 3;
+  optional int32 progress = 4;
+  string timestamp = 5;
 }
 
-message CadencePhaseEvent {
-  string run_id = 1;
+message CadenceSpecArtifact {
+  string title = 1;
+  string summary = 2;
+  repeated string conditions = 3;
+  repeated string handling = 4;
+  repeated string outcomes = 5;
+  repeated string rules = 6;
+  repeated string deltas = 7;
+  repeated string recalled_patterns = 8;
+}
+
+message CadenceGateCheckItem {
+  string id = 1;
+  string label = 2;
+  string status = 3;
+  string detail = 4;
+}
+
+message CadenceGateAudit {
+  string summary = 1;
+  bool sanitized = 2;
+  int32 artifact_bytes = 3;
+  repeated CadenceGateCheckItem checks = 4;
+}
+
+message CadenceStringList {
+  repeated string values = 1;
+}
+
+message CadenceTurnPayloadValue {
+  oneof kind {
+    string string_value = 1;
+    double number_value = 2;
+    bool bool_value = 3;
+    bool null_value = 4;
+    CadenceStringList string_list_value = 5;
+  }
+}
+
+message CadenceTurn {
+  optional int32 id = 1;
   string phase = 2;
   string agent_name = 3;
   string status = 4;
   string summary = 5;
   int32 latency_ms = 6;
+  map<string, CadenceTurnPayloadValue> payload = 7;
+  string created_at = 8;
 }
 
-message CadenceDeltaEvent {
+message CadenceRunResult {
   string run_id = 1;
-  string phase = 2;
-  string text = 3;
+  string prompt = 2;
+  string preset_slug = 3;
+  string run_status = 4;
+  string mode = 5;
+  string execution_mode = 6;
+  bool is_golden = 7;
+  CadenceSpecArtifact spec = 8;
+  CadenceGateAudit gate_audit = 9;
+  Osc7501Status status = 10;
+  string osc7501 = 11;
+  string gate_verdict = 12;
+  repeated CadenceTurn turns = 13;
+  string artifact_html = 14;
+  optional int32 tokens_in = 15;
+  optional int32 tokens_out = 16;
+  common.v1.QuotaStatus quota = 17;
+  string created_at = 18;
 }
 
-message CadenceDoneEvent {
+message CreateRunRequest {
+  string prompt = 1;
+  string preset_slug = 2;
+  string mode = 3;
+  bool defer_execution = 4;
+  bool require_spec_approval = 5;
+}
+
+message CreateRunResponse {
+  CadenceRunResult run = 1;
+  bool created_immediately = 2;
+}
+
+message ListRunsRequest {
+  string session_id = 1;
+  int32 limit = 2;
+}
+
+message ListRunsResponse {
+  repeated CadenceRunResult runs = 1;
+  common.v1.QuotaStatus quota = 2;
+  repeated CadenceRunResult golden_runs = 3;
+}
+
+message ClearSessionRunsRequest {}
+
+message ClearSessionRunsResponse {
+  int32 deleted_count = 1;
+}
+
+message ApproveSpecGateRequest {
   string run_id = 1;
-  string status = 2;
-  string gate_verdict = 3;
-  int32 tokens_in = 4;
-  int32 tokens_out = 5;
-  string artifact_html = 6;
+}
+
+message ApproveSpecGateResponse {
+  CadenceRunResult run = 1;
+  common.v1.QuotaStatus quota = 2;
+}
+
+message SubmitGateVerdictRequest {
+  string run_id = 1;
+  string verdict = 2;
+}
+
+message SubmitGateVerdictResponse {
+  CadenceRunResult run = 1;
+}
+
+message StreamRunRequest {
+  string run_id = 1;
+}
+
+message CadenceStreamPhaseEvent {
+  string run_id = 1;
+  string run_status = 2;
+  Osc7501Status status = 3;
+  optional int32 progress = 4;
+  CadenceTurn turn = 5;
+  CadenceSpecArtifact spec = 6;
+}
+
+message CadenceStreamLogEvent {
+  string run_id = 1;
+  string line = 2;
+  string timestamp = 3;
+}
+
+message CadenceStreamCompleteEvent {
+  CadenceRunResult run = 1;
+  common.v1.QuotaStatus quota = 2;
+}
+
+message CadenceStreamErrorEvent {
+  string run_id = 1;
+  string error = 2;
+  string code = 3;
+  string run_status = 4;
 }
 
 message StreamRunResponse {
   oneof payload {
-    CadencePhaseEvent phase = 1;
-    CadenceDeltaEvent delta = 2;
-    CadenceDoneEvent done = 3;
+    CadenceStreamPhaseEvent phase = 1;
+    CadenceStreamLogEvent log = 2;
+    CadenceStreamCompleteEvent complete = 3;
+    CadenceStreamErrorEvent error = 4;
   }
 }

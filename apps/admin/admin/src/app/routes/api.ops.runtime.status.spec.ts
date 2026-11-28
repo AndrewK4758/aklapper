@@ -1,4 +1,9 @@
+import http from 'node:http';
+import http2 from 'node:http2';
+import type { AddressInfo } from 'node:net';
+
 import { RuntimeServiceHealthSnapshotSchema } from '@aklapper/core';
+import { clearGoGrpcTransportCacheForTest } from '@aklapper/node-runtime/grpc';
 import { clearRuntimeHealthCacheForTest } from '@aklapper/node-runtime/runtime-health';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -14,11 +19,67 @@ vi.mock('../admin-ops.server', async () => {
 
 import { loader } from './api.ops.runtime.status';
 
+const GRPC_HEALTH_SERVING_FRAME = Buffer.from([0x00, 0x00, 0x00, 0x00, 0x02, 0x08, 0x01]);
+
+async function startGrpcHealthServer(): Promise<{
+  readonly baseUrl: string;
+  readonly getCalls: () => readonly string[];
+  readonly close: () => Promise<void>;
+}> {
+  const calls: string[] = [];
+  const server = http2.createServer();
+  server.on('stream', (stream: http2.ServerHttp2Stream, headers) => {
+    calls.push(String(headers[':path'] ?? ''));
+    stream.on('data', () => undefined);
+    stream.on('end', () => {
+      stream.respond(
+        { ':status': 200, 'content-type': 'application/grpc+proto' },
+        { waitForTrailers: true },
+      );
+      stream.on('wantTrailers', () => {
+        stream.sendTrailers({ 'grpc-status': '0' });
+      });
+      stream.end(GRPC_HEALTH_SERVING_FRAME);
+    });
+  });
+  await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
+  const addr = server.address() as AddressInfo;
+  return {
+    baseUrl: `http://127.0.0.1:${addr.port}`,
+    getCalls: () => calls,
+    close: () => new Promise<void>(resolve => server.close(() => resolve())),
+  };
+}
+
+async function startPortalHttpHealthServer(): Promise<{
+  readonly baseUrl: string;
+  readonly getCalls: () => readonly string[];
+  readonly close: () => Promise<void>;
+}> {
+  const calls: string[] = [];
+  const server = http.createServer((req, res) => {
+    calls.push(req.url ?? '');
+    res.writeHead(200, { 'content-type': 'application/json' });
+    res.end(JSON.stringify({ status: 'ok', service: 'portal' }));
+  });
+  await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
+  const addr = server.address() as AddressInfo;
+  return {
+    baseUrl: `http://127.0.0.1:${addr.port}`,
+    getCalls: () => calls,
+    close: () => new Promise<void>(resolve => server.close(() => resolve())),
+  };
+}
+
 describe('admin /api/ops/runtime/status resource route', () => {
   afterEach(() => {
     clearRuntimeHealthCacheForTest();
+    clearGoGrpcTransportCacheForTest();
     requireAdminSessionMock.mockReset();
     vi.restoreAllMocks();
+    delete process.env['PUBLIC_PORTAL_URL'];
+    delete process.env['ADMIN_API_URL'];
+    delete process.env['PORTAL_API_URL'];
     delete process.env['AI_ASK_URL'];
     delete process.env['CADENCE_DEMO_URL'];
   });
@@ -58,48 +119,69 @@ describe('admin /api/ops/runtime/status resource route', () => {
     }
   });
 
-  it('returns valid RuntimeServiceHealthSnapshot JSON and bypasses TTL cache on ?refresh=1', async () => {
+  it('discriminates HTTP /health for portal and gRPC Health/Check for Go services and bypasses TTL cache on ?refresh=1', async () => {
     requireAdminSessionMock.mockResolvedValue({
       session: { role: 'admin', handle: 'admin' },
       correlationId: 'corr-auth-1',
     });
-    process.env['AI_ASK_URL'] = 'http://127.0.0.1:8083';
-    process.env['CADENCE_DEMO_URL'] = 'http://127.0.0.1:8082';
 
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async input => {
-      const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
-      if (url.includes('8083')) {
-        return Response.json({ status: 'ok', service: 'ai-ask' });
-      }
-      const timeoutErr = new Error('timeout');
-      timeoutErr.name = 'TimeoutError';
-      throw timeoutErr;
-    });
+    const portalSrv = await startPortalHttpHealthServer();
+    const adminApiSrv = await startGrpcHealthServer();
+    const portalApiSrv = await startGrpcHealthServer();
+    const askSrv = await startGrpcHealthServer();
+    // Bind and immediately close a server to get a guaranteed-offline loopback port for cadence-demo.
+    const offlineSrv = await startGrpcHealthServer();
+    const offlineUrl = offlineSrv.baseUrl;
+    await offlineSrv.close();
 
-    const res1 = await loader({
-      request: new Request('https://admin.andrew-k.us/api/ops/runtime/status'),
-      params: {},
-      context: {} as never,
-      url: new URL('https://admin.andrew-k.us/api/ops/runtime/status'),
-      pattern: '/api/ops/runtime/status',
-    } as never);
-    expect(res1.status).toBe(200);
-    const snap1 = RuntimeServiceHealthSnapshotSchema.parse(await res1.json());
-    expect(snap1.cached).toBe(false);
-    expect(snap1.services.find(s => s.service === 'ai-ask')?.status).toBe('healthy');
-    expect(snap1.services.find(s => s.service === 'cadence-demo')?.status).toBe('offline');
-    expect(fetchSpy).toHaveBeenCalledTimes(2);
+    try {
+      process.env['PUBLIC_PORTAL_URL'] = portalSrv.baseUrl;
+      process.env['ADMIN_API_URL'] = adminApiSrv.baseUrl;
+      process.env['PORTAL_API_URL'] = portalApiSrv.baseUrl;
+      process.env['AI_ASK_URL'] = askSrv.baseUrl;
+      process.env['CADENCE_DEMO_URL'] = offlineUrl;
 
-    const res2 = await loader({
-      request: new Request('https://admin.andrew-k.us/api/ops/runtime/status?refresh=1'),
-      params: {},
-      context: {} as never,
-      url: new URL('https://admin.andrew-k.us/api/ops/runtime/status?refresh=1'),
-      pattern: '/api/ops/runtime/status',
-    } as never);
-    expect(res2.status).toBe(200);
-    const snap2 = RuntimeServiceHealthSnapshotSchema.parse(await res2.json());
-    expect(snap2.cached).toBe(false);
-    expect(fetchSpy).toHaveBeenCalledTimes(4);
+      const res1 = await loader({
+        request: new Request('https://admin.andrew-k.us/api/ops/runtime/status'),
+        params: {},
+        context: {} as never,
+        url: new URL('https://admin.andrew-k.us/api/ops/runtime/status'),
+        pattern: '/api/ops/runtime/status',
+      } as never);
+      expect(res1.status).toBe(200);
+      const snap1 = RuntimeServiceHealthSnapshotSchema.parse(await res1.json());
+      expect(snap1.cached).toBe(false);
+      expect(snap1.services.find(s => s.service === 'portal')?.status).toBe('healthy');
+      expect(snap1.services.find(s => s.service === 'admin-api')?.status).toBe('healthy');
+      expect(snap1.services.find(s => s.service === 'portal-api')?.status).toBe('healthy');
+      expect(snap1.services.find(s => s.service === 'ai-ask')?.status).toBe('healthy');
+      expect(snap1.services.find(s => s.service === 'cadence-demo')?.status).toBe('offline');
+      expect(portalSrv.getCalls()).toEqual(['/health']);
+      expect(adminApiSrv.getCalls()).toEqual(['/grpc.health.v1.Health/Check']);
+      expect(portalApiSrv.getCalls()).toEqual(['/grpc.health.v1.Health/Check']);
+      expect(askSrv.getCalls()).toEqual(['/grpc.health.v1.Health/Check']);
+
+      const res2 = await loader({
+        request: new Request('https://admin.andrew-k.us/api/ops/runtime/status?refresh=1'),
+        params: {},
+        context: {} as never,
+        url: new URL('https://admin.andrew-k.us/api/ops/runtime/status?refresh=1'),
+        pattern: '/api/ops/runtime/status',
+      } as never);
+      expect(res2.status).toBe(200);
+      const snap2 = RuntimeServiceHealthSnapshotSchema.parse(await res2.json());
+      expect(snap2.cached).toBe(false);
+      expect(portalSrv.getCalls()).toHaveLength(2);
+      expect(adminApiSrv.getCalls()).toHaveLength(2);
+      expect(portalApiSrv.getCalls()).toHaveLength(2);
+      expect(askSrv.getCalls()).toHaveLength(2);
+    } finally {
+      await Promise.all([
+        portalSrv.close(),
+        adminApiSrv.close(),
+        portalApiSrv.close(),
+        askSrv.close(),
+      ]);
+    }
   });
 });

@@ -11,29 +11,6 @@ import (
 	"github.com/AndrewK4758/aklapper/packages/go/kit/pg"
 )
 
-func writeReusedTurn(w http.ResponseWriter, turn pg.TurnRecord, quota contracts.QuotaStatus) {
-	state := turn.ToState(&quota)
-	w.Header().Set("X-Correlation-Id", turn.CorrelationID)
-	switch turn.Status {
-	case contracts.TurnStatusCompleted, contracts.TurnStatusAbstained:
-		if turn.Result != nil {
-			httpkit.WriteJSON(w, http.StatusOK, turn.Result)
-			return
-		}
-		httpkit.WriteJSON(w, http.StatusAccepted, state)
-	case contracts.TurnStatusFailed, contracts.TurnStatusExpired:
-		status := http.StatusBadGateway
-		if state.Error != nil && state.Error.Status >= 400 {
-			status = state.Error.Status
-		} else if turn.Status == contracts.TurnStatusExpired {
-			status = http.StatusGatewayTimeout
-		}
-		httpkit.WriteJSON(w, status, state.Error)
-	default:
-		httpkit.WriteJSON(w, http.StatusAccepted, state)
-	}
-}
-
 func handleTurnLookup(store *pg.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		corrID := extractCorrelationID(r)

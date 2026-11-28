@@ -2,17 +2,12 @@ import { randomUUID } from 'node:crypto';
 
 import {
   type AskMode,
-  AskResponseSchema,
   type AskServiceStatus,
   AskServiceStatusSchema,
-  AskTurnStateSchema,
-  QuotaStatusSchema,
   createPublicAppError,
-  isPublicAppError,
 } from '@aklapper/core';
 import { classifyServerError } from '@aklapper/core/server-errors';
-import { loadPortalAskDataWithPrerender } from '@aklapper/db';
-import { proxyJson } from '@aklapper/node-runtime/http';
+import { callAsk, classifyGrpcError, getAskStatus } from '@aklapper/node-runtime/grpc';
 import {
   createFallbackLogger,
   deferStreamResult,
@@ -30,6 +25,7 @@ import { triggerPortalGuestSessionBinding } from '../contact-analytics-link.serv
 import { ChatRouteView } from '../features/ChatFeatureView';
 import { createPrimaryRouteClientAction } from '../features/paneClientAction';
 import { resolveGuestSession } from '../guest-session.server';
+import { loadPortalAskDataWithPrerender } from '../portal-api.server';
 import { buildPortalPageMeta } from '../seo';
 import type { Route } from './+types/chat';
 
@@ -38,31 +34,28 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 async function probeAskServiceStatus(
   aiAskUrl: string | undefined,
   signal: AbortSignal | undefined,
+  correlationId: string,
 ): Promise<AskServiceStatus | undefined> {
   if (!aiAskUrl) return undefined;
-  const res = await proxyJson<Record<string, unknown>>({
-    baseUrl: aiAskUrl,
-    path: '/v1/ask/status',
-    method: 'GET',
-    timeoutMs: 1_500,
-    signal,
-    internalAuth: { role: 'service', subject: 'portal-ask-status' },
-  });
-  if (!res.ok || !res.data) {
+  try {
+    const res = await getAskStatus({
+      baseUrl: aiAskUrl,
+      internalAuth: { role: 'service', subject: 'portal-ask-status' },
+      correlationId,
+      timeoutMs: 1_500,
+      ...(signal ? { signal } : {}),
+    });
+    const candidate = AskServiceStatusSchema.safeParse({
+      status: res.status === 'ready' ? 'ready' : 'degraded',
+      provider: res.provider || 'ai-ask',
+      pointsCount: res.collection?.pointsCount ?? 0,
+    });
+    return candidate.success
+      ? candidate.data
+      : { status: 'degraded', provider: 'ai-ask', pointsCount: 0 };
+  } catch {
     return { status: 'offline', provider: 'ai-ask', pointsCount: 0 };
   }
-  const collection =
-    res.data['collection'] && typeof res.data['collection'] === 'object'
-      ? (res.data['collection'] as Record<string, unknown>)
-      : null;
-  const candidate = AskServiceStatusSchema.safeParse({
-    status: res.data['status'] === 'ready' ? 'ready' : 'degraded',
-    provider: typeof res.data['provider'] === 'string' ? res.data['provider'] : 'ai-ask',
-    pointsCount: typeof collection?.['pointsCount'] === 'number' ? collection['pointsCount'] : 0,
-  });
-  return candidate.success
-    ? candidate.data
-    : { status: 'degraded', provider: 'ai-ask', pointsCount: 0 };
 }
 
 export function loader({ request, context }: Route.LoaderArgs) {
@@ -75,13 +68,20 @@ export function loader({ request, context }: Route.LoaderArgs) {
   return data(
     {
       correlationId,
-      payload: deferStreamResult(loadPortalAskDataWithPrerender(sessionId), {
-        request,
-        context,
-        source: 'portal.chat.loader',
-      }),
+      payload: deferStreamResult(
+        loadPortalAskDataWithPrerender(sessionId, {
+          correlationId,
+          ...(reqCtx?.logger ? { logger: reqCtx.logger } : {}),
+          signal: reqCtx?.signal ?? request.signal,
+        }),
+        {
+          request,
+          context,
+          source: 'portal.chat.loader',
+        },
+      ),
       askStatusPayload: deferStreamResult(
-        probeAskServiceStatus(aiAskUrl, reqCtx?.signal ?? request.signal),
+        probeAskServiceStatus(aiAskUrl, reqCtx?.signal ?? request.signal, correlationId),
         {
           request,
           context,
@@ -196,102 +196,65 @@ export async function action({ request, context }: Route.ActionArgs) {
     );
   }
 
-  const upstream = await proxyJson<Record<string, unknown>>({
-    baseUrl: aiAskUrl,
-    path: '/v1/ask',
-    method: 'POST',
-    headers: { 'X-Correlation-Id': correlationId },
-    internalAuth: { role: 'guest', subject: sessionId },
-    body:
+  try {
+    const result = await callAsk(
+      {
+        baseUrl: aiAskUrl,
+        internalAuth: { role: 'guest', subject: sessionId },
+        correlationId,
+        timeoutMs: 35_000,
+        signal: request.signal,
+        logger,
+      },
       mode === 'qa'
         ? { mode, question: text, attemptId }
         : { mode, jobDescription: text, attemptId },
-    timeoutMs: 35_000,
-    signal: request.signal,
-  });
-
-  if (upstream.status === 429) {
-    const parsedQuota = QuotaStatusSchema.safeParse(upstream.data?.['quota']);
-    return data<PortalAskActionResult>(
-      {
-        ok: false,
-        mode,
-        error:
-          typeof upstream.data?.['error'] === 'string'
-            ? upstream.data['error']
-            : 'Session or daily quota exceeded.',
-        code: 'ERR_RATE_LIMITED',
-        action: 'Wait a moment and submit again.',
-        correlationId,
-        ...(parsedQuota.success ? { quota: parsedQuota.data } : {}),
-      },
-      { status: 429, headers },
     );
-  }
 
-  if (upstream.status === 202 && upstream.data) {
-    const parsedState = AskTurnStateSchema.safeParse(upstream.data);
-    if (parsedState.success) {
+    if (result.kind === 'pending') {
       return data<PortalAskActionResult>(
         {
           ok: true,
           pending: true,
           mode,
           submittedText: text,
-          attemptId: parsedState.data.attemptId,
-          turnState: parsedState.data,
+          attemptId: result.turn.attemptId,
+          turnState: result.turn,
         },
         { status: 202, headers },
       );
     }
+
+    return data<PortalAskActionResult>(
+      {
+        ok: true,
+        mode,
+        submittedText: text,
+        attemptId: result.response.attemptId ?? attemptId,
+        response: result.response,
+      },
+      { status: 200, headers },
+    );
+  } catch (error) {
+    const failure = classifyGrpcError(error, {
+      correlationId,
+      source: 'portal.chat.action',
+      normalizeUnavailableStatus: 503,
+      logger,
+    });
+    return data<PortalAskActionResult>(
+      {
+        ok: false,
+        mode,
+        error: failure.publicError.message,
+        code: failure.publicError.code,
+        action: failure.publicError.action,
+        correlationId: failure.publicError.correlationId,
+        ...(failure.quota ? { quota: failure.quota } : {}),
+      },
+      { status: failure.publicError.status, headers },
+    );
   }
-
-  if (upstream.ok && upstream.data) {
-    const parsed = AskResponseSchema.safeParse(upstream.data);
-    if (parsed.success) {
-      return data<PortalAskActionResult>(
-        {
-          ok: true,
-          mode,
-          submittedText: text,
-          attemptId: parsed.data.attemptId ?? attemptId,
-          response: parsed.data,
-        },
-        { status: 200, headers },
-      );
-    }
-  }
-
-  const rawStatus =
-    upstream.error === 'UPSTREAM_TIMEOUT'
-      ? 504
-      : upstream.error === 'UPSTREAM_UNAVAILABLE'
-        ? 503
-        : upstream.status >= 400
-          ? upstream.status
-          : 503;
-
-  const { publicError, diagnostic } = classifyServerError(
-    Object.assign(new Error(upstream.error ?? `AI ask upstream HTTP ${rawStatus}`), {
-      status: rawStatus,
-      statusText: 'Upstream Error',
-      data: isPublicAppError(upstream.data) ? upstream.data : null,
-    }),
-    { correlationId, source: 'portal.chat.action' },
-  );
-  logDiagnosticError(logger, diagnostic);
-
-  return data<PortalAskActionResult>(
-    {
-      ok: false,
-      mode,
-      error: publicError.message,
-      code: publicError.code,
-      action: publicError.action,
-      correlationId: publicError.correlationId,
-    },
-    { status: rawStatus, headers },
-  );
 }
 
 export const clientAction = createPrimaryRouteClientAction<PortalAskActionResult>('/chat');

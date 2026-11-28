@@ -2,26 +2,29 @@ package grpckit
 
 import (
 	"context"
-	"crypto/rand"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
+	"net/http"
+	"net/netip"
 	"regexp"
 	"strings"
 	"time"
 
+	"connectrpc.com/connect"
+	"github.com/AndrewK4758/aklapper/packages/go/kit/contracts"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/internalauth"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/metadata"
-	"google.golang.org/grpc/status"
 )
 
 const (
-	MetadataInternalAuth  = "x-internal-auth"
-	MetadataCorrelationID = "x-correlation-id"
-	HealthMethodPrefix    = "/grpc.health.v1.Health/"
-	defaultClientTokenTTL = 60 * time.Second
+	MetadataInternalAuth     = "x-internal-auth"
+	MetadataInternalClientIP = "x-internal-client-ip"
+	MetadataCorrelationID    = "x-correlation-id"
+	HealthCheckProcedure     = "/grpc.health.v1.Health/Check"
+	clientIPSubjectPrefix    = "client-ip:"
+	pendingTotpSubjectPrefix = "totp-pending:"
+	defaultClientTokenTTL    = 60 * time.Second
 )
 
 var correlationIDPattern = regexp.MustCompile(`^[A-Za-z0-9._:-]{1,128}$`)
@@ -59,21 +62,52 @@ func CorrelationIDFromContext(ctx context.Context) string {
 	return corrID
 }
 
-type wrappedServerStream struct {
-	grpc.ServerStream
-	ctx context.Context
-}
+// ExtractSignedClientIP verifies a single HMAC-signed x-internal-client-ip header carrying
+// role="service" and sub="client-ip:<valid-ip>". Rejects missing, duplicate, expired, tampered,
+// or non-IP values fail-closed without logging raw visitor IPs or tokens.
+func ExtractSignedClientIP(header http.Header, explicitSecret string) (string, error) {
+	if header == nil {
+		logGRPCSeam("UNSOUND_CONDITION", "portal_api.client_ip.untrusted", map[string]any{
+			"reason": "missing_header",
+		})
+		return "", connect.NewError(connect.CodeUnauthenticated, errors.New("signed x-internal-client-ip metadata required"))
+	}
+	vals := header.Values(MetadataInternalClientIP)
+	if len(vals) != 1 {
+		reason := "missing_header"
+		if len(vals) > 1 {
+			reason = "duplicate_header"
+		}
+		logGRPCSeam("UNSOUND_CONDITION", "portal_api.client_ip.untrusted", map[string]any{
+			"reason":      reason,
+			"headerCount": len(vals),
+		})
+		return "", connect.NewError(connect.CodeUnauthenticated, errors.New("signed x-internal-client-ip metadata required"))
+	}
 
-func (w *wrappedServerStream) Context() context.Context {
-	return w.ctx
-}
+	claims, err := internalauth.Verify(vals[0], explicitSecret)
+	if err != nil || claims == nil {
+		logGRPCSeam("UNSOUND_CONDITION", "portal_api.client_ip.untrusted", map[string]any{
+			"reason": "invalid_or_expired_token",
+		})
+		return "", connect.NewError(connect.CodeUnauthenticated, errors.New("invalid signed client IP token"))
+	}
+	if claims.Role != internalauth.RoleService || !strings.HasPrefix(claims.Sub, clientIPSubjectPrefix) {
+		logGRPCSeam("UNSOUND_CONDITION", "portal_api.client_ip.untrusted", map[string]any{
+			"reason": "invalid_claims_scope",
+		})
+		return "", connect.NewError(connect.CodeUnauthenticated, errors.New("invalid signed client IP claims"))
+	}
 
-func newUUIDv4() string {
-	var b [16]byte
-	_, _ = rand.Read(b[:])
-	b[6] = (b[6] & 0x0f) | 0x40
-	b[8] = (b[8] & 0x3f) | 0x80
-	return fmt.Sprintf("%08x-%04x-%04x-%04x-%012x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:16])
+	rawIP := strings.TrimSpace(strings.TrimPrefix(claims.Sub, clientIPSubjectPrefix))
+	addr, parseErr := netip.ParseAddr(rawIP)
+	if parseErr != nil || !addr.IsValid() {
+		logGRPCSeam("UNSOUND_CONDITION", "portal_api.client_ip.untrusted", map[string]any{
+			"reason": "invalid_ip_address",
+		})
+		return "", connect.NewError(connect.CodeUnauthenticated, errors.New("invalid client IP address in signed metadata"))
+	}
+	return addr.Unmap().String(), nil
 }
 
 func logGRPCSeam(seamType, event string, fields map[string]any) {
@@ -88,147 +122,202 @@ func logGRPCSeam(seamType, event string, fields map[string]any) {
 	}
 }
 
-func sanitizeCorrelationID(md metadata.MD, method string) string {
-	vals := md.Get(MetadataCorrelationID)
+func sanitizeCorrelationID(vals []string, procedure string) string {
 	if len(vals) == 0 {
-		return newUUIDv4()
+		return contracts.NewUUIDv4()
 	}
 	candidate := strings.TrimSpace(vals[0])
 	if len(vals) == 1 && correlationIDPattern.MatchString(candidate) {
 		return candidate
 	}
-	fresh := newUUIDv4()
+	fresh := contracts.NewUUIDv4()
 	logGRPCSeam("UNSOUND_CONDITION", "grpc.correlation.invalid_header", map[string]any{
-		"method":        method,
+		"method":        procedure,
 		"correlationId": fresh,
 	})
 	return fresh
 }
 
-func authorizeAndAttachContext(ctx context.Context, fullMethod, explicitSecret string) (context.Context, error) {
-	md, _ := metadata.FromIncomingContext(ctx)
-	corrID := sanitizeCorrelationID(md, fullMethod)
-	_ = grpc.SetHeader(ctx, metadata.Pairs(MetadataCorrelationID, corrID))
-	ctx = context.WithValue(ctx, correlationIDContextKey, corrID)
+func ensureConnectErrorWithCorrelation(err error, corrID string) error {
+	if err == nil {
+		return nil
+	}
+	var connectErr *connect.Error
+	if !errors.As(err, &connectErr) {
+		connectErr = connect.NewError(connect.CodeInternal, err)
+	}
+	connectErr.Meta().Set(MetadataCorrelationID, corrID)
+	return connectErr
+}
 
-	// Strict unauthenticated allow-list: health service only.
-	if strings.HasPrefix(fullMethod, HealthMethodPrefix) {
+type serverAuthInterceptor struct {
+	explicitSecret string
+}
+
+// NewServerAuthInterceptor enforces default-deny HMAC auth and x-correlation-id echo
+// across both unary and streaming ConnectRPC procedures, allow-listing only /grpc.health.v1.Health/Check.
+func NewServerAuthInterceptor(explicitSecret string) connect.Interceptor {
+	return &serverAuthInterceptor{explicitSecret: explicitSecret}
+}
+
+func (i *serverAuthInterceptor) authenticate(
+	ctx context.Context,
+	procedure string,
+	authVals []string,
+	corrID string,
+) (context.Context, error) {
+	ctx = context.WithValue(ctx, correlationIDContextKey, corrID)
+	if procedure == HealthCheckProcedure {
 		return ctx, nil
 	}
 
-	authVals := md.Get(MetadataInternalAuth)
 	if len(authVals) != 1 {
 		logGRPCSeam("UNSOUND_CONDITION", "grpc.auth.rejected", map[string]any{
-			"method":        fullMethod,
+			"method":        procedure,
 			"reason":        "missing_or_duplicate_header",
 			"headerCount":   len(authVals),
 			"correlationId": corrID,
 		})
-		return nil, status.Error(codes.Unauthenticated, "signed x-internal-auth metadata required")
+		return nil, ensureConnectErrorWithCorrelation(
+			connect.NewError(connect.CodeUnauthenticated, errors.New("signed x-internal-auth metadata required")),
+			corrID,
+		)
 	}
 
-	claims, err := internalauth.Verify(authVals[0], explicitSecret)
+	claims, err := internalauth.Verify(authVals[0], i.explicitSecret)
 	if err != nil || claims == nil {
 		logGRPCSeam("UNSOUND_CONDITION", "grpc.auth.rejected", map[string]any{
-			"method":        fullMethod,
+			"method":        procedure,
 			"reason":        "invalid_or_expired_token",
 			"correlationId": corrID,
 		})
-		return nil, status.Error(codes.Unauthenticated, "invalid internal auth token")
+		return nil, ensureConnectErrorWithCorrelation(
+			connect.NewError(connect.CodeUnauthenticated, errors.New("invalid internal auth token")),
+			corrID,
+		)
+	}
+	if strings.HasPrefix(claims.Sub, pendingTotpSubjectPrefix) || strings.HasPrefix(claims.Sub, clientIPSubjectPrefix) {
+		logGRPCSeam("UNSOUND_CONDITION", "grpc.auth.rejected", map[string]any{
+			"method":        procedure,
+			"reason":        "disallowed_token_purpose",
+			"correlationId": corrID,
+		})
+		return nil, ensureConnectErrorWithCorrelation(
+			connect.NewError(connect.CodeUnauthenticated, errors.New("disallowed internal auth token purpose")),
+			corrID,
+		)
 	}
 
 	return context.WithValue(ctx, claimsContextKey, claims), nil
 }
 
-// UnaryServerAuthInterceptor enforces default-deny HMAC auth and correlation hygiene for unary RPCs.
-func UnaryServerAuthInterceptor(explicitSecret string) grpc.UnaryServerInterceptor {
-	return func(
-		ctx context.Context,
-		req any,
-		info *grpc.UnaryServerInfo,
-		handler grpc.UnaryHandler,
-	) (any, error) {
-		authedCtx, err := authorizeAndAttachContext(ctx, info.FullMethod, explicitSecret)
-		if err != nil {
-			return nil, err
+func (i *serverAuthInterceptor) WrapUnary(next connect.UnaryFunc) connect.UnaryFunc {
+	return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
+		procedure := req.Spec().Procedure
+		corrID := sanitizeCorrelationID(req.Header().Values(MetadataCorrelationID), procedure)
+
+		authedCtx, authErr := i.authenticate(ctx, procedure, req.Header().Values(MetadataInternalAuth), corrID)
+		if authErr != nil {
+			return nil, authErr
 		}
-		return handler(authedCtx, req)
+
+		res, err := next(authedCtx, req)
+		if err != nil {
+			return nil, ensureConnectErrorWithCorrelation(err, corrID)
+		}
+		if res != nil {
+			res.Header().Set(MetadataCorrelationID, corrID)
+		}
+		return res, nil
 	}
 }
 
-// StreamServerAuthInterceptor enforces default-deny HMAC auth and correlation hygiene for streaming RPCs.
-func StreamServerAuthInterceptor(explicitSecret string) grpc.StreamServerInterceptor {
-	return func(
-		srv any,
-		ss grpc.ServerStream,
-		info *grpc.StreamServerInfo,
-		handler grpc.StreamHandler,
-	) error {
-		authedCtx, err := authorizeAndAttachContext(ss.Context(), info.FullMethod, explicitSecret)
-		if err != nil {
-			return err
+func (i *serverAuthInterceptor) WrapStreamingClient(next connect.StreamingClientFunc) connect.StreamingClientFunc {
+	return next
+}
+
+func (i *serverAuthInterceptor) WrapStreamingHandler(next connect.StreamingHandlerFunc) connect.StreamingHandlerFunc {
+	return func(ctx context.Context, conn connect.StreamingHandlerConn) error {
+		procedure := conn.Spec().Procedure
+		corrID := sanitizeCorrelationID(conn.RequestHeader().Values(MetadataCorrelationID), procedure)
+		conn.ResponseHeader().Set(MetadataCorrelationID, corrID)
+
+		authedCtx, authErr := i.authenticate(ctx, procedure, conn.RequestHeader().Values(MetadataInternalAuth), corrID)
+		if authErr != nil {
+			return authErr
 		}
-		return handler(srv, &wrappedServerStream{ServerStream: ss, ctx: authedCtx})
+
+		if err := next(authedCtx, conn); err != nil {
+			return ensureConnectErrorWithCorrelation(err, corrID)
+		}
+		return nil
 	}
 }
 
-func attachOutgoingAuth(ctx context.Context, cfg ClientAuthConfig) (context.Context, error) {
-	ttl := cfg.TTL
+type clientAuthInterceptor struct {
+	cfg ClientAuthConfig
+}
+
+// NewClientAuthInterceptor signs x-internal-auth and ensures valid x-correlation-id on outgoing RPCs.
+func NewClientAuthInterceptor(cfg ClientAuthConfig) connect.Interceptor {
+	return &clientAuthInterceptor{cfg: cfg}
+}
+
+func (c *clientAuthInterceptor) attachHeaders(header interface {
+	Values(string) []string
+	Set(string, string)
+}) error {
+	ttl := c.cfg.TTL
 	if ttl <= 0 {
 		ttl = defaultClientTokenTTL
 	}
-	token, err := internalauth.Sign(cfg.Role, cfg.Subject, ttl, cfg.Secret)
+	token, err := internalauth.Sign(c.cfg.Role, c.cfg.Subject, ttl, c.cfg.Secret)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "sign internal auth metadata: %v", err)
+		return connect.NewError(connect.CodeInternal, fmt.Errorf("sign internal auth metadata: %w", err))
 	}
+	header.Set(MetadataInternalAuth, token)
 
-	md, ok := metadata.FromOutgoingContext(ctx)
-	if ok {
-		md = md.Copy()
-	} else {
-		md = metadata.New(nil)
-	}
-	md.Set(MetadataInternalAuth, token)
-
-	corrVals := md.Get(MetadataCorrelationID)
+	corrVals := header.Values(MetadataCorrelationID)
 	if len(corrVals) != 1 || !correlationIDPattern.MatchString(strings.TrimSpace(corrVals[0])) {
-		md.Set(MetadataCorrelationID, newUUIDv4())
+		header.Set(MetadataCorrelationID, contracts.NewUUIDv4())
 	}
-	return metadata.NewOutgoingContext(ctx, md), nil
+	return nil
 }
 
-// UnaryClientAuthInterceptor signs x-internal-auth and propagates x-correlation-id on unary calls.
-func UnaryClientAuthInterceptor(cfg ClientAuthConfig) grpc.UnaryClientInterceptor {
-	return func(
-		ctx context.Context,
-		method string,
-		req, reply any,
-		cc *grpc.ClientConn,
-		invoker grpc.UnaryInvoker,
-		opts ...grpc.CallOption,
-	) error {
-		outCtx, err := attachOutgoingAuth(ctx, cfg)
-		if err != nil {
-			return err
-		}
-		return invoker(outCtx, method, req, reply, cc, opts...)
-	}
-}
-
-// StreamClientAuthInterceptor signs x-internal-auth and propagates x-correlation-id on streaming calls.
-func StreamClientAuthInterceptor(cfg ClientAuthConfig) grpc.StreamClientInterceptor {
-	return func(
-		ctx context.Context,
-		desc *grpc.StreamDesc,
-		cc *grpc.ClientConn,
-		method string,
-		streamer grpc.Streamer,
-		opts ...grpc.CallOption,
-	) (grpc.ClientStream, error) {
-		outCtx, err := attachOutgoingAuth(ctx, cfg)
-		if err != nil {
+func (c *clientAuthInterceptor) WrapUnary(next connect.UnaryFunc) connect.UnaryFunc {
+	return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
+		if err := c.attachHeaders(req.Header()); err != nil {
 			return nil, err
 		}
-		return streamer(outCtx, desc, cc, method, opts...)
+		return next(ctx, req)
 	}
+}
+
+type authStreamingClientConn struct {
+	connect.StreamingClientConn
+	interceptor *clientAuthInterceptor
+	attached    bool
+}
+
+func (a *authStreamingClientConn) Send(msg any) error {
+	if !a.attached {
+		a.attached = true
+		if err := a.interceptor.attachHeaders(a.RequestHeader()); err != nil {
+			return err
+		}
+	}
+	return a.StreamingClientConn.Send(msg)
+}
+
+func (c *clientAuthInterceptor) WrapStreamingClient(next connect.StreamingClientFunc) connect.StreamingClientFunc {
+	return func(ctx context.Context, spec connect.Spec) connect.StreamingClientConn {
+		return &authStreamingClientConn{
+			StreamingClientConn: next(ctx, spec),
+			interceptor:         c,
+		}
+	}
+}
+
+func (c *clientAuthInterceptor) WrapStreamingHandler(next connect.StreamingHandlerFunc) connect.StreamingHandlerFunc {
+	return next
 }

@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+package portal.v1;
+
+import "portal/v1/analytics.proto";
+
+option go_package = "github.com/AndrewK4758/aklapper/packages/go/kit/gen/portal/v1;portalv1";
+
+service ContactService {
+  rpc SubmitContact(SubmitContactRequest) returns (SubmitContactResponse);
+}
+
+message ContactAttachmentUpload {
+  string filename = 1;
+  string mime_type = 2;
+  bytes content = 3;
+}
+
+message ContactSubmissionSummary {
+  string id = 1;
+  string name = 2;
+  string email = 3;
+  optional string phone = 4;
+  optional string attachment_name = 5;
+  optional int32 attachment_size_bytes = 6;
+  optional string attachment_sha256 = 7;
+  string created_at = 8;
+}
+
+message SubmitContactRequest {
+  string name = 1;
+  optional string phone = 2;
+  string email = 3;
+  string message = 4;
+  ContactAttachmentUpload attachment = 5;
+  optional string candidate_analytics_session_id = 6;
+  ClientRequestContext client_context = 7;
+}
+
+message SubmitContactResponse {
+  ContactSubmissionSummary submission = 1;
+}

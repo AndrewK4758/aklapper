@@ -107,33 +107,10 @@ func (s *Store) CreatePendingSandboxRunWithQuota(
 		s.mu.Lock()
 		defer s.mu.Unlock()
 
-		policy, ok := s.policies[role]
-		if !ok {
-			policy = defaultPolicies()[role]
-		}
-		sb := s.buckets[sessionKey]
-		if sb == nil {
-			sb = &memBucket{windowDay: today}
-			s.buckets[sessionKey] = sb
-		}
-		gb := s.buckets[globalKey]
-		if gb == nil || gb.windowDay != today {
-			gb = &memBucket{windowDay: today}
-			s.buckets[globalKey] = gb
-		}
-
-		maxSessionTokens := policy.MaxTokensPerRun * policy.MaxTurnsPerSession
-		quotaExceeded := sb.turnsUsed+turnsDelta > policy.MaxTurnsPerSession ||
-			tokensDelta > policy.MaxTokensPerRun ||
-			gb.tokensUsed+tokensDelta > policy.MaxDailyGlobalTokens
+		policy, sb, gb := s.ensureMemStateLocked(role, sessionID, today)
+		quotaExceeded := isMemQuotaExceeded(policy, sb, gb, turnsDelta, tokensDelta)
 		if quotaExceeded && !s.isDevUnlimitedEnabled() {
-			return nil, contracts.QuotaStatus{
-				Role:       role,
-				TurnsUsed:  sb.turnsUsed,
-				MaxTurns:   policy.MaxTurnsPerSession,
-				TokensUsed: sb.tokensUsed,
-				MaxTokens:  maxSessionTokens,
-			}, false, nil
+			return nil, formatQuotaStatus(role, policy, sb.turnsUsed, sb.tokensUsed), false, nil
 		}
 		if quotaExceeded {
 			logDevUnlimitedBypass(role, sessionID, "cadence-pending", "")
@@ -144,7 +121,7 @@ func (s *Store) CreatePendingSandboxRunWithQuota(
 		gb.turnsUsed += turnsDelta
 		gb.tokensUsed += tokensDelta
 
-		runID := newUUIDv4()
+		runID := contracts.NewUUIDv4()
 		nowStr := time.Now().UTC().Format(time.RFC3339)
 		execMode := contracts.CadenceExecutionModeFast
 		if mode == contracts.CadenceModeLLM {
@@ -192,13 +169,7 @@ func (s *Store) CreatePendingSandboxRunWithQuota(
 
 		copied := *run
 		copied.Turns = append([]contracts.CadenceTurn(nil), turns...)
-		return &copied, contracts.QuotaStatus{
-			Role:       role,
-			TurnsUsed:  sb.turnsUsed,
-			MaxTurns:   policy.MaxTurnsPerSession,
-			TokensUsed: sb.tokensUsed,
-			MaxTokens:  maxSessionTokens,
-		}, true, nil
+		return &copied, formatQuotaStatus(role, policy, sb.turnsUsed, sb.tokensUsed), true, nil
 	}
 
 	tx, err := s.pool.Begin(ctx)

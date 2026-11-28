@@ -4,28 +4,25 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"io"
-	"net"
+	"errors"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
+	"connectrpc.com/connect"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/contracts"
 	cadencev1 "github.com/AndrewK4758/aklapper/packages/go/kit/gen/cadence/v1"
+	"github.com/AndrewK4758/aklapper/packages/go/kit/gen/cadence/v1/cadencev1connect"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/grpckit"
+	"github.com/AndrewK4758/aklapper/packages/go/kit/httpkit"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/internalauth"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/llm"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/pg"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/privacy"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/credentials/insecure"
-	healthpb "google.golang.org/grpc/health/grpc_health_v1"
-	"google.golang.org/grpc/metadata"
-	"google.golang.org/grpc/status"
-	"google.golang.org/grpc/test/bufconn"
 )
 
 type streamingStubLLM struct {
@@ -395,71 +392,339 @@ func TestCadenceShowcaseCacheGoldenPrivacyAndGRPC(t *testing.T) {
 		}
 	})
 
-	t.Run("gRPC CadenceService.StreamRun enforces grpckit HMAC auth and serves health", func(t *testing.T) {
-		lis := bufconn.Listen(1024 * 1024)
-		srv, _ := grpckit.NewServer(secret, "cadence.v1.CadenceService")
-		cadencev1.RegisterCadenceServiceServer(srv, newCadenceGRPCServer(cadenceServiceDeps{
-			store: pg.NewMemoryStore(),
-		}))
-		go func() { _ = srv.Serve(lis) }()
-		t.Cleanup(func() { srv.Stop(); _ = lis.Close() })
+	t.Run("Single-port h2c CadenceService 5-RPC workflow, immediate initial log frame, ip_hash parity, and llm disconnect semantics", func(t *testing.T) {
+		logs := &syncLogBuffer{}
+		prevOut := log.Writer()
+		log.SetOutput(logs)
+		defer log.SetOutput(prevOut)
 
-		conn, err := grpc.NewClient(
-			"passthrough:///bufnet",
-			grpc.WithContextDialer(func(ctx context.Context, _ string) (net.Conn, error) { return lis.DialContext(ctx) }),
-			grpc.WithTransportCredentials(insecure.NewCredentials()),
-		)
-		if err != nil {
-			t.Fatalf("dial bufconn: %v", err)
+		store := pg.NewMemoryStore()
+		blockLLM := make(chan struct{})
+		llmEntered := make(chan struct{}, 2)
+		stub := &blockingStreamLLM{
+			entered: llmEntered,
+			release: blockLLM,
 		}
-		t.Cleanup(func() { _ = conn.Close() })
-
-		// Health check is public SERVING.
-		hc := healthpb.NewHealthClient(conn)
-		hRes, err := hc.Check(context.Background(), &healthpb.HealthCheckRequest{Service: "cadence.v1.CadenceService"})
-		if err != nil || hRes.GetStatus() != healthpb.HealthCheckResponse_SERVING {
-			t.Fatalf("expected SERVING health, got err=%v status=%v", err, hRes.GetStatus())
-		}
-
-		// Unauthenticated StreamRun fails with codes.Unauthenticated.
-		client := cadencev1.NewCadenceServiceClient(conn)
-		unauthStream, err := client.StreamRun(context.Background(), &cadencev1.StreamRunRequest{Prompt: "Test gRPC auth"})
-		if err == nil {
-			_, err = unauthStream.Recv()
-		}
-		if status.Code(err) != codes.Unauthenticated {
-			t.Fatalf("expected Unauthenticated, got %v", err)
-		}
-
-		// Authenticated StreamRun emits phase + done frames.
-		authCtx := metadata.AppendToOutgoingContext(context.Background(), "x-internal-auth", sessATok)
-		stream, err := client.StreamRun(authCtx, &cadencev1.StreamRunRequest{
-			Prompt:     "Build a CHORD gRPC verification workbench",
-			PresetSlug: "custom",
+		h := newHandlerWithDeps(cadenceServiceDeps{
+			provider: stub,
+			store:    store,
 		})
-		if err != nil {
-			t.Fatalf("StreamRun: %v", err)
+
+		srvCtx, srvCancel := context.WithCancel(context.Background())
+		readyCh := make(chan string, 1)
+		doneCh := make(chan error, 1)
+		go func() {
+			doneCh <- httpkit.ListenAndServeH2CGraceful(srvCtx, httpkit.H2CServerConfig{
+				Addr:            "127.0.0.1:0",
+				Handler:         h,
+				ShutdownTimeout: 2 * time.Second,
+				OnReady:         func(addr string) { readyCh <- addr },
+			})
+		}()
+		addr := <-readyCh
+		t.Cleanup(func() {
+			close(blockLLM)
+			srvCancel()
+			<-doneCh
+		})
+
+		baseURL := "http://" + addr
+		h2cHTTP := grpckit.NewH2CClient()
+		t.Cleanup(h2cHTTP.CloseIdleConnections)
+
+		// Unauthenticated CreateRun fails closed.
+		rawClient := cadencev1connect.NewCadenceServiceClient(h2cHTTP, baseURL, connect.WithGRPC())
+		_, uErr := rawClient.CreateRun(context.Background(), connect.NewRequest(&cadencev1.CreateRunRequest{Prompt: "Test gRPC auth"}))
+		var unauthErr *connect.Error
+		if !errors.As(uErr, &unauthErr) || unauthErr.Code() != connect.CodeUnauthenticated {
+			t.Fatalf("expected CodeUnauthenticated, got %v", uErr)
 		}
-		var gotDone bool
-		for {
-			msg, recvErr := stream.Recv()
-			if recvErr == io.EOF {
+
+		clientA := cadencev1connect.NewCadenceServiceClient(
+			h2cHTTP,
+			baseURL,
+			connect.WithGRPC(),
+			connect.WithInterceptors(grpckit.NewClientAuthInterceptor(grpckit.ClientAuthConfig{
+				Role: internalauth.RoleGuest, Subject: "sess-grpc-A", Secret: secret, TTL: time.Minute,
+			})),
+		)
+
+		// 1. Deferred fast-mode run with requireSpecApproval=true -> StreamRun -> awaiting_approval -> ApproveSpecGate -> StreamRun -> ready -> SubmitGateVerdict -> ListRuns
+		createRes, err := clientA.CreateRun(context.Background(), connect.NewRequest(&cadencev1.CreateRunRequest{
+			Prompt:              "Build a CHORD single-port gRPC verification workbench",
+			PresetSlug:          "custom",
+			Mode:                contracts.CadenceModeFast,
+			DeferExecution:      true,
+			RequireSpecApproval: true,
+		}))
+		if err != nil || createRes.Msg.GetCreatedImmediately() || createRes.Msg.GetRun().GetRunStatus() != contracts.CadenceStatusPending {
+			t.Fatalf("unexpected CreateRun: %+v err=%v", createRes, err)
+		}
+		runID := createRes.Msg.GetRun().GetRunId()
+
+		// Verify unified proxy ip_hash constant and persisted pending status.
+		storedRun, getErr := store.GetSandboxRun(context.Background(), runID)
+		if getErr != nil || storedRun == nil || storedRun.Status != contracts.CadenceStatusPending || unifiedProxyIPHash != "portal-proxy" {
+			t.Fatalf("expected pending run with unified ip_hash=portal-proxy, got run=%+v err=%v", storedRun, getErr)
+		}
+
+		// Stream spec phase: verify first frame is an immediate CadenceStreamLogEvent and final frame is complete (awaiting_approval).
+		specStream, err := clientA.StreamRun(context.Background(), connect.NewRequest(&cadencev1.StreamRunRequest{RunId: runID}))
+		if err != nil {
+			t.Fatalf("StreamRun spec: %v", err)
+		}
+		var firstWasLog, sawPhase, sawSpecComplete bool
+		frameIdx := 0
+		for specStream.Receive() {
+			msg := specStream.Msg()
+			if frameIdx == 0 && msg.GetLog() != nil {
+				firstWasLog = true
+			}
+			frameIdx++
+			if msg.GetPhase() != nil {
+				sawPhase = true
+			}
+			if comp := msg.GetComplete(); comp != nil && comp.GetRun().GetRunStatus() == contracts.CadenceStatusAwaitingApproval {
+				sawSpecComplete = true
+			}
+		}
+		_ = specStream.Close()
+		if !firstWasLog || !sawPhase || !sawSpecComplete {
+			t.Fatalf("unexpected spec stream frames: firstWasLog=%v sawPhase=%v sawSpecComplete=%v err=%v", firstWasLog, sawPhase, sawSpecComplete, specStream.Err())
+		}
+
+		// ApproveSpecGate -> build_queued
+		approveRes, err := clientA.ApproveSpecGate(context.Background(), connect.NewRequest(&cadencev1.ApproveSpecGateRequest{RunId: runID}))
+		if err != nil || approveRes.Msg.GetRun().GetRunStatus() != contracts.CadenceStatusBuildQueued {
+			t.Fatalf("unexpected ApproveSpecGate: %+v err=%v", approveRes, err)
+		}
+
+		// Stream build phase -> ready with sanitized HTML
+		buildStream, err := clientA.StreamRun(context.Background(), connect.NewRequest(&cadencev1.StreamRunRequest{RunId: runID}))
+		if err != nil {
+			t.Fatalf("StreamRun build: %v", err)
+		}
+		var sawBuildComplete bool
+		for buildStream.Receive() {
+			if comp := buildStream.Msg().GetComplete(); comp != nil && comp.GetRun().GetRunStatus() == contracts.CadenceStatusReady && comp.GetRun().GetArtifactHtml() != "" {
+				sawBuildComplete = true
+			}
+		}
+		_ = buildStream.Close()
+		if !sawBuildComplete {
+			t.Fatalf("expected build complete ready event, err=%v", buildStream.Err())
+		}
+
+		// Cross-session SubmitGateVerdict fails closed with CodePermissionDenied + echoed correlation ID.
+		clientB := cadencev1connect.NewCadenceServiceClient(
+			h2cHTTP,
+			baseURL,
+			connect.WithGRPC(),
+			connect.WithInterceptors(grpckit.NewClientAuthInterceptor(grpckit.ClientAuthConfig{
+				Role: internalauth.RoleGuest, Subject: "sess-grpc-B", Secret: secret, TTL: time.Minute,
+			})),
+		)
+		crossReq := connect.NewRequest(&cadencev1.SubmitGateVerdictRequest{RunId: runID, Verdict: "approved"})
+		crossReq.Header().Set(grpckit.MetadataCorrelationID, "corr-cross-sess")
+		_, crossErr := clientB.SubmitGateVerdict(context.Background(), crossReq)
+		var permErr *connect.Error
+		if !errors.As(crossErr, &permErr) || permErr.Code() != connect.CodePermissionDenied || permErr.Meta().Get(grpckit.MetadataCorrelationID) != "corr-cross-sess" {
+			t.Fatalf("expected CodePermissionDenied with echoed correlation ID, got err=%v", crossErr)
+		}
+
+		// Owning session SubmitGateVerdict -> approved
+		verdictRes, err := clientA.SubmitGateVerdict(context.Background(), connect.NewRequest(&cadencev1.SubmitGateVerdictRequest{RunId: runID, Verdict: "approved"}))
+		if err != nil || verdictRes.Msg.GetRun().GetGateVerdict() != "approved" {
+			t.Fatalf("unexpected SubmitGateVerdict: %+v err=%v", verdictRes, err)
+		}
+
+		// ListRuns returns CadenceRunResult + QuotaStatus
+		listRes, err := clientA.ListRuns(context.Background(), connect.NewRequest(&cadencev1.ListRunsRequest{SessionId: "sess-grpc-A", Limit: 10}))
+		if err != nil || len(listRes.Msg.GetRuns()) != 1 || listRes.Msg.GetRuns()[0].GetRunStatus() != contracts.CadenceStatusReady || listRes.Msg.GetQuota() == nil {
+			t.Fatalf("unexpected ListRuns: %+v err=%v", listRes, err)
+		}
+
+		// 2. LLM full-run disconnect refunds quota and emits DELTA_AUDIT_GAP cadence.run.cancellation_reconciled (refunded: true).
+		llmClient := cadencev1connect.NewCadenceServiceClient(
+			h2cHTTP,
+			baseURL,
+			connect.WithGRPC(),
+			connect.WithInterceptors(grpckit.NewClientAuthInterceptor(grpckit.ClientAuthConfig{
+				Role: internalauth.RoleGuest, Subject: "sess-llm-cancel", Secret: secret, TTL: time.Minute,
+			})),
+		)
+		llmRunRes, err := llmClient.CreateRun(context.Background(), connect.NewRequest(&cadencev1.CreateRunRequest{
+			Prompt:         "Build live LLM telemetry card for disconnect refund test",
+			PresetSlug:     "custom",
+			Mode:           contracts.CadenceModeLLM,
+			DeferExecution: true,
+		}))
+		if err != nil {
+			t.Fatalf("CreateRun llm: %v", err)
+		}
+		llmRunID := llmRunRes.Msg.GetRun().GetRunId()
+
+		cancelCtx, cancelStream := context.WithCancel(context.Background())
+		llmStream, err := llmClient.StreamRun(cancelCtx, connect.NewRequest(&cadencev1.StreamRunRequest{RunId: llmRunID}))
+		if err != nil {
+			t.Fatalf("StreamRun llm: %v", err)
+		}
+		// Immediate initial log frame arrives before blocking LLM stage.
+		if !llmStream.Receive() || llmStream.Msg().GetLog() == nil {
+			t.Fatalf("expected immediate initial log frame before LLM blocks, err=%v", llmStream.Err())
+		}
+		select {
+		case <-llmEntered:
+		case <-time.After(2 * time.Second):
+			t.Fatal("timed out waiting for LLM stage to start")
+		}
+		cancelStream()
+		_ = llmStream.Close()
+
+		// Wait briefly for detached 5s refund cleanup to commit.
+		deadline := time.Now().Add(2 * time.Second)
+		for time.Now().Before(deadline) {
+			r, _ := store.GetSandboxRun(context.Background(), llmRunID)
+			q, _ := store.GetQuotaStatus(context.Background(), contracts.RoleGuest, "sess-llm-cancel")
+			if r != nil && r.Status == contracts.CadenceStatusFailed && q.TurnsUsed == 0 {
 				break
 			}
-			if recvErr != nil {
-				t.Fatalf("StreamRun recv: %v", recvErr)
-			}
-			if done := msg.GetDone(); done != nil {
-				gotDone = true
-				if done.GetStatus() != contracts.CadenceStatusReady || done.GetArtifactHtml() == "" {
-					t.Fatalf("unexpected done event: %+v", done)
-				}
-			}
+			time.Sleep(25 * time.Millisecond)
 		}
-		if !gotDone {
-			t.Fatal("expected CadenceDoneEvent from gRPC StreamRun")
+		finalRun, _ := store.GetSandboxRun(context.Background(), llmRunID)
+		finalQuota, _ := store.GetQuotaStatus(context.Background(), contracts.RoleGuest, "sess-llm-cancel")
+		if finalRun == nil || finalRun.Status != contracts.CadenceStatusFailed || finalQuota.TurnsUsed != 0 {
+			t.Fatalf("expected llm cancel failed + refunded quota=0, got run=%+v quota=%+v", finalRun, finalQuota)
+		}
+		if !strings.Contains(logs.String(), "cadence.run.cancellation_reconciled") {
+			t.Fatalf("expected DELTA_AUDIT_GAP cadence.run.cancellation_reconciled log, got:\n%s", logs.String())
+		}
+
+		// 3. Post-spec-approval LLM build-phase disconnect marks failed WITHOUT refunding quota (phase="build", refunded=false).
+		buildSess := "sess-llm-build-cancel"
+		pendingBuildRun, _, allowed, pErr := store.CreatePendingSandboxRunWithQuota(
+			context.Background(), contracts.RoleGuest, buildSess, 1, 800,
+			pg.PendingSandboxRunInput{
+				SessionID:           buildSess,
+				IPHash:              unifiedProxyIPHash,
+				PresetSlug:          "custom",
+				Prompt:              "Build-phase cancellation quota retention test",
+				Mode:                contracts.CadenceModeLLM,
+				RequireSpecApproval: true,
+			},
+		)
+		if pErr != nil || !allowed {
+			t.Fatalf("CreatePendingSandboxRunWithQuota: %v allowed=%v", pErr, allowed)
+		}
+		if _, ok, cErr := store.ClaimPendingSandboxRun(context.Background(), pendingBuildRun.RunID, buildSess); cErr != nil || !ok {
+			t.Fatalf("ClaimPendingSandboxRun: %v ok=%v", cErr, ok)
+		}
+		if _, pSpecErr := store.PauseSandboxRunForSpecApproval(context.Background(), pg.PauseSpecApprovalInput{
+			RunID:         pendingBuildRun.RunID,
+			TokensIn:      10,
+			TokensOut:     20,
+			ExecutionMode: contracts.CadenceExecutionModeLive,
+			SpecJSON: &contracts.CadenceSpecArtifact{
+				Title: "Build Cancel Spec", Summary: "Spec summary",
+				Conditions: []string{"c1"}, Handling: []string{"h1"}, Outcomes: []string{"o1"}, Rules: []string{"r1"}, Deltas: []string{"d1"},
+			},
+		}); pSpecErr != nil {
+			t.Fatalf("PauseSandboxRunForSpecApproval: %v", pSpecErr)
+		}
+		if _, apErr := store.ApproveSandboxRunSpecForSession(context.Background(), pendingBuildRun.RunID, buildSess); apErr != nil {
+			t.Fatalf("ApproveSandboxRunSpecForSession: %v", apErr)
+		}
+
+		buildClient := cadencev1connect.NewCadenceServiceClient(
+			h2cHTTP, baseURL, connect.WithGRPC(),
+			connect.WithInterceptors(grpckit.NewClientAuthInterceptor(grpckit.ClientAuthConfig{
+				Role: internalauth.RoleGuest, Subject: buildSess, Secret: secret, TTL: time.Minute,
+			})),
+		)
+		buildCancelCtx, buildCancel := context.WithCancel(context.Background())
+		bStream, bErr := buildClient.StreamRun(buildCancelCtx, connect.NewRequest(&cadencev1.StreamRunRequest{RunId: pendingBuildRun.RunID}))
+		if bErr != nil {
+			t.Fatalf("StreamRun build cancel: %v", bErr)
+		}
+		if !bStream.Receive() || bStream.Msg().GetLog() == nil {
+			t.Fatalf("expected immediate initial log frame on build stream, err=%v", bStream.Err())
+		}
+		select {
+		case <-llmEntered:
+		case <-time.After(2 * time.Second):
+			t.Fatal("timed out waiting for LLM build stage to enter")
+		}
+		buildCancel()
+		_ = bStream.Close()
+
+		buildDeadline := time.Now().Add(2 * time.Second)
+		for time.Now().Before(buildDeadline) {
+			r, _ := store.GetSandboxRun(context.Background(), pendingBuildRun.RunID)
+			if r != nil && r.Status == contracts.CadenceStatusFailed {
+				break
+			}
+			time.Sleep(25 * time.Millisecond)
+		}
+		finalBuildRun, _ := store.GetSandboxRun(context.Background(), pendingBuildRun.RunID)
+		finalBuildQuota, _ := store.GetQuotaStatus(context.Background(), contracts.RoleGuest, buildSess)
+		if finalBuildRun == nil || finalBuildRun.Status != contracts.CadenceStatusFailed || finalBuildQuota.TurnsUsed != 1 {
+			t.Fatalf("expected build cancel failed with retained quota=1, got run=%+v quota=%+v", finalBuildRun, finalBuildQuota)
+		}
+		if !strings.Contains(logs.String(), `"phase":"build"`) || !strings.Contains(logs.String(), `"refunded":false`) {
+			t.Fatalf("expected build-phase cancellation_reconciled log with refunded=false, got:\n%s", logs.String())
 		}
 	})
+}
+
+type syncLogBuffer struct {
+	mu  sync.Mutex
+	buf strings.Builder
+}
+
+func (b *syncLogBuffer) Write(p []byte) (int, error) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.buf.Write(p)
+}
+
+func (b *syncLogBuffer) String() string {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.buf.String()
+}
+
+type blockingStreamLLM struct {
+	entered chan struct{}
+	release chan struct{}
+}
+
+func (b *blockingStreamLLM) Name() string { return "blocking-llm" }
+func (b *blockingStreamLLM) Embed(_ context.Context, _ string) ([]float32, error) {
+	return nil, nil
+}
+func (b *blockingStreamLLM) Chat(ctx context.Context, _ []llm.ChatMessage, _ int) (llm.Completion, error) {
+	select {
+	case b.entered <- struct{}{}:
+	default:
+	}
+	select {
+	case <-ctx.Done():
+		return llm.Completion{}, ctx.Err()
+	case <-b.release:
+		return llm.Completion{Text: "done", TokensUsed: 10}, nil
+	}
+}
+func (b *blockingStreamLLM) ChatStream(ctx context.Context, _ llm.ChatStreamRequest, _ func(llm.ChatStreamChunk) error) (llm.ChatStreamResult, error) {
+	select {
+	case b.entered <- struct{}{}:
+	default:
+	}
+	select {
+	case <-ctx.Done():
+		return llm.ChatStreamResult{}, ctx.Err()
+	case <-b.release:
+		return llm.ChatStreamResult{Text: "done", TokensUsed: 10}, nil
+	}
 }
 
 func TestCadenceStructuredStagesEnableIncludeThoughts(t *testing.T) {
@@ -478,5 +743,123 @@ func TestCadenceStructuredStagesEnableIncludeThoughts(t *testing.T) {
 	}
 	if len(stub.reqs) != 2 || !stub.reqs[0].IncludeThoughts || !stub.reqs[1].IncludeThoughts {
 		t.Fatalf("expected IncludeThoughts=true for both spec and build stages, got %+v", stub.reqs)
+	}
+}
+
+func TestCadenceClearSessionRunsAndGoldenRunsGRPC(t *testing.T) {
+	const secret = "cadence-reset-unit-secret"
+	t.Setenv("INTERNAL_AUTH_SECRET", secret)
+
+	store := pg.NewMemoryStore()
+	ctx := context.Background()
+	_, err := store.CreateSandboxRun(ctx, pg.SandboxRunInput{
+		SessionID:     "golden-showcase",
+		MenuSlug:      "chord-decomposition-workbench",
+		Prompt:        "Golden showcase reference",
+		Status:        contracts.CadenceStatusReady,
+		GateVerdict:   "approved",
+		IsGolden:      true,
+		ExecutionMode: contracts.CadenceExecutionModeGolden,
+	})
+	if err != nil {
+		t.Fatalf("create golden run: %v", err)
+	}
+	_, err = store.CreateSandboxRun(ctx, pg.SandboxRunInput{
+		SessionID:     "guest_alpha123",
+		MenuSlug:      "custom",
+		Prompt:        "Alpha session run",
+		Status:        contracts.CadenceStatusReady,
+		GateVerdict:   "pending",
+		IsGolden:      false,
+		ExecutionMode: contracts.CadenceExecutionModeFast,
+	})
+	if err != nil {
+		t.Fatalf("create alpha run: %v", err)
+	}
+	_, err = store.CreateSandboxRun(ctx, pg.SandboxRunInput{
+		SessionID:     "guest_other999",
+		MenuSlug:      "custom",
+		Prompt:        "Other session run",
+		Status:        contracts.CadenceStatusReady,
+		GateVerdict:   "pending",
+		IsGolden:      false,
+		ExecutionMode: contracts.CadenceExecutionModeFast,
+	})
+	if err != nil {
+		t.Fatalf("create other run: %v", err)
+	}
+
+	h := newHandler(nil, nil, store)
+	srvCtx, cancel := context.WithCancel(context.Background())
+	readyCh := make(chan string, 1)
+	doneCh := make(chan error, 1)
+	go func() {
+		doneCh <- httpkit.ListenAndServeH2CGraceful(srvCtx, httpkit.H2CServerConfig{
+			Addr:            "127.0.0.1:0",
+			Handler:         h,
+			ShutdownTimeout: 2 * time.Second,
+			OnReady:         func(addr string) { readyCh <- addr },
+		})
+	}()
+	addr := <-readyCh
+	t.Cleanup(func() {
+		cancel()
+		<-doneCh
+	})
+
+	h2cHTTP := grpckit.NewH2CClient()
+	t.Cleanup(h2cHTTP.CloseIdleConnections)
+	alphaClient := cadencev1connect.NewCadenceServiceClient(
+		h2cHTTP,
+		"http://"+addr,
+		connect.WithGRPC(),
+		connect.WithInterceptors(grpckit.NewClientAuthInterceptor(grpckit.ClientAuthConfig{
+			Role: internalauth.RoleGuest, Subject: "guest_alpha123", Secret: secret, TTL: time.Minute,
+		})),
+	)
+	otherClient := cadencev1connect.NewCadenceServiceClient(
+		h2cHTTP,
+		"http://"+addr,
+		connect.WithGRPC(),
+		connect.WithInterceptors(grpckit.NewClientAuthInterceptor(grpckit.ClientAuthConfig{
+			Role: internalauth.RoleGuest, Subject: "guest_other999", Secret: secret, TTL: time.Minute,
+		})),
+	)
+
+	listBefore, err := alphaClient.ListRuns(ctx, connect.NewRequest(&cadencev1.ListRunsRequest{
+		SessionId: "guest_alpha123",
+		Limit:     10,
+	}))
+	if err != nil {
+		t.Fatalf("ListRuns before clear: %v", err)
+	}
+	if len(listBefore.Msg.GetRuns()) != 1 || len(listBefore.Msg.GetGoldenRuns()) != 1 {
+		t.Fatalf("expected 1 session run and 1 golden run, got runs=%d golden=%d",
+			len(listBefore.Msg.GetRuns()), len(listBefore.Msg.GetGoldenRuns()))
+	}
+
+	clearRes, err := alphaClient.ClearSessionRuns(ctx, connect.NewRequest(&cadencev1.ClearSessionRunsRequest{}))
+	if err != nil || clearRes.Msg.GetDeletedCount() != 1 {
+		t.Fatalf("expected deleted_count=1, got res=%+v err=%v", clearRes, err)
+	}
+
+	listAfter, err := alphaClient.ListRuns(ctx, connect.NewRequest(&cadencev1.ListRunsRequest{
+		SessionId: "guest_alpha123",
+		Limit:     10,
+	}))
+	if err != nil {
+		t.Fatalf("ListRuns after clear: %v", err)
+	}
+	if len(listAfter.Msg.GetRuns()) != 0 || len(listAfter.Msg.GetGoldenRuns()) != 1 {
+		t.Fatalf("expected 0 session runs and preserved 1 golden run, got runs=%d golden=%d",
+			len(listAfter.Msg.GetRuns()), len(listAfter.Msg.GetGoldenRuns()))
+	}
+
+	otherList, err := otherClient.ListRuns(ctx, connect.NewRequest(&cadencev1.ListRunsRequest{
+		SessionId: "guest_other999",
+		Limit:     10,
+	}))
+	if err != nil || len(otherList.Msg.GetRuns()) != 1 {
+		t.Fatalf("expected guest_other999 run preserved, got runs=%d err=%v", len(otherList.Msg.GetRuns()), err)
 	}
 }

@@ -3,204 +3,269 @@ package main
 import (
 	"context"
 	"errors"
+	"net/http"
 	"strings"
+	"sync"
 	"time"
 
+	"connectrpc.com/connect"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/contracts"
 	cadencev1 "github.com/AndrewK4758/aklapper/packages/go/kit/gen/cadence/v1"
+	"github.com/AndrewK4758/aklapper/packages/go/kit/gen/cadence/v1/cadencev1connect"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/grpckit"
-	"github.com/AndrewK4758/aklapper/packages/go/kit/llm"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/pg"
-	"github.com/AndrewK4758/aklapper/packages/go/kit/privacy"
-	"github.com/AndrewK4758/aklapper/packages/go/kit/qdrant"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
-type cadenceServiceDeps struct {
-	provider    llm.Provider
-	vectorStore *qdrant.Client
-	store       *pg.Store
-	privacyCfg  *privacy.Config
-}
-
-type cadenceGRPCServer struct {
-	cadencev1.UnimplementedCadenceServiceServer
+type cadenceConnectServer struct {
 	deps cadenceServiceDeps
 }
 
-func newCadenceGRPCServer(deps cadenceServiceDeps) *cadenceGRPCServer {
-	return &cadenceGRPCServer{deps: deps}
+var _ cadencev1connect.CadenceServiceHandler = (*cadenceConnectServer)(nil)
+
+func newCadenceConnectServer(deps cadenceServiceDeps) *cadenceConnectServer {
+	return &cadenceConnectServer{deps: deps}
 }
 
-func (s *cadenceGRPCServer) StreamRun(
-	req *cadencev1.StreamRunRequest,
-	stream grpc.ServerStreamingServer[cadencev1.StreamRunResponse],
-) error {
-	ctx := stream.Context()
+type connectCadenceEmitter struct {
+	mu     sync.Mutex
+	stream *connect.ServerStream[cadencev1.StreamRunResponse]
+}
+
+func (e *connectCadenceEmitter) send(resp *cadencev1.StreamRunResponse) error {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	return e.stream.Send(resp)
+}
+
+func (e *connectCadenceEmitter) EmitPhase(ev contracts.CadenceStreamPhaseEvent) error {
+	return e.send(&cadencev1.StreamRunResponse{
+		Payload: &cadencev1.StreamRunResponse_Phase{Phase: toProtoPhaseEvent(ev)},
+	})
+}
+
+func (e *connectCadenceEmitter) EmitLog(ev contracts.CadenceStreamLogEvent) error {
+	return e.send(&cadencev1.StreamRunResponse{
+		Payload: &cadencev1.StreamRunResponse_Log{Log: toProtoLogEvent(ev)},
+	})
+}
+
+func (e *connectCadenceEmitter) EmitComplete(ev contracts.CadenceStreamCompleteEvent) error {
+	return e.send(&cadencev1.StreamRunResponse{
+		Payload: &cadencev1.StreamRunResponse_Complete{Complete: toProtoCompleteEvent(ev)},
+	})
+}
+
+func (e *connectCadenceEmitter) EmitError(ev contracts.CadenceStreamErrorEvent) error {
+	return e.send(&cadencev1.StreamRunResponse{
+		Payload: &cadencev1.StreamRunResponse_Error{Error: toProtoErrorEvent(ev)},
+	})
+}
+
+func resolveCadenceCorrID(ctx context.Context) string {
+	if corrID := grpckit.CorrelationIDFromContext(ctx); corrID != "" {
+		return corrID
+	}
+	return contracts.NewUUIDv4()
+}
+
+func (s *cadenceConnectServer) CreateRun(
+	ctx context.Context,
+	req *connect.Request[cadencev1.CreateRunRequest],
+) (*connect.Response[cadencev1.CreateRunResponse], error) {
 	claims, ok := grpckit.ClaimsFromContext(ctx)
 	if !ok || claims == nil {
-		return status.Error(codes.Unauthenticated, "signed x-internal-auth metadata required")
+		return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("signed x-internal-auth metadata required"))
+	}
+	corrID := resolveCadenceCorrID(ctx)
+
+	res, createdImmediately, svcErr := executeCreateRun(ctx, s.deps, claims, contracts.CadenceRunRequest{
+		Prompt:              req.Msg.GetPrompt(),
+		PresetSlug:          req.Msg.GetPresetSlug(),
+		Mode:                req.Msg.GetMode(),
+		DeferExecution:      req.Msg.GetDeferExecution(),
+		RequireSpecApproval: req.Msg.GetRequireSpecApproval(),
+	}, claims.Sub, corrID)
+	if svcErr != nil {
+		return nil, svcErr.toConnectError()
+	}
+	return connect.NewResponse(&cadencev1.CreateRunResponse{
+		Run:                toProtoCadenceRunResult(res),
+		CreatedImmediately: createdImmediately,
+	}), nil
+}
+
+func (s *cadenceConnectServer) ListRuns(
+	ctx context.Context,
+	req *connect.Request[cadencev1.ListRunsRequest],
+) (*connect.Response[cadencev1.ListRunsResponse], error) {
+	claims, ok := grpckit.ClaimsFromContext(ctx)
+	if !ok || claims == nil {
+		return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("signed x-internal-auth metadata required"))
+	}
+	corrID := resolveCadenceCorrID(ctx)
+
+	candidate := strings.TrimSpace(req.Msg.GetSessionId())
+	if candidate == "" {
+		candidate = strings.TrimSpace(claims.Sub)
+	}
+	runs, quota, svcErr := executeListRuns(ctx, s.deps, claims, candidate, true, int(req.Msg.GetLimit()), corrID)
+	if svcErr != nil {
+		return nil, svcErr.toConnectError()
 	}
 
-	prompt := strings.TrimSpace(req.GetPrompt())
-	if len(prompt) < 4 || len(prompt) > 1200 {
-		return status.Error(codes.InvalidArgument, "prompt must be between 4 and 1200 characters")
+	protoRuns := make([]*cadencev1.CadenceRunResult, 0, len(runs))
+	for i := range runs {
+		contractRun := pg.SandboxRunToContractResult(&runs[i], nil, nil, "")
+		protoRuns = append(protoRuns, toProtoCadenceRunResult(contractRun))
 	}
-	presetSlug := nonEmptyOr(req.GetPresetSlug(), "custom")
+
+	goldenRuns, gErr := s.deps.store.ListGoldenSandboxRuns(ctx)
+	if gErr != nil {
+		return nil, newCadenceError(http.StatusInternalServerError, connect.CodeInternal,
+			contracts.ErrCodeInternal, "failed to list golden showcase runs", "Retry or share the reference ID.", corrID, nil).toConnectError()
+	}
+	protoGolden := make([]*cadencev1.CadenceRunResult, 0, len(goldenRuns))
+	for i := range goldenRuns {
+		contractRun := pg.SandboxRunToContractResult(&goldenRuns[i], nil, nil, "")
+		protoGolden = append(protoGolden, toProtoCadenceRunResult(contractRun))
+	}
+
+	return connect.NewResponse(&cadencev1.ListRunsResponse{
+		Runs:       protoRuns,
+		Quota:      grpckit.ToProtoQuota(&quota),
+		GoldenRuns: protoGolden,
+	}), nil
+}
+
+func (s *cadenceConnectServer) ClearSessionRuns(
+	ctx context.Context,
+	_ *connect.Request[cadencev1.ClearSessionRunsRequest],
+) (*connect.Response[cadencev1.ClearSessionRunsResponse], error) {
+	claims, ok := grpckit.ClaimsFromContext(ctx)
+	if !ok || claims == nil {
+		return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("signed x-internal-auth metadata required"))
+	}
+	corrID := resolveCadenceCorrID(ctx)
 	sessionID := strings.TrimSpace(claims.Sub)
 	if sessionID == "" {
-		sessionID = "anonymous"
+		return nil, newCadenceError(http.StatusUnauthorized, connect.CodeUnauthenticated,
+			contracts.ErrCodeUnauthorized, "missing session principal", "Refresh your session and retry.", corrID, nil).toConnectError()
 	}
-	role := contracts.RoleGuest
-	if claims.Role == contracts.RoleAdmin {
-		role = contracts.RoleAdmin
-	}
-	corrID := grpckit.CorrelationIDFromContext(ctx)
-	mode := contracts.CadenceModeFast
 
-	// 1. Pre-quota scoped prompt_hash cache check.
-	cacheRes, cacheErr := resolveCacheLookupAndClone(ctx, s.deps.store, sessionID, "grpc-internal", presetSlug, mode, prompt)
-	if cacheErr == nil && cacheRes.Hit && cacheRes.ClonedRun != nil {
-		run := cacheRes.ClonedRun
-		for _, turn := range run.Turns {
-			if err := stream.Send(&cadencev1.StreamRunResponse{
-				Payload: &cadencev1.StreamRunResponse_Phase{
-					Phase: &cadencev1.CadencePhaseEvent{
-						RunId:     run.RunID,
-						Phase:     turn.Phase,
-						AgentName: turn.AgentName,
-						Status:    turn.Status,
-						Summary:   turn.Summary,
-						LatencyMs: int32(turn.LatencyMs),
-					},
-				},
-			}); err != nil {
-				return err
-			}
-		}
-		return stream.Send(&cadencev1.StreamRunResponse{
-			Payload: &cadencev1.StreamRunResponse_Done{
-				Done: &cadencev1.CadenceDoneEvent{
-					RunId:        run.RunID,
-					Status:       run.Status,
-					GateVerdict:  run.GateVerdict,
-					TokensIn:     0,
-					TokensOut:    0,
-					ArtifactHtml: run.ArtifactHTML,
-				},
-			},
+	deleted, err := s.deps.store.ClearSandboxRunsForSession(ctx, sessionID)
+	if err != nil {
+		return nil, newCadenceError(http.StatusInternalServerError, connect.CodeInternal,
+			contracts.ErrCodeInternal, "failed to reset session runs", "Retry or share the reference ID.", corrID, nil).toConnectError()
+	}
+	return connect.NewResponse(&cadencev1.ClearSessionRunsResponse{
+		DeletedCount: int32(deleted),
+	}), nil
+}
+
+func (s *cadenceConnectServer) ApproveSpecGate(
+	ctx context.Context,
+	req *connect.Request[cadencev1.ApproveSpecGateRequest],
+) (*connect.Response[cadencev1.ApproveSpecGateResponse], error) {
+	claims, ok := grpckit.ClaimsFromContext(ctx)
+	if !ok || claims == nil {
+		return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("signed x-internal-auth metadata required"))
+	}
+	corrID := resolveCadenceCorrID(ctx)
+
+	_, contractRun, quota, svcErr := executeApproveSpecGate(ctx, s.deps, claims, req.Msg.GetRunId(), claims.Sub, corrID)
+	if svcErr != nil {
+		return nil, svcErr.toConnectError()
+	}
+	return connect.NewResponse(&cadencev1.ApproveSpecGateResponse{
+		Run:   toProtoCadenceRunResult(contractRun),
+		Quota: grpckit.ToProtoQuota(&quota),
+	}), nil
+}
+
+func (s *cadenceConnectServer) SubmitGateVerdict(
+	ctx context.Context,
+	req *connect.Request[cadencev1.SubmitGateVerdictRequest],
+) (*connect.Response[cadencev1.SubmitGateVerdictResponse], error) {
+	claims, ok := grpckit.ClaimsFromContext(ctx)
+	if !ok || claims == nil {
+		return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("signed x-internal-auth metadata required"))
+	}
+	corrID := resolveCadenceCorrID(ctx)
+
+	_, contractRun, svcErr := executeSubmitGateVerdict(ctx, s.deps, claims, req.Msg.GetRunId(), claims.Sub, req.Msg.GetVerdict(), corrID)
+	if svcErr != nil {
+		return nil, svcErr.toConnectError()
+	}
+	return connect.NewResponse(&cadencev1.SubmitGateVerdictResponse{
+		Run: toProtoCadenceRunResult(contractRun),
+	}), nil
+}
+
+func (s *cadenceConnectServer) StreamRun(
+	ctx context.Context,
+	req *connect.Request[cadencev1.StreamRunRequest],
+	stream *connect.ServerStream[cadencev1.StreamRunResponse],
+) error {
+	claims, ok := grpckit.ClaimsFromContext(ctx)
+	if !ok || claims == nil {
+		return connect.NewError(connect.CodeUnauthenticated, errors.New("signed x-internal-auth metadata required"))
+	}
+	corrID := resolveCadenceCorrID(ctx)
+
+	runID := strings.TrimSpace(req.Msg.GetRunId())
+	if !contracts.ValidateUUID(runID) {
+		return newCadenceError(http.StatusBadRequest, connect.CodeInvalidArgument,
+			contracts.ErrCodeValidation, "invalid run id", "Verify the run ID and retry.", corrID, nil).toConnectError()
+	}
+	sessionID := strings.TrimSpace(claims.Sub)
+	if sessionID == "" {
+		logCadenceSeam("UNSOUND_CONDITION", "cadence.stream.session_mismatch_or_missing", "critical", map[string]any{
+			"runId":         runID,
+			"reason":        "missing_session",
+			"correlationId": corrID,
 		})
+		return newCadenceError(http.StatusUnauthorized, connect.CodeUnauthenticated,
+			contracts.ErrCodeUnauthorized, "missing session principal", "Refresh your session and retry.", corrID, nil).toConnectError()
 	}
 
-	// 2. Atomic pending run + quota reserve.
-	pendingRun, _, allowed, initErr := s.deps.store.CreatePendingSandboxRunWithQuota(
-		ctx,
-		role,
-		sessionID,
-		1,
-		800,
-		pg.PendingSandboxRunInput{
-			SessionID:  sessionID,
-			IPHash:     "grpc-internal",
-			PresetSlug: presetSlug,
-			Prompt:     prompt,
-			Mode:       mode,
-			PromptHash: cacheRes.PromptHash,
-		},
-	)
-	if initErr != nil {
-		return status.Error(codes.Unavailable, "failed to initialize sandbox run")
-	}
-	if !allowed {
-		return status.Error(codes.ResourceExhausted, "session or daily CADENCE quota exceeded")
-	}
-
-	if _, claimed, claimErr := s.deps.store.ClaimPendingSandboxRun(ctx, pendingRun.RunID, sessionID); claimErr != nil || !claimed {
-		return status.Error(codes.Internal, "failed to claim pending sandbox run")
-	}
-
-	workCtx, workCancel := context.WithTimeout(ctx, 15*time.Second)
-	defer workCancel()
-
-	out, execErr := executeChordStepsWithOptions(workCtx, chordExecInput{
-		Provider:    s.deps.provider,
-		VectorStore: s.deps.vectorStore,
-		Store:       s.deps.store,
-		PrivacyCfg:  s.deps.privacyCfg,
-		CorrID:      corrID,
-		RunID:       pendingRun.RunID,
-		Prompt:      prompt,
-		PresetSlug:  presetSlug,
-		Mode:        mode,
-		OnPhase: func(turn contracts.CadenceTurn, _ string, _ int, _ *contracts.CadenceSpecArtifact) {
-			_ = stream.Send(&cadencev1.StreamRunResponse{
-				Payload: &cadencev1.StreamRunResponse_Phase{
-					Phase: &cadencev1.CadencePhaseEvent{
-						RunId:     pendingRun.RunID,
-						Phase:     turn.Phase,
-						AgentName: turn.AgentName,
-						Status:    turn.Status,
-						Summary:   turn.Summary,
-						LatencyMs: int32(turn.LatencyMs),
-					},
-				},
-			})
-		},
-		OnLog: func(line string) {
-			_ = stream.Send(&cadencev1.StreamRunResponse{
-				Payload: &cadencev1.StreamRunResponse_Delta{
-					Delta: &cadencev1.CadenceDeltaEvent{
-						RunId: pendingRun.RunID,
-						Phase: "build",
-						Text:  line,
-					},
-				},
-			})
-		},
-	})
-	if execErr != nil {
-		failCtx, failCancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
-		defer failCancel()
-		if errors.Is(execErr, context.Canceled) {
-			_, _ = s.deps.store.RefundSandboxRunQuotaTx(failCtx, pendingRun.RunID)
-			return status.Error(codes.Canceled, "stream cancelled")
+	run, err := s.deps.store.GetSandboxRun(ctx, runID)
+	if err != nil {
+		if errors.Is(err, pg.ErrRunNotFound) {
+			return newCadenceError(http.StatusNotFound, connect.CodeNotFound,
+				contracts.ErrCodeNotFound, "sandbox run not found", "Start a new run or refresh.", corrID, nil).toConnectError()
 		}
-		_ = s.deps.store.FailSandboxRun(failCtx, pendingRun.RunID, "CHORD execution failed")
-		if errors.Is(execErr, privacy.ErrPrivacyAborted) {
-			return status.Error(codes.PermissionDenied, "output blocked by privacy boundary")
-		}
-		return status.Error(codes.Internal, "CHORD execution failed")
+		return newCadenceError(http.StatusInternalServerError, connect.CodeInternal,
+			contracts.ErrCodeInternal, "failed to load sandbox run", "Retry or share the reference ID.", corrID, nil).toConnectError()
 	}
 
-	commitCtx, commitCancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
-	defer commitCancel()
-	completed, compErr := s.deps.store.CompleteSandboxRunWithArtifacts(commitCtx, pg.CompleteSandboxRunInput{
-		RunID:         pendingRun.RunID,
-		TokensIn:      out.TokensIn,
-		TokensOut:     out.TokensOut,
-		ArtifactHTML:  out.ArtifactHTML,
-		ExecutionMode: out.ExecutionMode,
-		SpecJSON:      out.Spec,
-		GateAuditJSON: out.GateAudit,
-		PromptHash:    cacheRes.PromptHash,
-	})
-	if compErr != nil {
-		_ = s.deps.store.FailSandboxRun(commitCtx, pendingRun.RunID, "failed to commit completed run")
-		return status.Error(codes.Internal, "failed to commit completed run")
+	if run.SessionID != sessionID {
+		logCadenceSeam("UNSOUND_CONDITION", "cadence.stream.session_mismatch_or_missing", "critical", map[string]any{
+			"runId":         runID,
+			"reason":        "session_mismatch",
+			"correlationId": corrID,
+		})
+		return newCadenceError(http.StatusForbidden, connect.CodePermissionDenied,
+			contracts.ErrCodeForbidden, "sandbox run belongs to a different session", "Return home or start your own run.", corrID, nil).toConnectError()
 	}
 
-	return stream.Send(&cadencev1.StreamRunResponse{
-		Payload: &cadencev1.StreamRunResponse_Done{
-			Done: &cadencev1.CadenceDoneEvent{
-				RunId:        completed.RunID,
-				Status:       completed.Status,
-				GateVerdict:  completed.GateVerdict,
-				TokensIn:     int32(completed.TokensIn),
-				TokensOut:    int32(completed.TokensOut),
-				ArtifactHtml: completed.ArtifactHTML,
-			},
-		},
-	})
+	role := claimsRoleOrGuest(claims)
+	stream.ResponseHeader().Set(grpckit.MetadataCorrelationID, corrID)
+
+	emitter := &connectCadenceEmitter{stream: stream}
+	// ConnectRPC v1 flushes HTTP/2 HEADERS on first stream.Send; emit an immediate initial log frame
+	// before pollActiveRun or slow LLM stages so caller header-only timers clear without timing out.
+	initialLine := "[stream] Connected to CHORD pipeline..."
+	if run.Status == contracts.CadenceStatusRunning || run.Status == contracts.CadenceStatusBuilding {
+		initialLine = "[stream] Reattached to active CHORD run..."
+	}
+	if sendErr := emitter.EmitLog(contracts.CadenceStreamLogEvent{
+		RunID:     runID,
+		Line:      initialLine,
+		Timestamp: time.Now().UTC().Format(time.RFC3339),
+	}); sendErr != nil {
+		return sendErr
+	}
+
+	executeCadenceRunStream(ctx, s.deps, run, role, sessionID, corrID, emitter)
+	return nil
 }

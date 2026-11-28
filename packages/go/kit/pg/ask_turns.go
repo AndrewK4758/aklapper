@@ -227,22 +227,47 @@ func (s *Store) ReserveTurnTx(ctx context.Context, in ReserveTurnInput) (TurnRes
 	}, true, nil
 }
 
+func (s *Store) beginAndLockAskTurn(ctx context.Context, attemptID string) (pgx.Tx, *TurnRecord, error) {
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+	row, err := lockAskTurnRow(ctx, tx, attemptID)
+	if err != nil {
+		_ = tx.Rollback(ctx)
+		return nil, nil, err
+	}
+	return tx, row, nil
+}
+
+func (s *Store) commitReadOnlyQuotaStatus(
+	ctx context.Context,
+	tx pgx.Tx,
+	row *TurnRecord,
+) (contracts.QuotaStatus, error) {
+	sessionKey := "session:" + row.SessionID
+	globalKey := "global:" + row.CreatedAt.UTC().Format("2006-01-02")
+	policy, turnsUsed, tokensUsed, _, qErr := s.lockAndReadQuota(ctx, tx, row.Role, sessionKey, globalKey)
+	if qErr != nil {
+		return contracts.QuotaStatus{}, qErr
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return contracts.QuotaStatus{}, err
+	}
+	return formatQuotaStatus(row.Role, policy, turnsUsed, tokensUsed), nil
+}
+
 func (s *Store) ReconcileTurnTx(ctx context.Context, attemptID string, res contracts.AskResponse) (contracts.QuotaStatus, error) {
 	now := time.Now().UTC()
 	if s == nil || s.pool == nil {
 		return s.reconcileTurnMemory(now, attemptID, res)
 	}
 
-	tx, err := s.pool.Begin(ctx)
+	tx, row, err := s.beginAndLockAskTurn(ctx, attemptID)
 	if err != nil {
 		return contracts.QuotaStatus{}, err
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
-
-	row, err := lockAskTurnRow(ctx, tx, attemptID)
-	if err != nil {
-		return contracts.QuotaStatus{}, err
-	}
 	if row.Status != contracts.TurnStatusPending && row.Status != contracts.TurnStatusRunning {
 		return contracts.QuotaStatus{}, ErrTurnLeaseExpired
 	}
@@ -307,27 +332,14 @@ func (s *Store) RefundTurnTx(ctx context.Context, attemptID, errorCode string) (
 		return s.refundTurnMemory(now, attemptID, errorCode)
 	}
 
-	tx, err := s.pool.Begin(ctx)
+	tx, row, err := s.beginAndLockAskTurn(ctx, attemptID)
 	if err != nil {
 		return contracts.QuotaStatus{}, err
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 
-	row, err := lockAskTurnRow(ctx, tx, attemptID)
-	if err != nil {
-		return contracts.QuotaStatus{}, err
-	}
 	if row.Status != contracts.TurnStatusPending && row.Status != contracts.TurnStatusRunning {
-		sessionKey := "session:" + row.SessionID
-		globalKey := "global:" + row.CreatedAt.UTC().Format("2006-01-02")
-		policy, turnsUsed, tokensUsed, _, qErr := s.lockAndReadQuota(ctx, tx, row.Role, sessionKey, globalKey)
-		if qErr != nil {
-			return contracts.QuotaStatus{}, qErr
-		}
-		if err := tx.Commit(ctx); err != nil {
-			return contracts.QuotaStatus{}, err
-		}
-		return formatQuotaStatus(row.Role, policy, turnsUsed, tokensUsed), nil
+		return s.commitReadOnlyQuotaStatus(ctx, tx, row)
 	}
 
 	quota, err := s.refundLockedTurnPG(ctx, tx, row, contracts.TurnStatusFailed, errorCode)

@@ -1,3 +1,4 @@
+import { emitStructuredSeamConsoleEvent } from '@aklapper/core';
 import { useCallback, useMemo, useSyncExternalStore } from 'react';
 
 import {
@@ -91,17 +92,7 @@ function extractErrorName(error: unknown): string {
 }
 
 function defaultEmitStorageEvent(event: WorkspaceStorageEvent): void {
-  if (typeof console === 'undefined') {
-    return;
-  }
-  const serialized = JSON.stringify(event);
-  if (event.seamType === 'UNSOUND_CONDITION') {
-    console.error(serialized);
-  } else if (event.seamType === 'BOUNDARY_FAULT' || event.seamType === 'DELTA_AUDIT_GAP') {
-    console.warn(serialized);
-  } else {
-    console.debug(serialized);
-  }
+  emitStructuredSeamConsoleEvent(event);
 }
 
 export function createRouteWorkspaceStore(

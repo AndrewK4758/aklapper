@@ -49,6 +49,9 @@ export const INTERNAL_AUTH_VERSION = 'v1';
 export const DEV_FALLBACK_INTERNAL_AUTH_SECRET =
   'aklapper-dev-internal-auth-secret-do-not-use-in-prod';
 
+export const DEV_FALLBACK_ADMIN_INTERNAL_AUTH_SECRET =
+  'aklapper-dev-admin-internal-auth-secret-do-not-use-in-prod';
+
 export type InternalAuthRole = 'admin' | 'guest' | 'service';
 export type OidcAuthMode = 'auto' | boolean | { readonly audience?: string };
 
@@ -136,6 +139,25 @@ export function resolveInternalAuthSecret(explicitSecret?: string): string {
 
   throw new Error(
     'INTERNAL_AUTH_SECRET is required in production (NODE_ENV or APP_ENV=production)',
+  );
+}
+
+export function resolveAdminInternalAuthSecret(
+  explicitSecret?: string,
+  env: Record<string, string | undefined> = process.env,
+): string {
+  const direct = explicitSecret?.trim();
+  if (direct) return direct;
+
+  const fromEnv = env['ADMIN_INTERNAL_AUTH_SECRET']?.trim();
+  if (fromEnv) return fromEnv;
+
+  if (!isProductionEnv(env) && !isProductionEnv(process.env)) {
+    return DEV_FALLBACK_ADMIN_INTERNAL_AUTH_SECRET;
+  }
+
+  throw new Error(
+    'ADMIN_INTERNAL_AUTH_SECRET is required in production (NODE_ENV or APP_ENV=production)',
   );
 }
 
@@ -318,6 +340,16 @@ function isTimeoutError(error: unknown): boolean {
   return error.name === 'TimeoutError' || error.name === 'AbortError';
 }
 
+export function encodeProxyRequestBody(body: unknown, requestHeaders: Headers): BodyInit {
+  if (typeof body === 'string' || body instanceof Uint8Array || body instanceof ArrayBuffer) {
+    return body as BodyInit;
+  }
+  if (!requestHeaders.has('content-type')) {
+    requestHeaders.set('content-type', 'application/json');
+  }
+  return JSON.stringify(body);
+}
+
 export async function proxyJson<T = unknown>(
   options: ProxyJsonOptions,
 ): Promise<ProxyJsonResult<T>> {
@@ -367,14 +399,7 @@ export async function proxyJson<T = unknown>(
 
   let encodedBody: BodyInit | undefined;
   if (body !== undefined && method !== 'GET' && method !== 'HEAD') {
-    if (typeof body === 'string' || body instanceof Uint8Array || body instanceof ArrayBuffer) {
-      encodedBody = body as BodyInit;
-    } else {
-      encodedBody = JSON.stringify(body);
-      if (!requestHeaders.has('content-type')) {
-        requestHeaders.set('content-type', 'application/json');
-      }
-    }
+    encodedBody = encodeProxyRequestBody(body, requestHeaders);
   }
 
   const upperMethod = method.toUpperCase();
@@ -451,6 +476,8 @@ export async function proxyJson<T = unknown>(
     };
   }
 }
+
+export { signInternalClientIpHeader } from './grpc/client-ip.ts';
 
 export async function proxySse(options: ProxySseOptions): Promise<Response> {
   return proxyGetSse(options);

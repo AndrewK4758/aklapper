@@ -19,6 +19,7 @@ import { useFetcher } from 'react-router';
 import { reportAdminLazyChunkError } from '../client-telemetry';
 import { SiteContentEditorPanel } from './SiteContentEditorPanel';
 
+import cardStyles from '../shared/adminSectionCard.module.css';
 import styles from './AdminCmsPage.module.css';
 
 const LazyCareerDossierSection = lazyWithRetry(() =>
@@ -122,9 +123,9 @@ export function AdminCmsPage({
           </Tabs.Panel>
 
           <Tabs.Panel value='site' className={styles.tabPanel}>
-            <section className={styles.card} aria-label='Qdrant index controls'>
-              <div className={styles.cardHeader}>
-                <h2 className={styles.sectionTitle}>Qdrant Corpus Index</h2>
+            <section className={cardStyles.card} aria-label='Qdrant index controls'>
+              <div className={cardStyles.cardHeader}>
+                <h2 className={cardStyles.sectionTitle}>Qdrant Corpus Index</h2>
                 <reindexFetcher.Form method='post' className={styles.inlineForm}>
                   <input type='hidden' name='intent' value='reindex-qdrant' />
                   {qdrantStatusSlot ?? (
@@ -150,8 +151,8 @@ export function AdminCmsPage({
               </div>
             </section>
 
-            <section className={styles.card} aria-label='Site content editor'>
-              <h2 className={styles.sectionTitle}>
+            <section className={cardStyles.card} aria-label='Site content editor'>
+              <h2 className={cardStyles.sectionTitle}>
                 Site Content Structured Editor &amp; Live Preview
               </h2>
               <SiteContentEditorPanel

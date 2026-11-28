@@ -1,12 +1,17 @@
 import type { AdminOverviewLoaderData, StreamResult } from '@aklapper/core';
-import { getSharedDb, loadAdminOverviewData } from '@aklapper/db';
-import { deferStreamResult, getOrCreateCorrelationId } from '@aklapper/node-runtime/ssr/stream';
+import { getAdminOverviewDataViaGrpc } from '@aklapper/node-runtime/grpc';
+import {
+  deferStreamResult,
+  getOrCreateCorrelationId,
+  getRequestContext,
+} from '@aklapper/node-runtime/ssr/stream';
 import { RouteErrorBoundaryView, SuspenseElement } from '@aklapper/ui';
 import { href } from 'react-router';
 
 import { AdminHomePage } from '#pages/home';
 import type { RegistrationOptionsJSON } from '#pages/login';
 
+import { runAdminStreamRpc } from '../admin-grpc.server';
 import { buildOverviewHealthSummary, requireAdminSession } from '../admin-ops.server';
 import { reportAdminPublicError } from '../client-telemetry';
 import { buildAdminPageMeta } from '../seo';
@@ -19,6 +24,7 @@ export interface AdminHomeStreamData {
 
 export async function loader({ request, context }: Route.LoaderArgs): Promise<AdminHomeStreamData> {
   const correlationId = getOrCreateCorrelationId(request, context);
+  const reqCtx = getRequestContext(context);
   const { status, session } = await requireAdminSession(request, {
     context,
     source: 'admin.home.loader',
@@ -27,16 +33,34 @@ export async function loader({ request, context }: Route.LoaderArgs): Promise<Ad
   return {
     correlationId,
     payload: deferStreamResult(
-      (async () => {
-        const health = await buildOverviewHealthSummary();
-        const db = getSharedDb();
-        return loadAdminOverviewData(db, {
-          handle: session.handle,
-          passkeyCount: status.passkeyCount,
-          totpEnabled: status.totpEnabled,
-          ...health,
-        });
-      })(),
+      runAdminStreamRpc(
+        async () => {
+          const health = await buildOverviewHealthSummary(
+            session.sessionId,
+            correlationId,
+            reqCtx?.logger,
+          );
+          return getAdminOverviewDataViaGrpc(
+            session.sessionId,
+            {
+              handle: session.handle,
+              passkeyCount: status.passkeyCount,
+              totpEnabled: status.totpEnabled,
+              ...health,
+            },
+            {
+              correlationId,
+              ...(reqCtx?.logger ? { logger: reqCtx.logger } : {}),
+              signal: reqCtx?.signal ?? request.signal,
+            },
+          );
+        },
+        {
+          correlationId,
+          source: 'admin.home.loader',
+          ...(reqCtx?.logger ? { logger: reqCtx.logger } : {}),
+        },
+      ),
       {
         request,
         context,

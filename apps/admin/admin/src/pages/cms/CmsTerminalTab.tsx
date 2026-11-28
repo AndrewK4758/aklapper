@@ -3,6 +3,7 @@ import { Button, Field } from '@aklapper/ui';
 import { useState } from 'react';
 import { Form } from 'react-router';
 
+import cardStyles from '../shared/adminSectionCard.module.css';
 import styles from './AdminCmsPage.module.css';
 
 export interface CmsTerminalTabProps {
@@ -23,8 +24,8 @@ export function CmsTerminalTab({ data }: CmsTerminalTabProps) {
 
   return (
     <>
-      <section className={styles.card} aria-label='Terminal profiles'>
-        <h2 className={styles.sectionTitle}>Terminal Profiles</h2>
+      <section className={cardStyles.card} aria-label='Terminal profiles'>
+        <h2 className={cardStyles.sectionTitle}>Terminal Profiles</h2>
         <div className={styles.inlineForm}>
           {data.terminalProfiles.map(profile => (
             <Button.Root
@@ -118,8 +119,10 @@ export function CmsTerminalTab({ data }: CmsTerminalTabProps) {
         ) : null}
       </section>
 
-      <section className={styles.card} aria-label='Terminal commands'>
-        <h2 className={styles.sectionTitle}>Terminal Commands ({data.terminalCommands.length})</h2>
+      <section className={cardStyles.card} aria-label='Terminal commands'>
+        <h2 className={cardStyles.sectionTitle}>
+          Terminal Commands ({data.terminalCommands.length})
+        </h2>
         <table className={styles.dataTable}>
           <thead>
             <tr>
@@ -212,8 +215,8 @@ export function CmsTerminalTab({ data }: CmsTerminalTabProps) {
         </Form>
       </section>
 
-      <section className={styles.card} aria-label='Terminal initial entries'>
-        <h2 className={styles.sectionTitle}>
+      <section className={cardStyles.card} aria-label='Terminal initial entries'>
+        <h2 className={cardStyles.sectionTitle}>
           Terminal Initial Entries ({data.terminalInitialEntries.length})
         </h2>
         <table className={styles.dataTable}>
@@ -293,8 +296,8 @@ export function CmsTerminalTab({ data }: CmsTerminalTabProps) {
         </Form>
       </section>
 
-      <section className={styles.card} aria-label='Terminal directory entries'>
-        <h2 className={styles.sectionTitle}>
+      <section className={cardStyles.card} aria-label='Terminal directory entries'>
+        <h2 className={cardStyles.sectionTitle}>
           Terminal Directory Entries ({data.terminalDirectoryEntries.length})
         </h2>
         <table className={styles.dataTable}>

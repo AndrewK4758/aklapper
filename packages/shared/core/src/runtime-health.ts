@@ -2,7 +2,9 @@ import { z } from 'zod';
 
 export const RuntimeServiceNameSchema = z.enum([
   'portal',
+  'portal-api',
   'admin',
+  'admin-api',
   'ai-ask',
   'cadence-demo',
   'postgres',

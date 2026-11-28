@@ -1,12 +1,13 @@
+import { randomUUID } from 'node:crypto';
+
+import type { AdminServiceHealth, AppErrorCode, QdrantHealthStatus } from '@aklapper/core';
 import {
-  type AdminServiceHealth,
-  type AppErrorCode,
-  type QdrantCollectionHealth,
-  type QdrantHealthStatus,
-  QdrantHealthStatusSchema,
-} from '@aklapper/core';
-import { proxyJson } from '@aklapper/node-runtime/http';
+  classifyGrpcError,
+  getAdminQdrantStatusViaGrpc,
+  triggerReindex,
+} from '@aklapper/node-runtime/grpc';
 import { probeRuntimeServices } from '@aklapper/node-runtime/runtime-health';
+import { logDiagnosticError, type SsrStructuredLogger } from '@aklapper/node-runtime/ssr/stream';
 
 export {
   type AuthenticatedAdminContext,
@@ -14,161 +15,85 @@ export {
   type RequireAdminSessionOptions,
 } from './admin-auth.server';
 
-export function sanitizeDownloadFilename(rawName: string | null | undefined): string {
-  const base = (rawName ?? '')
-    .split(/[\\/]/)
-    .pop()
-    ?.replace(/[\r\n\0"<>|:*?]+/g, '')
-    .trim();
-  if (!base) return 'attachment.bin';
-  return base.slice(0, 128);
-}
+const FORBIDDEN_FILENAME_CHARS = new Set(['"', '\\', '/', ';', '<', '>', '|', ':', '*', '?']);
 
-interface RawAiAskStatus {
-  status?: string;
-  provider?: string;
-  collection?: { name?: string; status?: string; pointsCount?: number };
-}
-
-async function probeCollection(
-  qdrantUrl: string,
-  name: string,
-  apiKey?: string,
-): Promise<QdrantCollectionHealth & { httpStatus?: number; error?: string }> {
-  const res = await proxyJson<{
-    status?: string;
-    result?: { status?: string; points_count?: number };
-  }>({
-    baseUrl: qdrantUrl,
-    path: `/collections/${encodeURIComponent(name)}`,
-    method: 'GET',
-    ...(apiKey ? { headers: { 'api-key': apiKey } } : {}),
-    oidcAuth: false,
-    timeoutMs: 2_500,
-  });
-  if (!res.ok || !res.data) {
-    if (res.status === 401 || res.status === 403 || res.status === 404) {
-      console.warn(
-        JSON.stringify({
-          event: 'admin.qdrant_probe.auth_or_collection',
-          seam: 'BOUNDARY_FAULT',
-          status: res.status,
-          collection: name,
-        }),
-      );
+function cleanUtf8DownloadFilename(rawName: string | null | undefined): string {
+  const leaf = (rawName ?? '').split(/[\\/]/).pop() ?? '';
+  let out = '';
+  for (const ch of leaf) {
+    const code = ch.codePointAt(0) ?? 0;
+    if (
+      code < 0x20 ||
+      code === 0x7f ||
+      (code >= 0x80 && code <= 0x9f) ||
+      (code >= 0xd800 && code <= 0xdfff) ||
+      code === 0x2028 ||
+      code === 0x2029 ||
+      FORBIDDEN_FILENAME_CHARS.has(ch)
+    ) {
+      continue;
     }
-    const isAuthError = res.status === 401 || res.status === 403;
-    return {
-      name,
-      online: false,
-      status: isAuthError ? 'error' : 'offline',
-      pointsCount: 0,
-      httpStatus: res.status,
-      error: res.error,
-    };
+    out += ch;
   }
-  const pointsCount = Number(res.data.result?.points_count ?? 0);
-  const status =
-    pointsCount === 0 ? 'degraded' : (res.data.result?.status ?? res.data.status ?? 'green');
-  return {
-    name,
-    online: true,
-    status,
-    pointsCount,
-  };
+  const trimmed = Array.from(out.trim()).slice(0, 128).join('').trim();
+  if (!trimmed || trimmed === '.' || trimmed === '..') {
+    return 'attachment.bin';
+  }
+  return trimmed;
 }
 
-function toCollectionHealth(entry: QdrantCollectionHealth): QdrantCollectionHealth {
-  return {
-    name: entry.name,
-    online: entry.online,
-    status: entry.status,
-    pointsCount: entry.pointsCount,
-  };
+export function sanitizeDownloadFilename(rawName: string | null | undefined): string {
+  const utf8 = cleanUtf8DownloadFilename(rawName);
+  let ascii = '';
+  let lastWasFallback = false;
+  for (const ch of utf8) {
+    const code = ch.codePointAt(0) ?? 0;
+    if (code >= 0x20 && code <= 0x7e && !FORBIDDEN_FILENAME_CHARS.has(ch)) {
+      ascii += ch;
+      lastWasFallback = false;
+    } else if (!lastWasFallback) {
+      ascii += '_';
+      lastWasFallback = true;
+    }
+  }
+  const trimmed = ascii.trim().slice(0, 128);
+  const withoutFallbackEdges = trimmed.replace(/^_+(?=\.|$)/, '').replace(/^_+$/, '');
+  if (!withoutFallbackEdges || withoutFallbackEdges === '.' || withoutFallbackEdges === '..') {
+    return 'attachment.bin';
+  }
+  if (withoutFallbackEdges.startsWith('.')) {
+    return `attachment${withoutFallbackEdges}`.slice(0, 128);
+  }
+  return withoutFallbackEdges;
+}
+
+function encodeRfc5987Value(value: string): string {
+  return encodeURIComponent(value).replace(
+    /['()*]/g,
+    ch => `%${ch.charCodeAt(0).toString(16).toUpperCase()}`,
+  );
+}
+
+export function buildAttachmentContentDisposition(rawName: string | null | undefined): string {
+  const utf8 = cleanUtf8DownloadFilename(rawName);
+  const ascii = sanitizeDownloadFilename(utf8);
+  if (utf8 === ascii) {
+    return `attachment; filename="${ascii}"`;
+  }
+  return `attachment; filename="${ascii}"; filename*=UTF-8''${encodeRfc5987Value(utf8)}`;
 }
 
 export const QDRANT_REINDEX_TIMEOUT_MS = 90_000;
 
-export async function fetchQdrantStatus(): Promise<QdrantHealthStatus> {
-  const [aiAskUrl, qdrantUrl, qdrantApiKey] = [
-    process.env['AI_ASK_URL']?.trim(),
-    process.env['QDRANT_URL']?.trim(),
-    process.env['QDRANT_API_KEY']?.trim(),
-  ];
-  const parse = (p: Partial<QdrantHealthStatus>) =>
-    QdrantHealthStatusSchema.parse({ collection: 'portfolio_docs', pointsCount: 0, ...p });
-
-  if (aiAskUrl) {
-    const res = await proxyJson<RawAiAskStatus>({
-      baseUrl: aiAskUrl,
-      path: '/v1/ask/status',
-      method: 'GET',
-      timeoutMs: 2_500,
-      internalAuth: { role: 'admin', subject: 'admin-console-status' },
-    });
-    if (res.ok && res.data) {
-      const col = res.data.collection;
-      const provider = res.data.provider?.trim() || 'dual-provider';
-      const rawStatus = col?.status ?? res.data.status ?? 'ok';
-      const bad = new Set(['degraded', 'unreachable', 'offline', 'error']);
-      const online = !(bad.has(res.data.status ?? '') || bad.has(col?.status ?? ''));
-      const pointsCount = Number(col?.pointsCount ?? 0);
-      const status = online && pointsCount === 0 ? 'degraded' : rawStatus;
-      const portfolio: QdrantCollectionHealth = {
-        name: col?.name ?? 'portfolio_docs',
-        online,
-        status,
-        pointsCount,
-      };
-      const collections = qdrantUrl
-        ? [
-            portfolio,
-            toCollectionHealth(await probeCollection(qdrantUrl, 'cadence_patterns', qdrantApiKey)),
-          ]
-        : [portfolio];
-      return parse({
-        online,
-        collection: portfolio.name,
-        pointsCount: portfolio.pointsCount,
-        status: portfolio.status,
-        provider,
-        detail: !online
-          ? `ai-ask reported Qdrant ${status} (${provider}).`
-          : pointsCount === 0
-            ? `Connected via ai-ask (${provider}) with 0 indexed points.`
-            : `Connected via ai-ask (${provider}).`,
-        collections,
-      });
-    }
-  }
-  if (!qdrantUrl) {
-    return parse({
-      online: false,
-      status: aiAskUrl ? 'offline' : 'unconfigured',
-      provider: 'unconfigured',
-      detail: aiAskUrl
-        ? 'ai-ask status endpoint unreachable.'
-        : 'AI_ASK_URL and QDRANT_URL not configured.',
-    });
-  }
-  const [portfolio, cadence] = await Promise.all([
-    probeCollection(qdrantUrl, 'portfolio_docs', qdrantApiKey),
-    probeCollection(qdrantUrl, 'cadence_patterns', qdrantApiKey),
-  ]);
-  const isAuthError = portfolio.httpStatus === 401 || portfolio.httpStatus === 403;
-  return parse({
-    online: portfolio.online,
-    pointsCount: portfolio.pointsCount,
-    status: portfolio.status,
-    provider: 'qdrant-direct',
-    detail: isAuthError
-      ? `Qdrant authentication failed (HTTP ${portfolio.httpStatus}).`
-      : !portfolio.online
-        ? (portfolio.error ?? 'Qdrant collection probe unavailable.')
-        : portfolio.pointsCount === 0
-          ? 'Direct Qdrant collection online with 0 indexed points.'
-          : 'Direct Qdrant collection probe healthy.',
-    collections: [toCollectionHealth(portfolio), toCollectionHealth(cadence)],
+export async function fetchQdrantStatus(
+  sessionId: string,
+  correlationId?: string,
+  logger?: SsrStructuredLogger,
+): Promise<QdrantHealthStatus> {
+  const resolvedCorrId = correlationId?.trim() || randomUUID();
+  return getAdminQdrantStatusViaGrpc(sessionId, {
+    correlationId: resolvedCorrId,
+    ...(logger ? { logger } : {}),
   });
 }
 
@@ -179,84 +104,100 @@ export interface ReindexResult {
   message: string;
   status?: number;
   code?: AppErrorCode;
+  action?: string;
+  correlationId?: string;
 }
 
-interface RawReindexResponse {
-  indexed?: number;
-  collection?: string;
-  provider?: string;
-  code?: string;
-  error?: string;
-  message?: string;
-}
-
-export async function triggerQdrantReindex(): Promise<ReindexResult> {
+export async function triggerQdrantReindex(
+  correlationId?: string,
+  logger?: SsrStructuredLogger,
+  source = 'admin.ops.reindex',
+): Promise<ReindexResult> {
+  const resolvedCorrId = correlationId?.trim() || randomUUID();
   const aiAskUrl = process.env['AI_ASK_URL']?.trim();
   if (!aiAskUrl) {
+    if (logger) {
+      logDiagnosticError(logger, {
+        code: 'ERR_UPSTREAM_UNAVAILABLE',
+        status: 503,
+        severity: 'ERROR',
+        reasoning: 'AI_ASK_URL is not configured for Qdrant re-indexing',
+        correlationId: resolvedCorrId,
+        source,
+      });
+    }
     return {
       ok: false,
       indexed: 0,
       collection: 'portfolio_docs',
       status: 503,
       code: 'ERR_UPSTREAM_UNAVAILABLE',
-      message: 'AI_ASK_URL is not configured; start svc-ai-ask to run Qdrant re-indexing.',
+      message: 'Upstream service unreachable.',
+      action: 'Retry shortly or go home.',
+      correlationId: resolvedCorrId,
     };
   }
 
-  const result = await proxyJson<RawReindexResponse>({
-    baseUrl: aiAskUrl,
-    path: '/v1/ask/reindex',
-    method: 'POST',
-    body: {},
-    timeoutMs: QDRANT_REINDEX_TIMEOUT_MS,
-    internalAuth: {
-      role: 'admin',
-      subject: 'admin-console-reindex',
-    },
-  });
-
-  if (!result.ok || !result.data) {
-    const isConflict = result.status === 409;
+  try {
+    const res = await triggerReindex({
+      baseUrl: aiAskUrl,
+      internalAuth: {
+        role: 'admin',
+        subject: 'admin-console-reindex',
+      },
+      correlationId: resolvedCorrId,
+      timeoutMs: QDRANT_REINDEX_TIMEOUT_MS,
+      ...(logger ? { logger } : {}),
+    });
+    const indexed = Number(res.indexed ?? 0);
+    const collection = res.collection || 'portfolio_docs';
+    return {
+      ok: true,
+      indexed,
+      collection,
+      message: `Re-indexed ${indexed} documents into ${collection}.`,
+    };
+  } catch (error) {
+    const failure = classifyGrpcError(error, {
+      correlationId: resolvedCorrId,
+      source,
+      normalizeUnavailableStatus: 503,
+      ...(logger ? { logger } : {}),
+    });
     return {
       ok: false,
       indexed: 0,
       collection: 'portfolio_docs',
-      status: isConflict ? 409 : result.status || 503,
-      code: isConflict ? 'ERR_CONSTRAINT' : 'ERR_UPSTREAM_UNAVAILABLE',
-      message:
-        result.data?.message ??
-        result.data?.error ??
-        result.error ??
-        (isConflict ? 'A Qdrant re-index is already running.' : 'Qdrant re-index request failed.'),
+      status: failure.publicError.status,
+      code: failure.publicError.code,
+      message: failure.publicError.message,
+      action: failure.publicError.action,
+      correlationId: failure.publicError.correlationId,
     };
   }
-
-  const indexed = Number(result.data.indexed ?? 0);
-  const collection = result.data.collection ?? 'portfolio_docs';
-  return {
-    ok: true,
-    indexed,
-    collection,
-    message: `Re-indexed ${indexed} documents into ${collection}.`,
-  };
 }
 
-export async function probePublicClusterHealth(): Promise<AdminServiceHealth> {
+export async function probePublicClusterHealth(
+  correlationId?: string,
+): Promise<AdminServiceHealth> {
   const snapshot = await probeRuntimeServices({
     services: [
-      { service: 'ai-ask', url: process.env['AI_ASK_URL'] },
-      { service: 'cadence-demo', url: process.env['CADENCE_DEMO_URL'] },
+      { service: 'admin-api', url: process.env['ADMIN_API_URL'], transport: 'grpc' },
+      { service: 'portal-api', url: process.env['PORTAL_API_URL'], transport: 'grpc' },
+      { service: 'ai-ask', url: process.env['AI_ASK_URL'], transport: 'grpc' },
+      { service: 'cadence-demo', url: process.env['CADENCE_DEMO_URL'], transport: 'grpc' },
     ],
     timeoutMs: 1_500,
     ttlMs: 30_000,
     cacheKey: 'admin-overview-runtime',
+    ...(correlationId ? { correlationId } : {}),
   });
   const configured = snapshot.services.filter(item => item.status !== 'unconfigured');
   if (configured.length === 0) {
     return {
       name: 'Cloud Run Services',
       status: 'degraded',
-      detail: 'AI_ASK_URL and CADENCE_DEMO_URL not configured.',
+      detail: 'Backend gRPC service URLs are not configured.',
     };
   }
   const hasOffline = configured.some(item => item.status === 'offline');
@@ -268,19 +209,40 @@ export async function probePublicClusterHealth(): Promise<AdminServiceHealth> {
   };
 }
 
-export async function buildOverviewHealthSummary(): Promise<{
+export async function buildOverviewHealthSummary(
+  sessionId: string,
+  correlationId?: string,
+  logger?: SsrStructuredLogger,
+): Promise<{
   qdrantHealth: AdminServiceHealth;
   portfolioPublicHealth: AdminServiceHealth;
 }> {
-  const [qdrant, portfolioPublicHealth] = await Promise.all([
-    fetchQdrantStatus(),
-    probePublicClusterHealth(),
+  const resolvedCorrId = correlationId?.trim() || randomUUID();
+  const [qdrantResult, portfolioPublicHealth] = await Promise.all([
+    fetchQdrantStatus(sessionId, resolvedCorrId, logger)
+      .then(value => ({ ok: true as const, value }))
+      .catch(error => ({ ok: false as const, error })),
+    probePublicClusterHealth(resolvedCorrId),
   ]);
 
-  const hasQdrantConfig = Boolean(
-    process.env['AI_ASK_URL']?.trim() || process.env['QDRANT_URL']?.trim(),
-  );
+  if (!qdrantResult.ok) {
+    const failure = classifyGrpcError(qdrantResult.error, {
+      correlationId: resolvedCorrId,
+      source: 'admin.overview.qdrant',
+      normalizeUnavailableStatus: 503,
+      ...(logger ? { logger } : {}),
+    });
+    return {
+      qdrantHealth: {
+        name: 'Qdrant',
+        status: 'offline',
+        detail: failure.publicError.message,
+      },
+      portfolioPublicHealth,
+    };
+  }
 
+  const qdrant = qdrantResult.value;
   return {
     qdrantHealth: {
       name: 'Qdrant',
@@ -288,9 +250,9 @@ export async function buildOverviewHealthSummary(): Promise<{
         ? qdrant.status === 'degraded'
           ? 'degraded'
           : 'ok'
-        : hasQdrantConfig
-          ? 'offline'
-          : 'degraded',
+        : qdrant.status === 'unconfigured'
+          ? 'degraded'
+          : 'offline',
       detail: qdrant.online
         ? `${qdrant.collection} (${qdrant.pointsCount} points)`
         : (qdrant.detail ?? 'Qdrant unavailable.'),

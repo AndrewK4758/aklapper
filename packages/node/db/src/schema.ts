@@ -183,6 +183,8 @@ export const webauthnCredentials = pgTable('webauthn_credentials', {
   publicKey: text('public_key').notNull(),
   counter: integer('counter').notNull().default(0),
   transports: text('transports').array().notNull().default([]),
+  backupEligible: boolean('backup_eligible'),
+  backupState: boolean('backup_state'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
