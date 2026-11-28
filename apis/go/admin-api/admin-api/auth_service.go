@@ -13,7 +13,40 @@ import (
 	"github.com/AndrewK4758/aklapper/packages/go/kit/contracts"
 	adminv1 "github.com/AndrewK4758/aklapper/packages/go/kit/gen/admin/v1"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/gen/admin/v1/adminv1connect"
+	"github.com/AndrewK4758/aklapper/packages/go/kit/grpckit"
+	"github.com/AndrewK4758/aklapper/packages/go/kit/internalauth"
 )
+
+func requirePreAuthServiceOrAdminCaller(ctx context.Context, corrID string) error {
+	claims, ok := grpckit.ClaimsFromContext(ctx)
+	if !ok {
+		return newAdminError(
+			connect.CodeUnauthenticated,
+			contracts.ErrCodeUnauthorized,
+			http.StatusUnauthorized,
+			"Authentication required.",
+			"Provide valid internal credentials.",
+			corrID,
+			nil,
+		)
+	}
+	if claims.Role == internalauth.RoleAdmin {
+		return nil
+	}
+	if claims.Role == internalauth.RoleService &&
+		(claims.Sub == adminAuthBffSubject || claims.Sub == adminSessionGateSubject) {
+		return nil
+	}
+	return newAdminError(
+		connect.CodePermissionDenied,
+		contracts.ErrCodeForbidden,
+		http.StatusForbidden,
+		"Caller is not authorized for admin authentication operations.",
+		"Use the authorized admin auth service identity.",
+		corrID,
+		nil,
+	)
+}
 
 const (
 	adminSessionTTL   = 12 * time.Hour
@@ -121,6 +154,9 @@ func (s *adminAuthServiceServer) GetAdminSession(
 	req *connect.Request[adminv1.GetAdminSessionRequest],
 ) (*connect.Response[adminv1.GetAdminSessionResponse], error) {
 	corrID := resolveCorrID(ctx)
+	if err := requirePreAuthServiceOrAdminCaller(ctx, corrID); err != nil {
+		return nil, err
+	}
 	sessionID := strings.TrimSpace(req.Msg.GetSessionId())
 	if sessionID == "" || !contracts.ValidateUUID(sessionID) {
 		return connect.NewResponse(&adminv1.GetAdminSessionResponse{Authenticated: false}), nil
@@ -145,6 +181,9 @@ func (s *adminAuthServiceServer) PasswordLogin(
 	req *connect.Request[adminv1.PasswordLoginRequest],
 ) (*connect.Response[adminv1.PasswordLoginResponse], error) {
 	corrID := resolveCorrID(ctx)
+	if err := requirePreAuthServiceOrAdminCaller(ctx, corrID); err != nil {
+		return nil, err
+	}
 	handle := strings.ToLower(strings.TrimSpace(req.Msg.GetHandle()))
 	password := req.Msg.GetPassword()
 	if handle == "" || len(handle) > 64 || len(password) == 0 || len(password) > argon2MaxPasswordLen || containsNul(handle) || containsNul(password) {
@@ -183,11 +222,17 @@ func (s *adminAuthServiceServer) PasswordLogin(
 		storedHash = user.PasswordHashArgon2
 	}
 
-	valid, verifyErr := s.deps.argon2.Verify(password, storedHash)
+	valid, verifyErr := s.deps.argon2.Verify(ctx, password, storedHash)
 	if errors.Is(verifyErr, ErrArgon2Busy) {
 		logAdminSeam("RULE_DIVERGENCE", "admin_api.auth.password_login_branch", map[string]any{"branch": "concurrency_saturated", "correlationId": corrID})
 		retry := int32(2)
 		return nil, newAdminError(connect.CodeUnavailable, "SERVICE_BUSY", http.StatusServiceUnavailable, "Authentication service is temporarily busy. Please retry.", "Retry in 2 seconds.", corrID, &retry)
+	}
+	if errors.Is(verifyErr, context.Canceled) {
+		return nil, connect.NewError(connect.CodeCanceled, verifyErr)
+	}
+	if errors.Is(verifyErr, context.DeadlineExceeded) {
+		return nil, connect.NewError(connect.CodeDeadlineExceeded, verifyErr)
 	}
 	if verifyErr != nil {
 		return nil, mapAdminStoreError(verifyErr, corrID)
@@ -237,6 +282,9 @@ func (s *adminAuthServiceServer) LogoutAdminSession(
 	req *connect.Request[adminv1.LogoutAdminSessionRequest],
 ) (*connect.Response[adminv1.LogoutAdminSessionResponse], error) {
 	corrID := resolveCorrID(ctx)
+	if err := requirePreAuthServiceOrAdminCaller(ctx, corrID); err != nil {
+		return nil, err
+	}
 	if err := s.deps.revokeAuthSession(ctx, strings.TrimSpace(req.Msg.GetSessionId())); err != nil {
 		return nil, mapAdminStoreError(err, corrID)
 	}

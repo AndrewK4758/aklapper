@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
@@ -154,12 +155,22 @@ func HashPasswordArgon2id(password string) (string, error) {
 
 // Verify checks password against encodedPHC under the MAX=2 semaphore, executing a constant-parameter
 // dummy Argon2id derivation whenever the input or stored hash is empty or malformed.
-func (v *Argon2Verifier) Verify(password string, encodedPHC *string) (bool, error) {
+func (v *Argon2Verifier) Verify(ctx context.Context, password string, encodedPHC *string) (bool, error) {
+	if ctx != nil {
+		if err := ctx.Err(); err != nil {
+			return false, err
+		}
+	}
 	select {
 	case v.sem <- struct{}{}:
 		defer func() { <-v.sem }()
 	default:
 		return false, ErrArgon2Busy
+	}
+	if ctx != nil {
+		if err := ctx.Err(); err != nil {
+			return false, err
+		}
 	}
 
 	validInput := len(password) > 0 && len(password) <= argon2MaxPasswordLen

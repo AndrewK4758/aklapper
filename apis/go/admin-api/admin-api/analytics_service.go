@@ -186,72 +186,64 @@ func (s *adminAnalyticsServiceServer) GetAnalyticsBreakdowns(
 	whereS, argsS := buildAnalyticsWhere(f, "s", 1)
 	pool := s.deps.store.Pool()
 
-	pathRows, err := pool.Query(ctx, `SELECT e.path, COUNT(*)::int, COUNT(DISTINCT COALESCE(s.visitor_hash, s.ip_hash, s.session_id))::int FROM analytics_events e INNER JOIN analytics_sessions s ON s.session_id = e.session_id WHERE e.type = 'page_view' AND `+whereS+` GROUP BY e.path ORDER BY 2 DESC, e.path ASC LIMIT 10`, argsS...)
+	topPaths, err := queryRows(ctx, pool, `SELECT e.path, COUNT(*)::int, COUNT(DISTINCT COALESCE(s.visitor_hash, s.ip_hash, s.session_id))::int FROM analytics_events e INNER JOIN analytics_sessions s ON s.session_id = e.session_id WHERE e.type = 'page_view' AND `+whereS+` GROUP BY e.path ORDER BY 2 DESC, e.path ASC LIMIT 10`, argsS,
+		func(scan func(...any) error) (*adminv1.AnalyticsBreakdownRow, error) {
+			var label string
+			var cnt, uniq int32
+			if err := scan(&label, &cnt, &uniq); err != nil {
+				return nil, err
+			}
+			sec := fmt.Sprintf("%d unique", uniq)
+			fv := label
+			return &adminv1.AnalyticsBreakdownRow{Label: label, Count: cnt, UniqueVisitors: &uniq, SecondaryLabel: &sec, FilterValue: &fv}, nil
+		})
 	if err != nil {
 		return nil, mapAdminStoreError(err, corrID)
-	}
-	defer pathRows.Close()
-	topPaths := make([]*adminv1.AnalyticsBreakdownRow, 0)
-	for pathRows.Next() {
-		var label string
-		var cnt, uniq int32
-		if err := pathRows.Scan(&label, &cnt, &uniq); err != nil {
-			return nil, mapAdminStoreError(err, corrID)
-		}
-		sec := fmt.Sprintf("%d unique", uniq)
-		fv := label
-		topPaths = append(topPaths, &adminv1.AnalyticsBreakdownRow{Label: label, Count: cnt, UniqueVisitors: &uniq, SecondaryLabel: &sec, FilterValue: &fv})
 	}
 
-	refRows, err := pool.Query(ctx, `SELECT COALESCE(NULLIF(BTRIM(s.referrer_host), ''), 'direct'), COALESCE(NULLIF(BTRIM(s.referrer_category), ''), 'direct'), COUNT(*)::int FROM analytics_sessions s WHERE `+whereS+` GROUP BY 1, 2 ORDER BY 3 DESC, 1 ASC LIMIT 10`, argsS...)
+	topReferrers, err := queryRows(ctx, pool, `SELECT COALESCE(NULLIF(BTRIM(s.referrer_host), ''), 'direct'), COALESCE(NULLIF(BTRIM(s.referrer_category), ''), 'direct'), COUNT(*)::int FROM analytics_sessions s WHERE `+whereS+` GROUP BY 1, 2 ORDER BY 3 DESC, 1 ASC LIMIT 10`, argsS,
+		func(scan func(...any) error) (*adminv1.AnalyticsBreakdownRow, error) {
+			var label, cat string
+			var cnt int32
+			if err := scan(&label, &cat, &cnt); err != nil {
+				return nil, err
+			}
+			fv := label
+			return &adminv1.AnalyticsBreakdownRow{Label: label, SecondaryLabel: &cat, Count: cnt, FilterValue: &fv}, nil
+		})
 	if err != nil {
 		return nil, mapAdminStoreError(err, corrID)
-	}
-	defer refRows.Close()
-	topReferrers := make([]*adminv1.AnalyticsBreakdownRow, 0)
-	for refRows.Next() {
-		var label, cat string
-		var cnt int32
-		if err := refRows.Scan(&label, &cat, &cnt); err != nil {
-			return nil, mapAdminStoreError(err, corrID)
-		}
-		fv := label
-		topReferrers = append(topReferrers, &adminv1.AnalyticsBreakdownRow{Label: label, SecondaryLabel: &cat, Count: cnt, FilterValue: &fv})
 	}
 
-	geoRows, err := pool.Query(ctx, `SELECT COALESCE(NULLIF(BTRIM(s.country), ''), 'Unknown'), COALESCE(NULLIF(BTRIM(s.region), ''), '—'), NULLIF(BTRIM(s.city), ''), COUNT(*)::int FROM analytics_sessions s WHERE `+whereS+` GROUP BY 1, 2, 3 ORDER BY 4 DESC, 1 ASC LIMIT 10`, argsS...)
+	geoBreakdown, err := queryRows(ctx, pool, `SELECT COALESCE(NULLIF(BTRIM(s.country), ''), 'Unknown'), COALESCE(NULLIF(BTRIM(s.region), ''), '—'), NULLIF(BTRIM(s.city), ''), COUNT(*)::int FROM analytics_sessions s WHERE `+whereS+` GROUP BY 1, 2, 3 ORDER BY 4 DESC, 1 ASC LIMIT 10`, argsS,
+		func(scan func(...any) error) (*adminv1.AnalyticsBreakdownRow, error) {
+			var country, region string
+			var city *string
+			var cnt int32
+			if err := scan(&country, &region, &city, &cnt); err != nil {
+				return nil, err
+			}
+			sec := region
+			if city != nil && strings.TrimSpace(*city) != "" {
+				sec = strings.TrimSpace(*city) + ", " + region
+			}
+			fv := country
+			return &adminv1.AnalyticsBreakdownRow{Label: country, SecondaryLabel: &sec, Count: cnt, FilterValue: &fv}, nil
+		})
 	if err != nil {
 		return nil, mapAdminStoreError(err, corrID)
-	}
-	defer geoRows.Close()
-	geoBreakdown := make([]*adminv1.AnalyticsBreakdownRow, 0)
-	for geoRows.Next() {
-		var country, region string
-		var city *string
-		var cnt int32
-		if err := geoRows.Scan(&country, &region, &city, &cnt); err != nil {
-			return nil, mapAdminStoreError(err, corrID)
-		}
-		sec := region
-		if city != nil && strings.TrimSpace(*city) != "" {
-			sec = strings.TrimSpace(*city) + ", " + region
-		}
-		fv := country
-		geoBreakdown = append(geoBreakdown, &adminv1.AnalyticsBreakdownRow{Label: country, SecondaryLabel: &sec, Count: cnt, FilterValue: &fv})
 	}
 
-	agRows, err := pool.Query(ctx, `SELECT COALESCE(NULLIF(BTRIM(e.metadata_json->>'slug'), ''), e.path), COUNT(*)::int FROM analytics_events e INNER JOIN analytics_sessions s ON s.session_id = e.session_id WHERE e.name = 'agensi_outbound_click' AND `+whereS+` GROUP BY 1 ORDER BY 2 DESC, 1 ASC LIMIT 15`, argsS...)
+	agensiConv, err := queryRows(ctx, pool, `SELECT COALESCE(NULLIF(BTRIM(e.metadata_json->>'slug'), ''), e.path), COUNT(*)::int FROM analytics_events e INNER JOIN analytics_sessions s ON s.session_id = e.session_id WHERE e.name = 'agensi_outbound_click' AND `+whereS+` GROUP BY 1 ORDER BY 2 DESC, 1 ASC LIMIT 15`, argsS,
+		func(scan func(...any) error) (*adminv1.AgensiConversionRow, error) {
+			var row adminv1.AgensiConversionRow
+			if err := scan(&row.Slug, &row.Clicks); err != nil {
+				return nil, err
+			}
+			return &row, nil
+		})
 	if err != nil {
 		return nil, mapAdminStoreError(err, corrID)
-	}
-	defer agRows.Close()
-	agensiConv := make([]*adminv1.AgensiConversionRow, 0)
-	for agRows.Next() {
-		var row adminv1.AgensiConversionRow
-		if err := agRows.Scan(&row.Slug, &row.Clicks); err != nil {
-			return nil, mapAdminStoreError(err, corrID)
-		}
-		agensiConv = append(agensiConv, &row)
 	}
 
 	orgBreakdown, err := s.querySimpleBreakdown(ctx, `SELECT BTRIM(s.asn_org), COUNT(*)::int FROM analytics_sessions s WHERE `+whereS+` AND s.asn_org IS NOT NULL AND BTRIM(s.asn_org) <> '' GROUP BY 1 ORDER BY 2 DESC, 1 ASC LIMIT 10`, argsS, false, false)

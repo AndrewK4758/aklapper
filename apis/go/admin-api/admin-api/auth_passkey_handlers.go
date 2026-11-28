@@ -11,28 +11,12 @@ import (
 	adminv1 "github.com/AndrewK4758/aklapper/packages/go/kit/gen/admin/v1"
 )
 
-func (s *adminAuthServiceServer) requireValidAdminSession(
-	ctx context.Context,
-	rawSessionID string,
-	corrID string,
-	unauthMsg string,
-) (*adminSessionRecord, error) {
-	adminSession, err := s.deps.getValidAdminSession(ctx, strings.TrimSpace(rawSessionID))
-	if err != nil {
-		return nil, mapAdminStoreError(err, corrID)
-	}
-	if adminSession == nil || adminSession.Role != "admin" || adminSession.UserID == "" {
-		return nil, newAdminError(connect.CodeUnauthenticated, "UNAUTHORIZED", http.StatusUnauthorized, unauthMsg, "Sign in first.", corrID, nil)
-	}
-	return adminSession, nil
-}
-
 func (s *adminAuthServiceServer) BeginPasskeyRegister(
 	ctx context.Context,
 	req *connect.Request[adminv1.BeginPasskeyRegisterRequest],
 ) (*connect.Response[adminv1.BeginPasskeyRegisterResponse], error) {
 	corrID := resolveCorrID(ctx)
-	adminSession, err := s.requireValidAdminSession(ctx, req.Msg.GetSessionId(), corrID, "Valid admin session required")
+	adminSession, err := s.deps.requireAdminAuth(ctx, req.Header(), req.Msg.GetSessionId())
 	if err != nil {
 		return nil, err
 	}
@@ -69,7 +53,7 @@ func (s *adminAuthServiceServer) FinishPasskeyRegister(
 	req *connect.Request[adminv1.FinishPasskeyRegisterRequest],
 ) (*connect.Response[adminv1.FinishPasskeyRegisterResponse], error) {
 	corrID := resolveCorrID(ctx)
-	adminSession, err := s.requireValidAdminSession(ctx, req.Msg.GetSessionId(), corrID, "Valid admin session required")
+	adminSession, err := s.deps.requireAdminAuth(ctx, req.Header(), req.Msg.GetSessionId())
 	if err != nil {
 		return nil, err
 	}
@@ -86,8 +70,11 @@ func (s *adminAuthServiceServer) FinishPasskeyRegister(
 		return nil, newAdminError(connect.CodePermissionDenied, "FORBIDDEN", http.StatusForbidden, "Registration challenge does not match authenticated admin", "Restart passkey registration.", corrID, nil)
 	}
 	user, err := s.deps.getUserByID(ctx, adminSession.UserID)
-	if err != nil || user == nil {
+	if err != nil {
 		return nil, mapAdminStoreError(err, corrID)
+	}
+	if user == nil || user.Role != "admin" {
+		return nil, newAdminError(connect.CodeUnauthenticated, "UNAUTHORIZED", http.StatusUnauthorized, "Valid admin session required", "Sign in first.", corrID, nil)
 	}
 	verified, err := finishPasskeyRegistration(*user, challengeRow.Challenge, req.Msg.GetOrigin(), req.Msg.GetCredentialJson(), corrID)
 	if errors.Is(err, ErrWebAuthnOriginRejected) {
@@ -126,6 +113,9 @@ func (s *adminAuthServiceServer) BeginPasskeyLogin(
 	req *connect.Request[adminv1.BeginPasskeyLoginRequest],
 ) (*connect.Response[adminv1.BeginPasskeyLoginResponse], error) {
 	corrID := resolveCorrID(ctx)
+	if err := requirePreAuthServiceOrAdminCaller(ctx, corrID); err != nil {
+		return nil, err
+	}
 	var user *authUserRecord
 	var creds []webauthnCredentialRecord
 	if req.Msg.Handle != nil && strings.TrimSpace(*req.Msg.Handle) != "" {
@@ -167,6 +157,9 @@ func (s *adminAuthServiceServer) FinishPasskeyLogin(
 	req *connect.Request[adminv1.FinishPasskeyLoginRequest],
 ) (*connect.Response[adminv1.FinishPasskeyLoginResponse], error) {
 	corrID := resolveCorrID(ctx)
+	if err := requirePreAuthServiceOrAdminCaller(ctx, corrID); err != nil {
+		return nil, err
+	}
 	challengeRow, err := s.deps.consumeWebauthnChallenge(ctx, strings.TrimSpace(req.Msg.GetChallengeId()), "login")
 	if err != nil {
 		return nil, mapAdminStoreError(err, corrID)

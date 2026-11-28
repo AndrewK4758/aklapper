@@ -16,7 +16,7 @@ func (s *adminAuthServiceServer) EnrollTotp(
 	req *connect.Request[adminv1.EnrollTotpRequest],
 ) (*connect.Response[adminv1.EnrollTotpResponse], error) {
 	corrID := resolveCorrID(ctx)
-	adminSession, err := s.requireValidAdminSession(ctx, req.Msg.GetSessionId(), corrID, "Admin session required")
+	adminSession, err := s.deps.requireAdminAuth(ctx, req.Header(), req.Msg.GetSessionId())
 	if err != nil {
 		return nil, err
 	}
@@ -52,6 +52,9 @@ func (s *adminAuthServiceServer) VerifyTotpStepUp(
 	req *connect.Request[adminv1.VerifyTotpStepUpRequest],
 ) (*connect.Response[adminv1.VerifyTotpStepUpResponse], error) {
 	corrID := resolveCorrID(ctx)
+	if err := requirePreAuthServiceOrAdminCaller(ctx, corrID); err != nil {
+		return nil, err
+	}
 	code := strings.TrimSpace(req.Msg.GetCode())
 	if code == "" || containsNul(code) {
 		return nil, newAdminError(connect.CodeInvalidArgument, "INVALID_REQUEST", http.StatusBadRequest, "TOTP verification code is required", "Enter a 6-digit code or backup code.", corrID, nil)
@@ -108,6 +111,10 @@ func (s *adminAuthServiceServer) ConfirmTotpEnrollment(
 	req *connect.Request[adminv1.ConfirmTotpEnrollmentRequest],
 ) (*connect.Response[adminv1.ConfirmTotpEnrollmentResponse], error) {
 	corrID := resolveCorrID(ctx)
+	adminSession, err := s.deps.requireAdminAuth(ctx, req.Header(), req.Msg.GetSessionId())
+	if err != nil {
+		return nil, err
+	}
 	code := strings.TrimSpace(req.Msg.GetCode())
 	if code == "" || containsNul(code) {
 		return nil, newAdminError(connect.CodeInvalidArgument, "INVALID_REQUEST", http.StatusBadRequest, "TOTP verification code is required", "Enter a live 6-digit TOTP code.", corrID, nil)
@@ -115,13 +122,6 @@ func (s *adminAuthServiceServer) ConfirmTotpEnrollment(
 	clientIP, ipErr := resolveClientIP(req.Header(), req.Msg.GetClientIp(), s.deps.adminSecret)
 	if ipErr != nil {
 		return nil, ipErr
-	}
-	adminSession, err := s.deps.getValidAdminSession(ctx, strings.TrimSpace(req.Msg.GetSessionId()))
-	if err != nil {
-		return nil, mapAdminStoreError(err, corrID)
-	}
-	if adminSession == nil || adminSession.Role != "admin" || adminSession.UserID == "" {
-		return nil, newAdminError(connect.CodeUnauthenticated, "UNAUTHORIZED", http.StatusUnauthorized, "Admin session or pendingToken required", "Sign in first.", corrID, nil)
 	}
 	if err := s.enforceTotpRateLimits(ctx, clientIP, adminSession.UserID, corrID); err != nil {
 		return nil, err
@@ -160,7 +160,7 @@ func (s *adminAuthServiceServer) DisableTotp(
 	req *connect.Request[adminv1.DisableTotpRequest],
 ) (*connect.Response[adminv1.DisableTotpResponse], error) {
 	corrID := resolveCorrID(ctx)
-	adminSession, err := s.requireValidAdminSession(ctx, req.Msg.GetSessionId(), corrID, "Admin session required")
+	adminSession, err := s.deps.requireAdminAuth(ctx, req.Header(), req.Msg.GetSessionId())
 	if err != nil {
 		return nil, err
 	}

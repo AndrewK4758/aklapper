@@ -26,7 +26,7 @@ func (s *adminAnalyticsServiceServer) IngestAdminAnalytics(
 	corrID := resolveCorrID(ctx)
 	adminSession, err := s.deps.requireAdminAuth(ctx, req.Header(), req.Msg.GetAdminSessionId())
 	if err != nil {
-		logAdminSeam("RULE_DIVERGENCE", "admin.analytics.ingest_auth_branch", map[string]any{"branch": "rejected_unauthenticated", "correlationId": corrID})
+		logAdminSeam("RULE_DIVERGENCE", "admin.analytics.ingest_auth_branch", map[string]any{"branch": "unauthenticated_rejected_401", "correlationId": corrID})
 		return nil, err
 	}
 
@@ -75,13 +75,19 @@ func (s *adminAnalyticsServiceServer) IngestAdminAnalytics(
 	uaProfile := analytics.ParseUserAgentProfile(ua)
 	sessionID := strings.TrimSpace(req.Msg.GetSessionId())
 
+	var landingPath *string
+	if raw := optString(req.Msg.LandingPath); raw != nil {
+		norm := analytics.NormalizeLandingPath(*raw)
+		landingPath = &norm
+	}
+
 	tx, err := s.deps.store.Pool().Begin(ctx)
 	if err != nil {
 		return nil, mapAdminStoreError(err, corrID)
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 
-	if _, err := tx.Exec(
+	tag, err := tx.Exec(
 		ctx,
 		`INSERT INTO analytics_sessions (
 			session_id, ip_hash, visitor_hash, started_at, last_seen_at, app, is_bot,
@@ -90,9 +96,23 @@ func (s *adminAnalyticsServiceServer) IngestAdminAnalytics(
 		ON CONFLICT (session_id) DO UPDATE SET
 			last_seen_at = GREATEST(COALESCE(analytics_sessions.last_seen_at, analytics_sessions.started_at), EXCLUDED.last_seen_at)
 		WHERE analytics_sessions.app = 'admin'`,
-		sessionID, ipHash, visitorHash, now, optString(req.Msg.LandingPath), uaProfile.DeviceType, uaProfile.OSName, uaProfile.BrowserName,
-	); err != nil {
+		sessionID, ipHash, visitorHash, now, landingPath, uaProfile.DeviceType, uaProfile.OSName, uaProfile.BrowserName,
+	)
+	if err != nil {
 		return nil, mapAdminStoreError(err, corrID)
+	}
+	if tag.RowsAffected() == 0 {
+		sessionID = "sess_" + contracts.NewUUIDv4()
+		if _, err := tx.Exec(
+			ctx,
+			`INSERT INTO analytics_sessions (
+				session_id, ip_hash, visitor_hash, started_at, last_seen_at, app, is_bot,
+				landing_path, device_type, os_name, browser_name
+			) VALUES ($1, $2, $3, $4, $4, 'admin', false, $5, $6, $7, $8)`,
+			sessionID, ipHash, visitorHash, now, landingPath, uaProfile.DeviceType, uaProfile.OSName, uaProfile.BrowserName,
+		); err != nil {
+			return nil, mapAdminStoreError(err, corrID)
+		}
 	}
 
 	accepted := int32(0)

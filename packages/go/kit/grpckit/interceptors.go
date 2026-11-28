@@ -23,6 +23,7 @@ const (
 	MetadataCorrelationID    = "x-correlation-id"
 	HealthCheckProcedure     = "/grpc.health.v1.Health/Check"
 	clientIPSubjectPrefix    = "client-ip:"
+	pendingTotpSubjectPrefix = "totp-pending:"
 	defaultClientTokenTTL    = 60 * time.Second
 )
 
@@ -192,6 +193,17 @@ func (i *serverAuthInterceptor) authenticate(
 		})
 		return nil, ensureConnectErrorWithCorrelation(
 			connect.NewError(connect.CodeUnauthenticated, errors.New("invalid internal auth token")),
+			corrID,
+		)
+	}
+	if strings.HasPrefix(claims.Sub, pendingTotpSubjectPrefix) || strings.HasPrefix(claims.Sub, clientIPSubjectPrefix) {
+		logGRPCSeam("UNSOUND_CONDITION", "grpc.auth.rejected", map[string]any{
+			"method":        procedure,
+			"reason":        "disallowed_token_purpose",
+			"correlationId": corrID,
+		})
+		return nil, ensureConnectErrorWithCorrelation(
+			connect.NewError(connect.CodeUnauthenticated, errors.New("disallowed internal auth token purpose")),
 			corrID,
 		)
 	}

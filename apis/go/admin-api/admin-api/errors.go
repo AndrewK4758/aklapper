@@ -48,8 +48,10 @@ func queryRows[T any](
 }
 
 const (
-	headerAdminSessionID = "x-admin-session-id"
-	adminChromeSubject   = "admin-ssr-chrome"
+	headerAdminSessionID    = "x-admin-session-id"
+	adminChromeSubject      = "admin-ssr-chrome"
+	adminAuthBffSubject     = "admin-auth-bff"
+	adminSessionGateSubject = "admin-auth-session-gate"
 )
 
 func logAdminSeam(seamType, event string, fields map[string]any) {
@@ -137,9 +139,31 @@ func mapAdminStoreError(err error, corrID string) *connect.Error {
 	if pe, ok := privacy.AsPolicyError(err); ok {
 		return newPrivacyConstraintError(pe.Findings, pe.Error(), corrID)
 	}
+	if errors.Is(err, ErrWebAuthnCredentialExists) {
+		return newAdminError(
+			connect.CodeAlreadyExists,
+			"CREDENTIAL_ALREADY_REGISTERED",
+			http.StatusConflict,
+			"Passkey credential is already registered.",
+			"Register a different authenticator.",
+			corrID,
+			nil,
+		)
+	}
 
 	var pgErr *pgconn.PgError
 	if errors.As(err, &pgErr) && pgErr != nil {
+		if pgErr.Code == "23505" {
+			return newAdminError(
+				connect.CodeAlreadyExists,
+				contracts.ErrCodeConstraint,
+				http.StatusConflict,
+				"Record conflicts with an existing unique entry.",
+				"Use a distinct name or sort order and retry.",
+				corrID,
+				nil,
+			)
+		}
 		if pgErr.Code == "42501" {
 			logAdminSeam("UNSOUND_CONDITION", "admin_api.pg.privilege_violation", map[string]any{
 				"sqlState":      pgErr.Code,
@@ -219,12 +243,47 @@ func (d adminServiceDeps) requireAdminAuth(
 		)
 	}
 
-	sessionID := strings.TrimSpace(reqSessionID)
-	if sessionID == "" && header != nil {
-		sessionID = strings.TrimSpace(header.Get(headerAdminSessionID))
+	reqSID := strings.TrimSpace(reqSessionID)
+	headerSID := ""
+	if header != nil {
+		headerSID = strings.TrimSpace(header.Get(headerAdminSessionID))
 	}
-	if sessionID == "" && strings.HasPrefix(claims.Sub, "admin-session:") {
-		sessionID = strings.TrimSpace(strings.TrimPrefix(claims.Sub, "admin-session:"))
+	claimSID := ""
+	if strings.HasPrefix(claims.Sub, "admin-session:") {
+		claimSID = strings.TrimSpace(strings.TrimPrefix(claims.Sub, "admin-session:"))
+		if claimSID == "" {
+			return nil, newAdminError(
+				connect.CodeUnauthenticated,
+				contracts.ErrCodeUnauthorized,
+				http.StatusUnauthorized,
+				"Verified admin session required.",
+				"Sign in to the admin console.",
+				corrID,
+				nil,
+			)
+		}
+	}
+
+	sessionID := ""
+	for _, candidate := range []string{reqSID, headerSID, claimSID} {
+		if candidate == "" {
+			continue
+		}
+		if sessionID == "" {
+			sessionID = candidate
+			continue
+		}
+		if candidate != sessionID {
+			return nil, newAdminError(
+				connect.CodePermissionDenied,
+				contracts.ErrCodeForbidden,
+				http.StatusForbidden,
+				"Admin session identity mismatch.",
+				"Sign in to the admin console again.",
+				corrID,
+				nil,
+			)
+		}
 	}
 	if sessionID == "" || !contracts.ValidateUUID(sessionID) {
 		return nil, newAdminError(
@@ -265,6 +324,12 @@ func resolveClientIP(header http.Header, fallbackIP, adminSecret string) (string
 	}
 	trimmed := strings.TrimSpace(fallbackIP)
 	if trimmed != "" {
+		if internalauth.IsProductionEnv() {
+			logAdminSeam("UNSOUND_CONDITION", "admin_api.client_ip.untrusted", map[string]any{
+				"reason": "unsigned_fallback_rejected_in_prod",
+			})
+			return "", connect.NewError(connect.CodeUnauthenticated, errors.New("signed x-internal-client-ip metadata required in production"))
+		}
 		if addr, err := netip.ParseAddr(trimmed); err == nil && addr.IsValid() {
 			return addr.Unmap().String(), nil
 		}

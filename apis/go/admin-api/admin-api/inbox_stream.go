@@ -15,7 +15,10 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-const attachmentStreamChunkBytes = 256 * 1024
+const (
+	attachmentStreamChunkBytes = 256 * 1024
+	maxAttachmentBytes         = 5 * 1024 * 1024
+)
 
 func (s *adminInboxServiceServer) StreamContactAttachment(
 	ctx context.Context,
@@ -51,6 +54,14 @@ func (s *adminInboxServiceServer) StreamContactAttachment(
 	if name == nil || mimeType == nil || sizeBytes == nil || shaHex == nil || contentB64 == nil ||
 		*name == "" || *mimeType == "" || *sizeBytes <= 0 || *shaHex == "" || *contentB64 == "" {
 		return newAdminError(connect.CodeNotFound, contracts.ErrCodeNotFound, http.StatusNotFound, "Attachment not found.", "This message has no file attachment.", corrID, nil)
+	}
+	if *sizeBytes > maxAttachmentBytes || len(*contentB64) > base64.StdEncoding.EncodedLen(maxAttachmentBytes) {
+		logAdminSeam("BOUNDARY_FAULT", "admin.inbox.attachment_stream_failed", map[string]any{
+			"submissionId":  submissionID,
+			"reason":        "size_limit_exceeded",
+			"correlationId": corrID,
+		})
+		return newAdminError(connect.CodeFailedPrecondition, contracts.ErrCodeConstraint, http.StatusUnprocessableEntity, "Stored attachment exceeds maximum allowed size.", "Contact operator.", corrID, nil)
 	}
 
 	rawBytes, decErr := base64.StdEncoding.DecodeString(*contentB64)

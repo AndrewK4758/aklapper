@@ -52,6 +52,8 @@ func validateProductionAdminStartupConfig() error {
 		"ADMIN_INTERNAL_AUTH_SECRET",
 		"TOTP_ENCRYPTION_KEY",
 		"ANALYTICS_DAILY_SALT",
+		"WEBAUTHN_RP_ID",
+		"WEBAUTHN_ORIGIN",
 	}
 	missing := make([]string, 0, len(required))
 	for _, envKey := range required {
@@ -70,6 +72,11 @@ func validateProductionAdminStartupConfig() error {
 }
 
 func buildAdminMux(deps adminServiceDeps) *http.ServeMux {
+	resolvedSecret, err := internalauth.ResolveAdminSecret(deps.adminSecret)
+	if err != nil {
+		panic(fmt.Sprintf("admin-api: %v", err))
+	}
+	deps.adminSecret = resolvedSecret
 	if deps.argon2 == nil {
 		deps.argon2 = NewArgon2Verifier(maxConcurrentArgon2)
 	}

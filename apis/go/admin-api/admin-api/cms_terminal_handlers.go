@@ -2,13 +2,48 @@ package main
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"strings"
 
 	"connectrpc.com/connect"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/contracts"
 	adminv1 "github.com/AndrewK4758/aklapper/packages/go/kit/gen/admin/v1"
+	"github.com/jackc/pgx/v5"
 )
+
+func nonNilStrings(s []string) []string {
+	if s == nil {
+		return []string{}
+	}
+	return s
+}
+
+func scanTerminalProfileRow(scan func(...any) error) (*adminv1.AdminTerminalProfileRow, error) {
+	var r adminv1.AdminTerminalProfileRow
+	err := scan(&r.Slug, &r.BannerTitle, &r.BannerMeta, &r.OsLabel, &r.Directory, &r.VcsBranch, &r.VcsState, &r.ContextLabel, &r.Placeholder, &r.QuickCommands)
+	r.QuickCommands = nonNilStrings(r.QuickCommands)
+	return &r, err
+}
+
+func scanTerminalCommandRow(scan func(...any) error) (*adminv1.AdminTerminalCommandRow, error) {
+	var r adminv1.AdminTerminalCommandRow
+	err := scan(&r.Id, &r.ProfileSlug, &r.Name, &r.Description, &r.Kind, &r.Output, &r.TargetRoute, &r.AllowedRoutes, &r.ErrorTemplate, &r.SortOrder)
+	r.AllowedRoutes = nonNilStrings(r.AllowedRoutes)
+	return &r, err
+}
+
+func scanTerminalInitialEntryRow(scan func(...any) error) (*adminv1.AdminTerminalInitialEntryRow, error) {
+	var r adminv1.AdminTerminalInitialEntryRow
+	err := scan(&r.Id, &r.ProfileSlug, &r.Command, &r.Output, &r.Status, &r.DurationLabel, &r.TimestampLabel, &r.SortOrder)
+	return &r, err
+}
+
+func scanTerminalDirectoryEntryRow(scan func(...any) error) (*adminv1.AdminTerminalDirectoryEntryRow, error) {
+	var r adminv1.AdminTerminalDirectoryEntryRow
+	err := scan(&r.Id, &r.ProfileSlug, &r.Name, &r.Description, &r.SortOrder, &r.Enabled)
+	return &r, err
+}
 
 func (s *adminCmsServiceServer) listAllTerminalData(ctx context.Context) (
 	[]*adminv1.AdminTerminalProfileRow,
@@ -18,67 +53,24 @@ func (s *adminCmsServiceServer) listAllTerminalData(ctx context.Context) (
 	error,
 ) {
 	pool := s.deps.store.Pool()
-	profiles, err := queryRows(ctx, pool, `SELECT slug, banner_title, banner_meta, os_label, directory, vcs_branch, vcs_state, context_label, placeholder, quick_commands FROM terminal_profiles WHERE slug <> $1 ORDER BY slug ASC`, []any{retiredMaintenanceKey},
-		func(scan func(...any) error) (*adminv1.AdminTerminalProfileRow, error) {
-			var r adminv1.AdminTerminalProfileRow
-			if err := scan(&r.Slug, &r.BannerTitle, &r.BannerMeta, &r.OsLabel, &r.Directory, &r.VcsBranch, &r.VcsState, &r.ContextLabel, &r.Placeholder, &r.QuickCommands); err != nil {
-				return nil, err
-			}
-			if r.QuickCommands == nil {
-				r.QuickCommands = []string{}
-			}
-			return &r, nil
-		})
+	filterArgs := []any{retiredMaintenanceKey}
+	profiles, err := queryRows(ctx, pool, `SELECT slug, banner_title, banner_meta, os_label, directory, vcs_branch, vcs_state, context_label, placeholder, quick_commands FROM terminal_profiles WHERE slug <> $1 ORDER BY slug ASC`, filterArgs, scanTerminalProfileRow)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
-
-	commands, err := queryRows(ctx, pool, `SELECT id, profile_slug, name, description, kind, output, target_route, allowed_routes, error_template, sort_order FROM terminal_commands WHERE profile_slug <> $1 ORDER BY profile_slug ASC, sort_order ASC, id ASC`, []any{retiredMaintenanceKey},
-		func(scan func(...any) error) (*adminv1.AdminTerminalCommandRow, error) {
-			var r adminv1.AdminTerminalCommandRow
-			if err := scan(&r.Id, &r.ProfileSlug, &r.Name, &r.Description, &r.Kind, &r.Output, &r.TargetRoute, &r.AllowedRoutes, &r.ErrorTemplate, &r.SortOrder); err != nil {
-				return nil, err
-			}
-			if r.AllowedRoutes == nil {
-				r.AllowedRoutes = []string{}
-			}
-			return &r, nil
-		})
+	commands, err := queryRows(ctx, pool, `SELECT id, profile_slug, name, description, kind, output, target_route, allowed_routes, error_template, sort_order FROM terminal_commands WHERE profile_slug <> $1 ORDER BY profile_slug ASC, sort_order ASC, id ASC`, filterArgs, scanTerminalCommandRow)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
-
-	iRows, err := pool.Query(ctx, `SELECT id, profile_slug, command, output, status, duration_label, timestamp_label, sort_order FROM terminal_initial_entries WHERE profile_slug <> $1 ORDER BY profile_slug ASC, sort_order ASC, id ASC`, retiredMaintenanceKey)
+	entries, err := queryRows(ctx, pool, `SELECT id, profile_slug, command, output, status, duration_label, timestamp_label, sort_order FROM terminal_initial_entries WHERE profile_slug <> $1 ORDER BY profile_slug ASC, sort_order ASC, id ASC`, filterArgs, scanTerminalInitialEntryRow)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
-	defer iRows.Close()
-	entries := make([]*adminv1.AdminTerminalInitialEntryRow, 0)
-	for iRows.Next() {
-		var r adminv1.AdminTerminalInitialEntryRow
-		if err := iRows.Scan(&r.Id, &r.ProfileSlug, &r.Command, &r.Output, &r.Status, &r.DurationLabel, &r.TimestampLabel, &r.SortOrder); err != nil {
-			return nil, nil, nil, nil, err
-		}
-		entries = append(entries, &r)
-	}
-	if err := iRows.Err(); err != nil {
-		return nil, nil, nil, nil, err
-	}
-
-	dRows, err := pool.Query(ctx, `SELECT id, profile_slug, name, description, sort_order, enabled FROM terminal_directory_entries WHERE profile_slug <> $1 ORDER BY profile_slug ASC, sort_order ASC, id ASC`, retiredMaintenanceKey)
+	dirs, err := queryRows(ctx, pool, `SELECT id, profile_slug, name, description, sort_order, enabled FROM terminal_directory_entries WHERE profile_slug <> $1 ORDER BY profile_slug ASC, sort_order ASC, id ASC`, filterArgs, scanTerminalDirectoryEntryRow)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
-	defer dRows.Close()
-	dirs := make([]*adminv1.AdminTerminalDirectoryEntryRow, 0)
-	for dRows.Next() {
-		var r adminv1.AdminTerminalDirectoryEntryRow
-		if err := dRows.Scan(&r.Id, &r.ProfileSlug, &r.Name, &r.Description, &r.SortOrder, &r.Enabled); err != nil {
-			return nil, nil, nil, nil, err
-		}
-		dirs = append(dirs, &r)
-	}
-	return profiles, commands, entries, dirs, dRows.Err()
+	return profiles, commands, entries, dirs, nil
 }
 
 func (s *adminCmsServiceServer) UpsertTerminalProfile(
@@ -164,6 +156,9 @@ func (s *adminCmsServiceServer) UpsertTerminalCommand(
 		if err == nil {
 			return connect.NewResponse(&adminv1.UpsertTerminalCommandResponse{Command: &out}), nil
 		}
+		if !errors.Is(err, pgx.ErrNoRows) {
+			return nil, mapAdminStoreError(err, corrID)
+		}
 	}
 	err := pool.QueryRow(
 		ctx,
@@ -231,6 +226,9 @@ func (s *adminCmsServiceServer) UpsertTerminalInitialEntry(
 		if err == nil {
 			return connect.NewResponse(&adminv1.UpsertTerminalInitialEntryResponse{Entry: &out}), nil
 		}
+		if !errors.Is(err, pgx.ErrNoRows) {
+			return nil, mapAdminStoreError(err, corrID)
+		}
 	}
 	err := pool.QueryRow(
 		ctx,
@@ -295,6 +293,9 @@ func (s *adminCmsServiceServer) UpsertTerminalDirectoryEntry(
 		).Scan(&out.Id, &out.ProfileSlug, &out.Name, &out.Description, &out.SortOrder, &out.Enabled)
 		if err == nil {
 			return connect.NewResponse(&adminv1.UpsertTerminalDirectoryEntryResponse{Entry: &out}), nil
+		}
+		if !errors.Is(err, pgx.ErrNoRows) {
+			return nil, mapAdminStoreError(err, corrID)
 		}
 	}
 	err := pool.QueryRow(

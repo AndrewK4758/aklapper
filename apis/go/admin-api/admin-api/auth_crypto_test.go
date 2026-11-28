@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"strings"
 	"sync"
@@ -24,26 +25,34 @@ func TestNode26Argon2idGoldenParity(t *testing.T) {
 	}
 
 	v := NewArgon2Verifier(2)
+	ctx := context.Background()
 	phcCopy := nodePHC
-	valid, err := v.Verify(nodePassword, &phcCopy)
+	valid, err := v.Verify(ctx, nodePassword, &phcCopy)
 	if err != nil || !valid {
 		t.Fatalf("expected Go Argon2id to verify Node 26 PHC: valid=%v err=%v", valid, err)
 	}
 
-	wrong, err := v.Verify("wrong-password", &phcCopy)
+	wrong, err := v.Verify(ctx, "wrong-password", &phcCopy)
 	if err != nil || wrong {
 		t.Fatalf("expected wrong password to fail cleanly: valid=%v err=%v", wrong, err)
 	}
 
 	// Null / malformed stored PHC must execute constant-parameter dummy derivation without panicking or erroring.
-	nilValid, nilErr := v.Verify(nodePassword, nil)
+	nilValid, nilErr := v.Verify(ctx, nodePassword, nil)
 	if nilErr != nil || nilValid {
 		t.Fatalf("expected nil PHC to fail closed without error: valid=%v err=%v", nilValid, nilErr)
 	}
 	malformed := "$argon2id$v=19$m=9999999,t=99,p=1$bad$bad"
-	malValid, malErr := v.Verify(nodePassword, &malformed)
+	malValid, malErr := v.Verify(ctx, nodePassword, &malformed)
 	if malErr != nil || malValid {
 		t.Fatalf("expected out-of-bounds PHC to fail closed without error: valid=%v err=%v", malValid, malErr)
+	}
+
+	// Pre-cancelled context must fail immediately before Argon2id derivation.
+	canceledCtx, cancel := context.WithCancel(context.Background())
+	cancel()
+	if ok, cErr := v.Verify(canceledCtx, nodePassword, &phcCopy); ok || !errors.Is(cErr, context.Canceled) {
+		t.Fatalf("expected context.Canceled on pre-cancelled verify context, got ok=%v err=%v", ok, cErr)
 	}
 
 	// Go-generated PHC roundtrip.
@@ -54,7 +63,7 @@ func TestNode26Argon2idGoldenParity(t *testing.T) {
 	if !strings.HasPrefix(goPHC, "$argon2id$v=19$m=19456,t=2,p=1$") {
 		t.Fatalf("unexpected Go PHC prefix: %s", goPHC)
 	}
-	goValid, err := v.Verify("Go-Generated-Admin-Pass-2026!", &goPHC)
+	goValid, err := v.Verify(ctx, "Go-Generated-Admin-Pass-2026!", &goPHC)
 	if err != nil || !goValid {
 		t.Fatalf("expected Go PHC self-verify to succeed: valid=%v err=%v", goValid, err)
 	}
@@ -75,7 +84,7 @@ func TestArgon2VerifierConcurrencySemaphore(t *testing.T) {
 	var busyErr error
 	go func() {
 		defer wg.Done()
-		_, busyErr = v.Verify("any-pass", nil)
+		_, busyErr = v.Verify(context.Background(), "any-pass", nil)
 	}()
 	wg.Wait()
 	if !errors.Is(busyErr, ErrArgon2Busy) {

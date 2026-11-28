@@ -10,6 +10,8 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
+var ErrWebAuthnCredentialExists = errors.New("webauthn credential already registered")
+
 type authUserRecord struct {
 	ID                 string
 	Handle             string
@@ -242,18 +244,18 @@ func (d adminServiceDeps) saveWebauthnCredential(ctx context.Context, rec webaut
 	if transports == nil {
 		transports = []string{}
 	}
-	_, err := pool.Exec(
+	var insertedID string
+	err := pool.QueryRow(
 		ctx,
 		`INSERT INTO webauthn_credentials (credential_id, user_id, public_key, counter, transports, backup_eligible, backup_state)
 		 VALUES ($1, $2::uuid, $3, $4, $5, $6, $7)
-		 ON CONFLICT (credential_id) DO UPDATE SET
-		   public_key = EXCLUDED.public_key,
-		   counter = EXCLUDED.counter,
-		   transports = EXCLUDED.transports,
-		   backup_eligible = EXCLUDED.backup_eligible,
-		   backup_state = EXCLUDED.backup_state`,
+		 ON CONFLICT (credential_id) DO NOTHING
+		 RETURNING credential_id`,
 		rec.CredentialID, rec.UserID, rec.PublicKey, rec.Counter, transports, rec.BackupEligible, rec.BackupState,
-	)
+	).Scan(&insertedID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return ErrWebAuthnCredentialExists
+	}
 	return err
 }
 
