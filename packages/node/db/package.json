@@ -79,6 +79,12 @@
       "runtime:node"
     ],
     "targets": {
+      "test": {
+        "dependsOn": [
+          "build",
+          "^build"
+        ]
+      },
       "db-generate": {
         "cache": false,
         "executor": "nx:run-commands",
