@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	"github.com/AndrewK4758/aklapper/packages/go/kit/contracts"
 	commonv1 "github.com/AndrewK4758/aklapper/packages/go/kit/gen/common/v1"
 	portalv1 "github.com/AndrewK4758/aklapper/packages/go/kit/gen/portal/v1"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/gen/portal/v1/portalv1connect"
@@ -68,7 +69,7 @@ func TestPortalAPIEndToEndLivePG19(t *testing.T) {
 	portalDSN := requirePortalDatabaseURL(t)
 	adminDSN := strings.TrimSpace(os.Getenv("DATABASE_URL"))
 	const testSecret = "portal-api-e2e-internal-auth-secret-0123456789"
-	const testSalt = "portal-api-e2e-daily-salt"
+	testSalt := "portal-api-e2e-daily-salt-" + contracts.NewUUIDv4()
 
 	// Mock Agensi upstream server supporting live TSR/JSON storefront + outage toggle.
 	var agensiFail atomic.Bool
@@ -241,7 +242,8 @@ func TestPortalAPIEndToEndLivePG19(t *testing.T) {
 	// 4. AnalyticsService: SSR hit + 15s dedup, BindGuestSession, IngestAnalytics, ipHash, 429 rate limit
 	t.Run("AnalyticsService persists SSR/client dedup, returns ipHash, and enforces 429 rate limit", func(t *testing.T) {
 		ctx := context.Background()
-		const visitorIP = "198.51.100.25"
+		runID := strings.ReplaceAll(contracts.NewUUIDv4(), "-", "")
+		visitorIP := "2001:db8:" + runID[:4] + ":" + runID[4:8] + "::25"
 		const ua = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/131.0.0.0 Safari/537.36"
 
 		ssrReq := connect.NewRequest(&portalv1.RecordSsrHitRequest{
@@ -282,7 +284,7 @@ func TestPortalAPIEndToEndLivePG19(t *testing.T) {
 
 		// BindGuestSession converges onto the same session.
 		bindReq := connect.NewRequest(&portalv1.BindGuestSessionRequest{
-			GuestSessionId: "e2e-bound-guest-1",
+			GuestSessionId: "e2e-bound-guest-" + runID[:8],
 			LandingPath:    "/about",
 			ClientContext:  &portalv1.ClientRequestContext{UserAgent: ua},
 		})
@@ -331,7 +333,8 @@ func TestPortalAPIEndToEndLivePG19(t *testing.T) {
 	// 5. ContactService: 4.8 MiB attachment (>4 MiB gRPC default), validation field_errors, rate limit
 	t.Run("ContactService handles 4.8 MiB raw attachment upload, field_errors, and rate limit", func(t *testing.T) {
 		ctx := context.Background()
-		const contactIP = "203.0.113.88"
+		runID := strings.ReplaceAll(contracts.NewUUIDv4(), "-", "")
+		contactIP := "2001:db8:" + runID[:4] + ":" + runID[4:8] + "::88"
 
 		payload := make([]byte, 4800*1024) // 4.8 MiB (> default 4 MiB gRPC cap, <= 5 MiB file cap)
 		copy(payload, []byte("%PDF-1.7\nE2E-TEST-PAYLOAD\n"))

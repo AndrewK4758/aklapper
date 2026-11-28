@@ -119,20 +119,24 @@ func TestAdminAPIEndToEndLivePG19(t *testing.T) {
 	if err != nil {
 		t.Fatalf("connect owner PG: %v", err)
 	}
-	defer ownerConn.Close(ctx)
+	t.Cleanup(func() {
+		_ = ownerConn.Close(context.Background())
+	})
 
 	testHandle := "e2e_admin_user"
+	_, _ = ownerConn.Exec(ctx, `DELETE FROM rate_limit_buckets WHERE scope_key LIKE 'auth:%' OR scope_key LIKE 'admin:analytics:%'`)
+	_, _ = ownerConn.Exec(ctx, `DELETE FROM users WHERE handle = $1`, testHandle)
 	var testUserID string
 	err = ownerConn.QueryRow(ctx, `
 		INSERT INTO users (handle, role, password_hash_argon2)
 		VALUES ($1, 'admin', $2)
-		ON CONFLICT (handle) DO UPDATE SET password_hash_argon2 = EXCLUDED.password_hash_argon2
 		RETURNING id::text`, testHandle, testPHC,
 	).Scan(&testUserID)
 	if err != nil {
 		t.Fatalf("seed test admin user: %v", err)
 	}
 	t.Cleanup(func() {
+		_, _ = ownerConn.Exec(context.Background(), `DELETE FROM rate_limit_buckets WHERE scope_key LIKE 'auth:%' OR scope_key LIKE 'admin:analytics:%'`)
 		_, _ = ownerConn.Exec(context.Background(), `DELETE FROM users WHERE id = $1::uuid`, testUserID)
 	})
 

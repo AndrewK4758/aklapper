@@ -119,7 +119,6 @@ jobs:
         with:
           pnpm-version: ${{ env.PNPM_VERSION }}
           node-version: ${{ env.NODE_VERSION }}
-          restore-nx-cache: 'false'
 
       - name: Resolve deploy flags and smoke matrix
         id: resolve
@@ -1415,7 +1414,6 @@ jobs:
         with:
           pnpm-version: ${{ env.PNPM_VERSION }}
           node-version: ${{ env.NODE_VERSION }}
-          restore-nx-cache: 'false'
 
       - name: Cache Playwright browser (${{ matrix.engine }})
         id: playwright-cache

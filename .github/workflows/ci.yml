@@ -59,7 +59,6 @@ jobs:
         with:
           pnpm-version: ${{ env.PNPM_VERSION }}
           node-version: ${{ env.NODE_VERSION }}
-          restore-nx-cache: 'false'
 
       - name: Check formatting
         run: pnpm format:check
@@ -80,7 +79,6 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           go-version: ${{ env.GO_VERSION }}
           setup-go: 'true'
-          restore-nx-cache: 'false'
 
       - name: Install buf CLI
         uses: bufbuild/buf-action@v1
@@ -142,7 +140,6 @@ jobs:
         with:
           pnpm-version: ${{ env.PNPM_VERSION }}
           node-version: ${{ env.NODE_VERSION }}
-          restore-nx-cache: 'false'
 
       - name: Compute affected CI plan
         id: plan
@@ -179,7 +176,6 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           go-version: ${{ env.GO_VERSION }}
           setup-go: ${{ needs.plan.outputs.needs_go }}
-          cache-scope: lint
 
       - name: Run lint
         shell: bash
@@ -208,7 +204,6 @@ jobs:
         with:
           pnpm-version: ${{ env.PNPM_VERSION }}
           node-version: ${{ env.NODE_VERSION }}
-          cache-scope: typecheck
 
       - name: Run typecheck
         shell: bash
@@ -239,7 +234,6 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           go-version: ${{ env.GO_VERSION }}
           setup-go: ${{ needs.plan.outputs.needs_go }}
-          cache-scope: build
 
       - name: Run build
         shell: bash
@@ -290,7 +284,6 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           go-version: ${{ env.GO_VERSION }}
           setup-go: ${{ needs.plan.outputs.needs_go }}
-          cache-scope: test
 
       - name: Build Go privacy-check CLI for DB and tooling suites
         if: needs.plan.outputs.needs_go == 'true'
@@ -334,7 +327,6 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           go-version: ${{ env.GO_VERSION }}
           setup-go: ${{ needs.plan.outputs.needs_go }}
-          cache-scope: api-e2e
 
       - name: Run affected API E2E suites
         shell: bash
@@ -393,7 +385,6 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           go-version: ${{ env.GO_VERSION }}
           setup-go: 'true'
-          cache-scope: e2e-${{ matrix.app }}-${{ matrix.engine }}
 
       - name: Download built SSR artifacts
         uses: actions/download-artifact@v8
