@@ -19,11 +19,11 @@ inputs:
     required: false
     default: 'false'
   restore-nx-cache:
-    description: Whether to restore/save local .nx/cache alongside Nx Cloud
+    description: Whether to restore/save local Nx 24 cache (~/.nx) alongside Nx Cloud
     required: false
     default: 'true'
   cache-scope:
-    description: Job-specific scope for .nx/cache key to avoid parallel save collisions
+    description: Job-specific scope for ~/.nx cache key to avoid parallel save collisions
     required: false
     default: 'default'
 
@@ -50,11 +50,11 @@ runs:
         cache: true
         cache-dependency-path: '**/go.sum'
 
-    - name: Restore local Nx cache (.nx/cache)
+    - name: Restore local Nx cache (~/.nx)
       if: inputs.restore-nx-cache == 'true'
       uses: actions/cache@v6
       with:
-        path: .nx/cache
+        path: ~/.nx
         key: nx-cache-${{ runner.os }}-${{ inputs.cache-scope }}-${{ github.sha }}-${{ hashFiles('pnpm-lock.yaml') }}
         restore-keys: |
           nx-cache-${{ runner.os }}-${{ inputs.cache-scope }}-
