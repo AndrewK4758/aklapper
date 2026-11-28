@@ -26,6 +26,7 @@ function cleanUtf8DownloadFilename(rawName: string | null | undefined): string {
       code < 0x20 ||
       code === 0x7f ||
       (code >= 0x80 && code <= 0x9f) ||
+      (code >= 0xd800 && code <= 0xdfff) ||
       code === 0x2028 ||
       code === 0x2029 ||
       FORBIDDEN_FILENAME_CHARS.has(ch)
@@ -34,7 +35,7 @@ function cleanUtf8DownloadFilename(rawName: string | null | undefined): string {
     }
     out += ch;
   }
-  const trimmed = out.trim().slice(0, 128);
+  const trimmed = Array.from(out.trim()).slice(0, 128).join('').trim();
   if (!trimmed || trimmed === '.' || trimmed === '..') {
     return 'attachment.bin';
   }

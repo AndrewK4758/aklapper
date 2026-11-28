@@ -109,6 +109,18 @@ describe('inbox.$id.attachment loader & Content-Disposition sanitization', () =>
         filename: 'dir/sub\\bad\r\n"quote";semi\x00.pdf',
         expectedDisposition: 'attachment; filename="badquotesemi.pdf"',
       },
+      {
+        filename: `${'a'.repeat(127)}📄.pdf`,
+        expectedDisposition: `attachment; filename="${'a'.repeat(127)}_"; filename*=UTF-8''${'a'.repeat(127)}%F0%9F%93%84`,
+      },
+      {
+        filename: `${'Resume_2026_'.repeat(10)}1234567𠮷.pdf`,
+        expectedDisposition: `attachment; filename="${'Resume_2026_'.repeat(10)}1234567_"; filename*=UTF-8''${'Resume_2026_'.repeat(10)}1234567%F0%A0%AE%B7`,
+      },
+      {
+        filename: '\uD83Dresume\uDC00.pdf',
+        expectedDisposition: 'attachment; filename="resume.pdf"',
+      },
     ];
 
     for (const tc of unicodeCases) {
