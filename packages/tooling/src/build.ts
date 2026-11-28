@@ -73,7 +73,6 @@ export function createSsrViteConfig(options: SsrAppViteConfigOptions): ViteUserC
     },
 
     css: {
-      devSourcemap: true,
       modules: {
         scopeBehaviour: 'local',
         localsConvention: 'camelCaseOnly',
@@ -85,7 +84,10 @@ export function createSsrViteConfig(options: SsrAppViteConfigOptions): ViteUserC
     },
 
     dev: {
-      sourcemap: true,
+      sourcemap: {
+        js: true,
+        css: true,
+      },
       preTransformRequests: true,
     },
 
@@ -177,7 +179,6 @@ export function createUiLibViteConfig(options: UiLibViteConfigOptions): ViteUser
           }),
         ],
     css: {
-      devSourcemap: true,
       modules: {
         scopeBehaviour: 'local',
         localsConvention: 'camelCaseOnly',
@@ -185,6 +186,12 @@ export function createUiLibViteConfig(options: UiLibViteConfigOptions): ViteUser
       transformer: 'lightningcss',
       lightningcss: {
         cssModules: LIGHTNINGCSS_MODULES,
+      },
+    },
+    dev: {
+      sourcemap: {
+        js: true,
+        css: true,
       },
     },
     build: {
