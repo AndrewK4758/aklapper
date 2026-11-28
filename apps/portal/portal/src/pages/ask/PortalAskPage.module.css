@@ -67,7 +67,7 @@
     padding: var(--sf-space-3);
     border-radius: var(--sf-radius-sm);
     border: var(--sf-border-width) solid var(--sf-gold);
-    background: var(--sf-bg-obsidian);
+    background: var(--sf-bg-editor);
   }
 
   .preambleErrorText {
@@ -208,7 +208,7 @@
     padding: var(--sf-space-4);
     border-radius: var(--sf-radius-sm);
     border: var(--sf-border-width) solid var(--sf-border);
-    background: var(--sf-bg-obsidian);
+    background: var(--sf-bg-editor);
   }
 
   .citationHeader {

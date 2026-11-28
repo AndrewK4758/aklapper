@@ -22,7 +22,7 @@
     padding: var(--sf-space-4);
     border-radius: var(--sf-radius-sm);
     border: var(--sf-border-width) solid var(--sf-border);
-    background: var(--sf-bg-obsidian);
+    background: var(--sf-bg-editor);
     color: var(--sf-fg-bone);
     font-family: var(--sf-font-mono), monospace;
     font-size: var(--sf-text-sm);

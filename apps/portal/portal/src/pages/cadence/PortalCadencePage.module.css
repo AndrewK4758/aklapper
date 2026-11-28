@@ -294,7 +294,7 @@
     padding: var(--sf-space-4);
     border-radius: var(--sf-radius-sm);
     border: var(--sf-border-width) solid var(--sf-border-subtle);
-    background: var(--sf-bg-obsidian);
+    background: var(--sf-bg-editor);
   }
 
   .specDocHeading {
@@ -563,7 +563,7 @@
     padding: var(--sf-space-2) var(--sf-space-3);
     border-radius: var(--sf-radius-sm);
     border: var(--sf-border-width) solid var(--sf-border);
-    background: var(--sf-bg-obsidian);
+    background: var(--sf-bg-editor);
     color: var(--sf-fg-bone);
     font-family: var(--sf-font-mono), monospace;
     font-size: var(--sf-text-xs);
@@ -598,7 +598,7 @@
     padding: var(--sf-space-2) var(--sf-space-4);
     border-radius: var(--sf-radius-sm);
     border: var(--sf-border-width) solid var(--sf-border);
-    background: var(--sf-bg-obsidian);
+    background: var(--sf-bg-editor);
     color: var(--sf-fg-bone);
     font-family: var(--sf-font-mono), monospace;
     font-size: var(--sf-text-xs);
@@ -656,7 +656,7 @@
     padding: var(--sf-space-2) var(--sf-space-4);
     border-radius: var(--sf-radius-xs);
     border: var(--sf-border-width) solid var(--sf-border-subtle);
-    background: var(--sf-bg-obsidian);
+    background: var(--sf-bg-editor);
     color: var(--sf-fg-bone);
     font-family: var(--sf-font-mono), monospace;
     font-size: var(--sf-text-xs);
