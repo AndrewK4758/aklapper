@@ -1,5 +1,5 @@
 name: Setup aklapper workspace
-description: Installs pnpm, Node.js, optional Go, restores pnpm and Nx caches, and installs dependencies offline-first.
+description: Installs pnpm, Node.js, and optional Go, restores pnpm and Go caches, and installs dependencies offline-first.
 
 inputs:
   pnpm-version:
@@ -18,14 +18,6 @@ inputs:
     description: Whether to install Go and restore Go module/build caches
     required: false
     default: 'false'
-  restore-nx-cache:
-    description: Whether to restore/save local Nx 24 cache (~/.nx) alongside Nx Cloud
-    required: false
-    default: 'true'
-  cache-scope:
-    description: Job-specific scope for ~/.nx cache key to avoid parallel save collisions
-    required: false
-    default: 'default'
 
 runs:
   using: composite
@@ -50,16 +42,9 @@ runs:
         cache: true
         cache-dependency-path: '**/go.sum'
 
-    - name: Restore local Nx cache (~/.nx)
-      if: inputs.restore-nx-cache == 'true'
-      uses: actions/cache@v6
-      with:
-        path: ~/.nx
-        key: nx-cache-${{ runner.os }}-${{ inputs.cache-scope }}-${{ github.sha }}-${{ hashFiles('pnpm-lock.yaml') }}
-        restore-keys: |
-          nx-cache-${{ runner.os }}-${{ inputs.cache-scope }}-
-          nx-cache-${{ runner.os }}-build-
-          nx-cache-${{ runner.os }}-
+    # Note: Nx 24 binds local SQLite cache metadata (~/.nx/<id>/databases/<machine-id>-v6.db)
+    # to /etc/machine-id, so archiving/restoring ~/.nx across ephemeral GitHub VM runners
+    # triggers "Unrecognized Cache Artifacts" with 0% hit rate; remote caching uses Nx Cloud.
 
     - name: Install workspace dependencies
       shell: bash

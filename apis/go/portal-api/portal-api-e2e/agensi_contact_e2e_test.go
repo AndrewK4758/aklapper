@@ -174,7 +174,7 @@ func TestContactLinkingFKRetryCheckSpoofAndMidnightGraceLivePG19(t *testing.T) {
 	}
 
 	// 3. Spoofed candidate session rejected, valid ownership linked, visitor_hash/guest_session fallback, and 30m UTC-midnight grace.
-	const testSalt = "e2e-midnight-grace-salt"
+	testSalt := "e2e-midnight-grace-salt-" + contracts.NewUUIDv4()
 	const victimIP = "198.51.100.140"
 	const victimUA = "Mozilla/5.0 (X11; Linux x86_64) Chrome/131.0.0.0"
 	tPrev := time.Date(2026, 11, 26, 23, 55, 0, 0, time.UTC)
@@ -290,7 +290,8 @@ func TestContactLinkingFKRetryCheckSpoofAndMidnightGraceLivePG19(t *testing.T) {
 func TestPortalAPIUnicodeAnalyticsNulContactGuestOwnershipAndSsrEventNameLivePG19(t *testing.T) {
 	portalDSN := requirePortalDatabaseURL(t)
 	const testSecret = "portal-api-e2e-c2-secret-0123456789"
-	const testSalt = "portal-api-e2e-c2-salt"
+	runID := strings.ReplaceAll(contracts.NewUUIDv4(), "-", "")
+	testSalt := "portal-api-e2e-c2-salt-" + runID
 
 	baseURL := e2etest.StartBinary(
 		t,
@@ -313,7 +314,7 @@ func TestPortalAPIUnicodeAnalyticsNulContactGuestOwnershipAndSsrEventNameLivePG1
 	contactClient := portalv1connect.NewContactServiceClient(h2cClient, baseURL, svcOpts...)
 
 	ctx := context.Background()
-	const ip = "198.51.100.199"
+	ip := "2001:db8:" + runID[:4] + ":" + runID[4:8] + "::199"
 
 	// 1. SSR hit persists event name = 'portal_page_view'.
 	ssrReq := connect.NewRequest(&portalv1.RecordSsrHitRequest{
