@@ -32,20 +32,15 @@ func (s *adminQuotasServiceServer) ListQuotasAndBuckets(
 	}
 	pool := s.deps.store.Pool()
 
-	pRows, err := pool.Query(ctx, `SELECT role, max_turns_per_session, max_tokens_per_run, max_daily_global_tokens FROM quota_policies ORDER BY role ASC`)
+	policies, err := queryRows(ctx, pool, `SELECT role, max_turns_per_session, max_tokens_per_run, max_daily_global_tokens FROM quota_policies ORDER BY role ASC`, nil,
+		func(scan func(...any) error) (*adminv1.QuotaPolicyRecord, error) {
+			var rec adminv1.QuotaPolicyRecord
+			if err := scan(&rec.Role, &rec.MaxTurnsPerSession, &rec.MaxTokensPerRun, &rec.MaxDailyGlobalTokens); err != nil {
+				return nil, err
+			}
+			return &rec, nil
+		})
 	if err != nil {
-		return nil, mapAdminStoreError(err, corrID)
-	}
-	defer pRows.Close()
-	policies := make([]*adminv1.QuotaPolicyRecord, 0)
-	for pRows.Next() {
-		var rec adminv1.QuotaPolicyRecord
-		if err := pRows.Scan(&rec.Role, &rec.MaxTurnsPerSession, &rec.MaxTokensPerRun, &rec.MaxDailyGlobalTokens); err != nil {
-			return nil, mapAdminStoreError(err, corrID)
-		}
-		policies = append(policies, &rec)
-	}
-	if err := pRows.Err(); err != nil {
 		return nil, mapAdminStoreError(err, corrID)
 	}
 

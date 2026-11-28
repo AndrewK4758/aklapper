@@ -77,7 +77,7 @@ func (s *adminAnalyticsServiceServer) GetAnalyticsSummary(
 		return nil, mapAdminStoreError(err, corrID)
 	}
 
-	trendRows, err := pool.Query(ctx, `
+	dailyTrend, err := queryRows(ctx, pool, `
 		WITH latest_days AS (
 			SELECT
 				to_char(s.started_at AT TIME ZONE 'UTC', 'YYYY-MM-DD') AS day_date,
@@ -89,20 +89,15 @@ func (s *adminAnalyticsServiceServer) GetAnalyticsSummary(
 			WHERE `+whereS+`
 			GROUP BY 1 ORDER BY 1 DESC LIMIT 90
 		)
-		SELECT day_date, unique_visitors, sessions, page_views FROM latest_days ORDER BY day_date ASC`, argsS...)
+		SELECT day_date, unique_visitors, sessions, page_views FROM latest_days ORDER BY day_date ASC`, argsS,
+		func(scan func(...any) error) (*adminv1.AnalyticsDailyTrendPoint, error) {
+			var pt adminv1.AnalyticsDailyTrendPoint
+			if err := scan(&pt.Date, &pt.UniqueVisitors, &pt.Sessions, &pt.PageViews); err != nil {
+				return nil, err
+			}
+			return &pt, nil
+		})
 	if err != nil {
-		return nil, mapAdminStoreError(err, corrID)
-	}
-	defer trendRows.Close()
-	dailyTrend := make([]*adminv1.AnalyticsDailyTrendPoint, 0)
-	for trendRows.Next() {
-		var pt adminv1.AnalyticsDailyTrendPoint
-		if err := trendRows.Scan(&pt.Date, &pt.UniqueVisitors, &pt.Sessions, &pt.PageViews); err != nil {
-			return nil, mapAdminStoreError(err, corrID)
-		}
-		dailyTrend = append(dailyTrend, &pt)
-	}
-	if err := trendRows.Err(); err != nil {
 		return nil, mapAdminStoreError(err, corrID)
 	}
 

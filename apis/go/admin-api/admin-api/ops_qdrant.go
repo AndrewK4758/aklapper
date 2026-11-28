@@ -34,7 +34,7 @@ func fetchCloudRunIdentityToken(ctx context.Context, audience string) string {
 	if err != nil || resp == nil {
 		return ""
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
 		return ""
 	}

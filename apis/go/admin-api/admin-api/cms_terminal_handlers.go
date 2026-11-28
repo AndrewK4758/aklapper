@@ -18,43 +18,33 @@ func (s *adminCmsServiceServer) listAllTerminalData(ctx context.Context) (
 	error,
 ) {
 	pool := s.deps.store.Pool()
-	pRows, err := pool.Query(ctx, `SELECT slug, banner_title, banner_meta, os_label, directory, vcs_branch, vcs_state, context_label, placeholder, quick_commands FROM terminal_profiles WHERE slug <> $1 ORDER BY slug ASC`, retiredMaintenanceKey)
+	profiles, err := queryRows(ctx, pool, `SELECT slug, banner_title, banner_meta, os_label, directory, vcs_branch, vcs_state, context_label, placeholder, quick_commands FROM terminal_profiles WHERE slug <> $1 ORDER BY slug ASC`, []any{retiredMaintenanceKey},
+		func(scan func(...any) error) (*adminv1.AdminTerminalProfileRow, error) {
+			var r adminv1.AdminTerminalProfileRow
+			if err := scan(&r.Slug, &r.BannerTitle, &r.BannerMeta, &r.OsLabel, &r.Directory, &r.VcsBranch, &r.VcsState, &r.ContextLabel, &r.Placeholder, &r.QuickCommands); err != nil {
+				return nil, err
+			}
+			if r.QuickCommands == nil {
+				r.QuickCommands = []string{}
+			}
+			return &r, nil
+		})
 	if err != nil {
-		return nil, nil, nil, nil, err
-	}
-	defer pRows.Close()
-	profiles := make([]*adminv1.AdminTerminalProfileRow, 0)
-	for pRows.Next() {
-		var r adminv1.AdminTerminalProfileRow
-		if err := pRows.Scan(&r.Slug, &r.BannerTitle, &r.BannerMeta, &r.OsLabel, &r.Directory, &r.VcsBranch, &r.VcsState, &r.ContextLabel, &r.Placeholder, &r.QuickCommands); err != nil {
-			return nil, nil, nil, nil, err
-		}
-		if r.QuickCommands == nil {
-			r.QuickCommands = []string{}
-		}
-		profiles = append(profiles, &r)
-	}
-	if err := pRows.Err(); err != nil {
 		return nil, nil, nil, nil, err
 	}
 
-	cRows, err := pool.Query(ctx, `SELECT id, profile_slug, name, description, kind, output, target_route, allowed_routes, error_template, sort_order FROM terminal_commands WHERE profile_slug <> $1 ORDER BY profile_slug ASC, sort_order ASC, id ASC`, retiredMaintenanceKey)
+	commands, err := queryRows(ctx, pool, `SELECT id, profile_slug, name, description, kind, output, target_route, allowed_routes, error_template, sort_order FROM terminal_commands WHERE profile_slug <> $1 ORDER BY profile_slug ASC, sort_order ASC, id ASC`, []any{retiredMaintenanceKey},
+		func(scan func(...any) error) (*adminv1.AdminTerminalCommandRow, error) {
+			var r adminv1.AdminTerminalCommandRow
+			if err := scan(&r.Id, &r.ProfileSlug, &r.Name, &r.Description, &r.Kind, &r.Output, &r.TargetRoute, &r.AllowedRoutes, &r.ErrorTemplate, &r.SortOrder); err != nil {
+				return nil, err
+			}
+			if r.AllowedRoutes == nil {
+				r.AllowedRoutes = []string{}
+			}
+			return &r, nil
+		})
 	if err != nil {
-		return nil, nil, nil, nil, err
-	}
-	defer cRows.Close()
-	commands := make([]*adminv1.AdminTerminalCommandRow, 0)
-	for cRows.Next() {
-		var r adminv1.AdminTerminalCommandRow
-		if err := cRows.Scan(&r.Id, &r.ProfileSlug, &r.Name, &r.Description, &r.Kind, &r.Output, &r.TargetRoute, &r.AllowedRoutes, &r.ErrorTemplate, &r.SortOrder); err != nil {
-			return nil, nil, nil, nil, err
-		}
-		if r.AllowedRoutes == nil {
-			r.AllowedRoutes = []string{}
-		}
-		commands = append(commands, &r)
-	}
-	if err := cRows.Err(); err != nil {
 		return nil, nil, nil, nil, err
 	}
 

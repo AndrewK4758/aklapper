@@ -224,19 +224,19 @@ func (s *adminCmsServiceServer) UpsertMenuItem(
 	ctx context.Context,
 	req *connect.Request[adminv1.UpsertMenuItemRequest],
 ) (*connect.Response[adminv1.UpsertMenuItemResponse], error) {
-	corrID := resolveCorrID(ctx)
-	if _, err := s.deps.requireAdminAuth(ctx, req.Header(), ""); err != nil {
+	desc := strings.TrimSpace(req.Msg.GetDescription())
+	corrID, fields, err := s.authorizeAndValidateFields(
+		ctx, req.Header(),
+		"Menu item slug, keyShortcut, and title are required.", "Review menu fields.",
+		[]string{req.Msg.GetSlug(), req.Msg.GetKeyShortcut(), req.Msg.GetTitle()},
+		[]string{desc},
+	)
+	if err != nil {
 		return nil, err
 	}
-	slug := strings.TrimSpace(req.Msg.GetSlug())
-	shortcut := strings.TrimSpace(req.Msg.GetKeyShortcut())
-	title := strings.TrimSpace(req.Msg.GetTitle())
-	desc := strings.TrimSpace(req.Msg.GetDescription())
-	if slug == "" || shortcut == "" || title == "" || containsNul(slug) || containsNul(title) || containsNul(desc) {
-		return nil, newAdminError(connect.CodeInvalidArgument, contracts.ErrCodeValidation, http.StatusBadRequest, "Menu item slug, keyShortcut, and title are required.", "Review menu fields.", corrID, nil)
-	}
+	slug, shortcut, title := fields[0], fields[1], fields[2]
 	var item adminv1.MenuItem
-	err := s.deps.store.Pool().QueryRow(
+	err = s.deps.store.Pool().QueryRow(
 		ctx,
 		`INSERT INTO menu_items (slug, key_shortcut, title, description, admin_only, sort_order, enabled)
 		 VALUES ($1, $2, $3, $4, $5, $6, $7)
@@ -275,19 +275,18 @@ func (s *adminCmsServiceServer) UpsertCadencePreset(
 	ctx context.Context,
 	req *connect.Request[adminv1.UpsertCadencePresetRequest],
 ) (*connect.Response[adminv1.UpsertCadencePresetResponse], error) {
-	corrID := resolveCorrID(ctx)
-	if _, err := s.deps.requireAdminAuth(ctx, req.Header(), ""); err != nil {
+	corrID, fields, err := s.authorizeAndValidateFields(
+		ctx, req.Header(),
+		"Preset slug, title, starterPrompt, and expectedKind are required.", "Review preset fields.",
+		[]string{req.Msg.GetSlug(), req.Msg.GetTitle(), req.Msg.GetStarterPrompt(), req.Msg.GetExpectedKind()},
+		[]string{req.Msg.GetStarterArtifactHtml()},
+	)
+	if err != nil {
 		return nil, err
 	}
-	slug := strings.TrimSpace(req.Msg.GetSlug())
-	title := strings.TrimSpace(req.Msg.GetTitle())
-	prompt := strings.TrimSpace(req.Msg.GetStarterPrompt())
-	kind := strings.TrimSpace(req.Msg.GetExpectedKind())
-	if slug == "" || title == "" || prompt == "" || kind == "" || containsNul(slug) || containsNul(title) || containsNul(prompt) || containsNul(req.Msg.GetStarterArtifactHtml()) {
-		return nil, newAdminError(connect.CodeInvalidArgument, contracts.ErrCodeValidation, http.StatusBadRequest, "Preset slug, title, starterPrompt, and expectedKind are required.", "Review preset fields.", corrID, nil)
-	}
+	slug, title, prompt, kind := fields[0], fields[1], fields[2], fields[3]
 	var out portalv1.CadencePreset
-	err := s.deps.store.Pool().QueryRow(
+	err = s.deps.store.Pool().QueryRow(
 		ctx,
 		`INSERT INTO cadence_presets (slug, title, starter_prompt, expected_kind, starter_artifact_html, sort_order)
 		 VALUES ($1, $2, $3, $4, $5, $6)

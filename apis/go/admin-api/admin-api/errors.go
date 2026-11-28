@@ -18,7 +18,34 @@ import (
 	"github.com/AndrewK4758/aklapper/packages/go/kit/pg"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/privacy"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
+
+func queryRows[T any](
+	ctx context.Context,
+	pool *pgxpool.Pool,
+	sql string,
+	args []any,
+	scan func(func(dest ...any) error) (T, error),
+) ([]T, error) {
+	rows, err := pool.Query(ctx, sql, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := make([]T, 0)
+	for rows.Next() {
+		item, err := scan(rows.Scan)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, item)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
 
 const (
 	headerAdminSessionID = "x-admin-session-id"

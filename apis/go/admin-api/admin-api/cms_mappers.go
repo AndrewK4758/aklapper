@@ -1,10 +1,44 @@
 package main
 
 import (
+	"context"
+	"net/http"
+	"strings"
+
+	"connectrpc.com/connect"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/agensi"
+	"github.com/AndrewK4758/aklapper/packages/go/kit/contracts"
 	portalv1 "github.com/AndrewK4758/aklapper/packages/go/kit/gen/portal/v1"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/pg"
 )
+
+func (s *adminCmsServiceServer) authorizeAndValidateFields(
+	ctx context.Context,
+	headers http.Header,
+	errMsg string,
+	action string,
+	required []string,
+	optional []string,
+) (string, []string, error) {
+	corrID := resolveCorrID(ctx)
+	if _, err := s.deps.requireAdminAuth(ctx, headers, ""); err != nil {
+		return "", nil, err
+	}
+	trimmed := make([]string, len(required))
+	for i, v := range required {
+		t := strings.TrimSpace(v)
+		if t == "" || containsNul(t) {
+			return "", nil, newAdminError(connect.CodeInvalidArgument, contracts.ErrCodeValidation, http.StatusBadRequest, errMsg, action, corrID, nil)
+		}
+		trimmed[i] = t
+	}
+	for _, v := range optional {
+		if containsNul(v) {
+			return "", nil, newAdminError(connect.CodeInvalidArgument, contracts.ErrCodeValidation, http.StatusBadRequest, errMsg, action, corrID, nil)
+		}
+	}
+	return corrID, trimmed, nil
+}
 
 func toProtoTerminalProfile(p pg.TerminalProfileRecord) *portalv1.TerminalProfileData {
 	initialEntries := make([]*portalv1.TerminalInitialEntry, 0, len(p.InitialEntries))

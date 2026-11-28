@@ -16,12 +16,9 @@ func (s *adminAuthServiceServer) EnrollTotp(
 	req *connect.Request[adminv1.EnrollTotpRequest],
 ) (*connect.Response[adminv1.EnrollTotpResponse], error) {
 	corrID := resolveCorrID(ctx)
-	adminSession, err := s.deps.getValidAdminSession(ctx, strings.TrimSpace(req.Msg.GetSessionId()))
+	adminSession, err := s.requireValidAdminSession(ctx, req.Msg.GetSessionId(), corrID, "Admin session required")
 	if err != nil {
-		return nil, mapAdminStoreError(err, corrID)
-	}
-	if adminSession == nil || adminSession.Role != "admin" || adminSession.UserID == "" {
-		return nil, newAdminError(connect.CodeUnauthenticated, "UNAUTHORIZED", http.StatusUnauthorized, "Admin session required", "Sign in first.", corrID, nil)
+		return nil, err
 	}
 	secret, err := GenerateTotpSecret()
 	if err != nil {
@@ -163,12 +160,9 @@ func (s *adminAuthServiceServer) DisableTotp(
 	req *connect.Request[adminv1.DisableTotpRequest],
 ) (*connect.Response[adminv1.DisableTotpResponse], error) {
 	corrID := resolveCorrID(ctx)
-	adminSession, err := s.deps.getValidAdminSession(ctx, strings.TrimSpace(req.Msg.GetSessionId()))
+	adminSession, err := s.requireValidAdminSession(ctx, req.Msg.GetSessionId(), corrID, "Admin session required")
 	if err != nil {
-		return nil, mapAdminStoreError(err, corrID)
-	}
-	if adminSession == nil || adminSession.Role != "admin" || adminSession.UserID == "" {
-		return nil, newAdminError(connect.CodeUnauthenticated, "UNAUTHORIZED", http.StatusUnauthorized, "Admin session required", "Sign in first.", corrID, nil)
+		return nil, err
 	}
 	if err := s.deps.disableUserTotpSecret(ctx, adminSession.UserID); err != nil {
 		return nil, mapAdminStoreError(err, corrID)

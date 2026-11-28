@@ -28,6 +28,19 @@ var storageExtraRedactPatterns = []*regexp.Regexp{
 
 var storageTrackerKeyRe = regexp.MustCompile(`\b([A-Z]{2,8})-(\d{1,8})\b`)
 
+func mapByteSpanToRawRunes(viewStr string, startByte, endByte int, spans []normRuneSpan) (int, int, bool) {
+	startRune := utf8.RuneCountInString(viewStr[:startByte])
+	endRune := startRune + utf8.RuneCountInString(viewStr[startByte:endByte])
+	if spans != nil {
+		if startRune < 0 || endRune <= startRune || endRune > len(spans) {
+			return 0, 0, false
+		}
+		startRune = spans[startRune].rawStart
+		endRune = spans[endRune-1].rawEnd
+	}
+	return startRune, endRune, true
+}
+
 func collectByteSpanMatches(
 	dst []matchInterval,
 	byteSpans [][2]int,
@@ -38,14 +51,9 @@ func collectByteSpanMatches(
 	ruleOrder int,
 ) []matchInterval {
 	for _, loc := range byteSpans {
-		startRune := utf8.RuneCountInString(viewStr[:loc[0]])
-		endRune := startRune + utf8.RuneCountInString(viewStr[loc[0]:loc[1]])
-		if spans != nil {
-			if startRune < 0 || endRune <= startRune || endRune > len(spans) {
-				continue
-			}
-			startRune = spans[startRune].rawStart
-			endRune = spans[endRune-1].rawEnd
+		startRune, endRune, ok := mapByteSpanToRawRunes(viewStr, loc[0], loc[1], spans)
+		if !ok {
+			continue
 		}
 		dst = append(dst, matchInterval{
 			start:       startRune,
@@ -157,14 +165,9 @@ func collectTrackerMatches(
 		if _, allowed := AllowedTechPrefixes[viewStr[loc[2]:loc[3]]]; allowed {
 			continue
 		}
-		startRune := utf8.RuneCountInString(viewStr[:loc[0]])
-		endRune := startRune + utf8.RuneCountInString(viewStr[loc[0]:loc[1]])
-		if spans != nil {
-			if startRune < 0 || endRune <= startRune || endRune > len(spans) {
-				continue
-			}
-			startRune = spans[startRune].rawStart
-			endRune = spans[endRune-1].rawEnd
+		startRune, endRune, ok := mapByteSpanToRawRunes(viewStr, loc[0], loc[1], spans)
+		if !ok {
+			continue
 		}
 		dst = append(dst, matchInterval{
 			start:       startRune,

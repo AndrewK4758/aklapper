@@ -100,24 +100,15 @@ func buildAdminMux(deps adminServiceDeps) *http.ServeMux {
 	mux.Handle(healthPath, healthHandler)
 
 	opts := append(grpckit.NewHandlerOptions(deps.adminSecret), connect.WithReadMaxBytes(adminGRPCMaxReadBytes))
-
-	authPath, authHandler := adminv1connect.NewAdminAuthServiceHandler(newAdminAuthServiceServer(deps), opts...)
-	mux.Handle(authPath, grpckit.NewGRPCOnlyMiddleware(authHandler))
-
-	cmsPath, cmsHandler := adminv1connect.NewAdminCmsServiceHandler(newAdminCmsServiceServer(deps), opts...)
-	mux.Handle(cmsPath, grpckit.NewGRPCOnlyMiddleware(cmsHandler))
-
-	inboxPath, inboxHandler := adminv1connect.NewAdminInboxServiceHandler(newAdminInboxServiceServer(deps), opts...)
-	mux.Handle(inboxPath, grpckit.NewGRPCOnlyMiddleware(inboxHandler))
-
-	analyticsPath, analyticsHandler := adminv1connect.NewAdminAnalyticsServiceHandler(newAdminAnalyticsServiceServer(deps), opts...)
-	mux.Handle(analyticsPath, grpckit.NewGRPCOnlyMiddleware(analyticsHandler))
-
-	quotasPath, quotasHandler := adminv1connect.NewAdminQuotasServiceHandler(newAdminQuotasServiceServer(deps), opts...)
-	mux.Handle(quotasPath, grpckit.NewGRPCOnlyMiddleware(quotasHandler))
-
-	opsPath, opsHandler := adminv1connect.NewAdminOpsServiceHandler(newAdminOpsServiceServer(deps), opts...)
-	mux.Handle(opsPath, grpckit.NewGRPCOnlyMiddleware(opsHandler))
+	mount := func(path string, handler http.Handler) {
+		mux.Handle(path, grpckit.NewGRPCOnlyMiddleware(handler))
+	}
+	mount(adminv1connect.NewAdminAuthServiceHandler(newAdminAuthServiceServer(deps), opts...))
+	mount(adminv1connect.NewAdminCmsServiceHandler(newAdminCmsServiceServer(deps), opts...))
+	mount(adminv1connect.NewAdminInboxServiceHandler(newAdminInboxServiceServer(deps), opts...))
+	mount(adminv1connect.NewAdminAnalyticsServiceHandler(newAdminAnalyticsServiceServer(deps), opts...))
+	mount(adminv1connect.NewAdminQuotasServiceHandler(newAdminQuotasServiceServer(deps), opts...))
+	mount(adminv1connect.NewAdminOpsServiceHandler(newAdminOpsServiceServer(deps), opts...))
 
 	return mux
 }

@@ -205,17 +205,25 @@ func (s *adminCmsServiceServer) UpsertCareerDossier(
 	return connect.NewResponse(&adminv1.UpsertCareerDossierResponse{Dossier: toProtoCareerDossier(rec)}), nil
 }
 
+func (s *adminCmsServiceServer) requireDossierSlug(ctx context.Context, headers http.Header, rawSlug string) (string, string, error) {
+	corrID := resolveCorrID(ctx)
+	if _, err := s.deps.requireAdminAuth(ctx, headers, ""); err != nil {
+		return "", "", err
+	}
+	slug := strings.TrimSpace(rawSlug)
+	if slug == "" || containsNul(slug) {
+		return "", "", newAdminError(connect.CodeInvalidArgument, contracts.ErrCodeValidation, http.StatusBadRequest, "Dossier slug is required.", "Select a valid career dossier.", corrID, nil)
+	}
+	return corrID, slug, nil
+}
+
 func (s *adminCmsServiceServer) PublishCareerDossier(
 	ctx context.Context,
 	req *connect.Request[adminv1.PublishCareerDossierRequest],
 ) (*connect.Response[adminv1.PublishCareerDossierResponse], error) {
-	corrID := resolveCorrID(ctx)
-	if _, err := s.deps.requireAdminAuth(ctx, req.Header(), ""); err != nil {
+	corrID, slug, err := s.requireDossierSlug(ctx, req.Header(), req.Msg.GetSlug())
+	if err != nil {
 		return nil, err
-	}
-	slug := strings.TrimSpace(req.Msg.GetSlug())
-	if slug == "" || containsNul(slug) {
-		return nil, newAdminError(connect.CodeInvalidArgument, contracts.ErrCodeValidation, http.StatusBadRequest, "Dossier slug is required.", "Select a valid career dossier.", corrID, nil)
 	}
 	denylist, dlErr := privacy.LoadPolicyDenylistFromEnv()
 	if dlErr != nil {
@@ -281,13 +289,9 @@ func (s *adminCmsServiceServer) UnpublishCareerDossier(
 	ctx context.Context,
 	req *connect.Request[adminv1.UnpublishCareerDossierRequest],
 ) (*connect.Response[adminv1.UnpublishCareerDossierResponse], error) {
-	corrID := resolveCorrID(ctx)
-	if _, err := s.deps.requireAdminAuth(ctx, req.Header(), ""); err != nil {
+	corrID, slug, err := s.requireDossierSlug(ctx, req.Header(), req.Msg.GetSlug())
+	if err != nil {
 		return nil, err
-	}
-	slug := strings.TrimSpace(req.Msg.GetSlug())
-	if slug == "" || containsNul(slug) {
-		return nil, newAdminError(connect.CodeInvalidArgument, contracts.ErrCodeValidation, http.StatusBadRequest, "Dossier slug is required.", "Select a valid career dossier.", corrID, nil)
 	}
 	updated, err := scanCareerDossierRow(s.deps.store.Pool().QueryRow(
 		ctx,
