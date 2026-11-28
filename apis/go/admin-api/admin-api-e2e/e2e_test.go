@@ -863,8 +863,10 @@ func TestAdminAPIEndToEndLivePG19(t *testing.T) {
 		}
 
 		// 6f. Verify all 7 Go-side structured observability seam events and zero PII/credential leakage in captured admin-api logs!
-		rawLogs := getLogs()
-		entries := parseStructuredSeamLogs(rawLogs)
+		// Wait for os/exec's async pipe copy to drain the final stream-failure seam emitted in 6e before snapshotting logs.
+		rawLogs, entries := waitForSeamEntry(t, getLogs, "BOUNDARY_FAULT", "admin.inbox.attachment_stream_failed", func(e map[string]any) bool {
+			return e["submissionId"] == badSubID && e["reason"] == "base64_decode_failed"
+		})
 
 		if !hasSeamEntry(entries, "UNSOUND_CONDITION", "admin_api.auth.challenge_invalid", func(e map[string]any) bool {
 			return e["kind"] == "register" && e["reason"] == "missing_or_consumed"

@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"strings"
 	"testing"
+	"time"
 )
 
 func encodeCBORBytes(b []byte) []byte {
@@ -114,4 +115,27 @@ func hasSeamEntry(entries []map[string]any, seamType, event string, match func(m
 		}
 	}
 	return false
+}
+
+// waitForSeamEntry polls the child process log buffer until os/exec's
+// asynchronous stdout/stderr copy goroutine has drained the expected seam line.
+func waitForSeamEntry(
+	t *testing.T,
+	getLogs func() string,
+	seamType, event string,
+	match func(map[string]any) bool,
+) (string, []map[string]any) {
+	t.Helper()
+	deadline := time.Now().Add(2 * time.Second)
+	for {
+		raw := getLogs()
+		entries := parseStructuredSeamLogs(raw)
+		if hasSeamEntry(entries, seamType, event, match) {
+			return raw, entries
+		}
+		if time.Now().After(deadline) {
+			return raw, entries
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
 }
